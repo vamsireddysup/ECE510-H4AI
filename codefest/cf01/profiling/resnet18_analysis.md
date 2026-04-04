@@ -5,16 +5,15 @@
 ---
 
 ## Top 5 MAC-intensive layers
-
 | Rank | Layer | Input Shape | Output Shape | Params | Mult-Adds |
 |------|-------|-------------|--------------|--------|-----------|
-| 1 | Conv2d 3-42 | [1, 512, 7, 7] | [1, 512, 7, 7] | 2,359,296 | 115,605,504 |
-| 2 | Conv2d 3-46 | [1, 512, 7, 7] | [1, 512, 7, 7] | 2,359,296 | 115,605,504 |
-| 3 | Conv2d 3-49 | [1, 512, 7, 7] | [1, 512, 7, 7] | 2,359,296 | 115,605,504 |
-| 4 | Conv2d 3-29 | [1, 256, 14, 14] | [1, 256, 14, 14] | 589,824 | 115,605,504 |
-| 5 | Conv2d 3-33 | [1, 256, 14, 14] | [1, 256, 14, 14] | 589,824 | 115,605,504 |
+| 1 | Conv2d 1-1 | [1, 3, 224, 224] | [1, 64, 112, 112] | 9,408 | 118,013,952 |
+| 2 | Conv2d 3-42 | [1, 512, 7, 7] | [1, 512, 7, 7] | 2,359,296 | 115,605,504 |
+| 3 | Conv2d 3-46 | [1, 512, 7, 7] | [1, 512, 7, 7] | 2,359,296 | 115,605,504 |
+| 4 | Conv2d 3-49 | [1, 512, 7, 7] | [1, 512, 7, 7] | 2,359,296 | 115,605,504 |
+| 5 | Conv2d 3-29 | [1, 256, 14, 14] | [1, 256, 14, 14] | 589,824 | 115,605,504 |
 
-All five layers share the same Mult-Adds count. Ranking within the tie is by parameter count (descending).
+Conv2d 1-1 has the strictly highest MAC count. Ranks 2-5 all tie at 115,605,504 MACs; within the tie, ranking is by parameter count descending. The arithmetic intensity calculation uses Conv2d 3-42 rather than Conv2d 1-1 because 1-1 is an atypical stem layer (7x7 kernel, only 3 input channels) whose tiny weight footprint makes it unrepresentative of the network's general convolutional behavior.
 
 ---
 
