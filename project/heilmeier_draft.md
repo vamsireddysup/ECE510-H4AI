@@ -1,4 +1,4 @@
-# Heilmeier catechism -- project draft
+# Heilmeier Questions
 
 ## Q1: What are you trying to do?
 
