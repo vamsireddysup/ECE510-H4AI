@@ -1,0 +1,163 @@
+======================================================================
+Transformer Scaled Dot-Product Attention -- Profiling and Benchmark
+======================================================================
+
+--- Platform ---
+CPU             : Intel Core i5-1145G7 @ 2.60GHz
+OS              : Ubuntu 24.04 LTS
+Python          : 3.12.3
+PyTorch         : 2.11.0+cu130
+Device          : CPU (no GPU detected)
+Peak compute    : 563.2 GFLOP/s (AVX-512 FMA, 4 cores @ 4.4 GHz)
+Peak bandwidth  : 68.0 GB/s (LPDDR4x-4267 dual channel)
+Ridge point     : 8.28 FLOP/byte
+Source          : Intel ARK ark.intel.com/products/208660
+
+--- Model configuration ---
+d_model         : 512
+n_heads         : 8
+head dimension  : 64  (d_model / n_heads)
+n_layers        : 6  (full transformer depth)
+d_ff            : 2048
+batch size      : 1
+Timing runs     : 10 per size (median reported)
+
+--- FLOPs per attention layer (professor appendix formulas) ---
+Operation                                       T=128        T=256        T=512
+------------------------------------------------------------------------------
+Projections (4x2xBxTxd^2)                 268,435,456  536,870,912 1,073,741,824
+QK^T [TARGET] (2xBxhxT^2xdh)               16,777,216   67,108,864  268,435,456
+AV multiply (2xBxhxT^2xdh)                 16,777,216   67,108,864  268,435,456
+Softmax (BxhxT^2)                             131,072      524,288    2,097,152
+Total attention                            33,685,504  134,742,016  538,968,064
+Total layer                               838,991,872 1,745,354,752 3,760,193,536
+Total model (6 layers)                   5,033,951,232 10,472,128,512 22,561,161,216
+
+--- QK^T scaling with sequence length ---
+T              QK^T FLOPs     Ratio vs T=128
+--------------------------------------------
+128            16,777,216               1.0x
+256            67,108,864               4.0x
+512           268,435,456              16.0x
+
+Observation: QK^T FLOPs multiply by 4x each time T doubles.
+Projections multiply by only 2x. At T>=2048 QK^T equals and then dominates projections.
+
+Analytical extrapolation to T=1024 (not benchmarked):
+  Projections : 2,147,483,648
+  QK^T        : 1,073,741,824  (now 0.5x projections)
+
+--- Arithmetic intensity for QK^T (no cache reuse assumption) ---
+T                 FLOPs          Bytes    AI (FLOP/B)     vs Ridge          Bound
+------------------------------------------------------------------------------
+128          16,777,216      1,048,576          16.00         8.28  COMPUTE-BOUND
+256          67,108,864      3,145,728          21.33         8.28  COMPUTE-BOUND
+512         268,435,456     10,485,760          25.60         8.28  COMPUTE-BOUND
+
+All three sizes are compute-bound (AI > 8.28 FLOP/byte).
+Custom hardware with more multipliers directly attacks the bottleneck.
+
+--- Memory usage per forward pass (tensor size calculation) ---
+
+  T = 128:
+    input x [B,T,d]                     : 0.26 MB
+    projected Q,K,V [B,T,d]x3           : 0.79 MB
+    split Q,K,V [B,h,T,dh]x3            : 0.79 MB
+    score matrix [B,h,T,T]              : 0.52 MB
+    AV result [B,h,T,dh]                : 0.26 MB
+    output [B,T,d]                      : 0.26 MB
+    TOTAL                               : 2.88 MB
+
+  T = 256:
+    input x [B,T,d]                     : 0.52 MB
+    projected Q,K,V [B,T,d]x3           : 1.57 MB
+    split Q,K,V [B,h,T,dh]x3            : 1.57 MB
+    score matrix [B,h,T,T]              : 2.10 MB
+    AV result [B,h,T,dh]                : 0.52 MB
+    output [B,T,d]                      : 0.52 MB
+    TOTAL                               : 6.82 MB
+
+  T = 512:
+    input x [B,T,d]                     : 1.05 MB
+    projected Q,K,V [B,T,d]x3           : 3.15 MB
+    split Q,K,V [B,h,T,dh]x3            : 3.15 MB
+    score matrix [B,h,T,T]              : 8.39 MB
+    AV result [B,h,T,dh]                : 1.05 MB
+    output [B,T,d]                      : 1.05 MB
+    TOTAL                               : 17.83 MB
+
+--- Building model ---
+Model parameters : 1,050,624
+
+--- Wall-clock timing (MultiHeadAttention.forward(), 10 runs, median) ---
+T           Median (ms)     QK^T GFLOP/s    Layer GFLOP/s    Memory (MB)
+----------------------------------------------------------------------
+128              4.3089           3.8936         194.7127           2.88
+256              8.4223           7.9680         207.2313           6.82
+512             23.0875          11.6269         162.8672          17.83
+
+--- Latency scaling with T ---
+T           Median (ms)     Ratio vs T=128
+------------------------------------------
+128              4.3089              1.00x
+256              8.4223              1.95x
+512             23.0875              5.36x
+
+Latency grows faster than 2x per doubling of T,
+consistent with QK^T T^2 scaling dominating at larger T.
+
+--- cProfile: function-level breakdown at T=512 ---
+(10 runs of MultiHeadAttention.forward())
+         704 function calls (584 primitive calls) in 0.243 seconds
+
+   Ordered by: cumulative time
+   List reduced from 29 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    70/10    0.000    0.000    0.243    0.024 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/module.py:1775(_wrapped_call_impl)
+    70/10    0.033    0.000    0.243    0.024 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/module.py:1783(_call_impl)
+       10    0.001    0.000    0.210    0.021 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/multi_head_attention.py:22(forward)
+       10    0.084    0.008    0.113    0.011 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/scale_dot_product_attention.py:24(forward)
+       40    0.000    0.000    0.093    0.002 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/linear.py:130(forward)
+       40    0.093    0.002    0.093    0.002 {built-in method torch._C._nn.linear}
+       10    0.000    0.000    0.029    0.003 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/activation.py:1811(forward)
+       10    0.000    0.000    0.029    0.003 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/functional.py:2122(softmax)
+       10    0.029    0.003    0.029    0.003 {method 'softmax' of 'torch._C.TensorBase' objects}
+       10    0.000    0.000    0.002    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/multi_head_attention.py:56(concat)
+       10    0.001    0.000    0.001    0.000 {method 'contiguous' of 'torch._C.TensorBase' objects}
+       30    0.000    0.000    0.001    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/multi_head_attention.py:41(split)
+       50    0.001    0.000    0.001    0.000 {method 'transpose' of 'torch._C.TensorBase' objects}
+       40    0.000    0.000    0.000    0.000 {method 'view' of 'torch._C.TensorBase' objects}
+       70    0.000    0.000    0.000    0.000 {built-in method torch._C._get_tracing_state}
+      140    0.000    0.000    0.000    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/module.py:1955(__getattr__)
+       50    0.000    0.000    0.000    0.000 {method 'size' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+       10    0.000    0.000    0.000    0.000 {built-in method math.sqrt}
+        2    0.000    0.000    0.000    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/autograd/grad_mode.py:184(__init__)
+
+
+
+======================================================================
+SOFTWARE BASELINE SUMMARY (M1)
+======================================================================
+Algorithm       : Scaled dot-product attention (transformer)
+Kernel target   : QK^T matrix multiply in ScaleDotProductAttention.forward()
+Platform        : Intel i5-1145G7 CPU, Ubuntu 24.04, PyTorch 2.11.0
+
+T          Latency (ms)    QK^T AI   Classification
+----------------------------------------------------
+128              4.3089      16.00    compute-bound
+256              8.4223      21.33    compute-bound
+512             23.0875      25.60    compute-bound
+
+Dominant kernel : ScaleDotProductAttention.forward()
+  score = (q @ k_t) / math.sqrt(d_tensor)  [QK^T line]
+  This operation scales as T^2 and is compute-bound on CPU.
+  At T=512: AI = 25.60 FLOP/byte > ridge = 8.28 FLOP/byte.
+
+Note: at T=512 linear projections have comparable measured cost.
+At T>=2048, QK^T reaches parity with projections and then dominates due to T^2 vs T scaling.
+  T=1024 QK^T FLOPs : 1,073,741,824
+  T=1024 proj FLOPs : 2,147,483,648
+  Ratio QK^T/proj   : 0.5x  (QK^T reaches parity with proj at T=2048)
+======================================================================
