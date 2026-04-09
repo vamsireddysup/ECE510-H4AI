@@ -1,121 +1,98 @@
 # CMAN — Roofline construction and kernel classification
 
-**Hardware specification:** Peak compute = 10 TFLOPS (FP32) = 10,000 GFLOP/s | Peak DRAM bandwidth = 320 GB/s
+**Hardware:** Peak compute = 10 TFLOPS (FP32) = 10,000 GFLOP/s | Peak DRAM bandwidth = 320 GB/s
 
 ---
 
-## Task 1: Roofline construction
+## Task 1: Roofline
 
-**Ridge point calculation:**
+Ridge point = Peak compute / Peak bandwidth = 10,000 / 320 = **31.25 FLOP/byte**
 
-Ridge point = Peak compute / Peak bandwidth = 10,000 GFLOP/s / 320 GB/s = **31.25 FLOP/byte**
+Any kernel above 31.25 FLOP/byte is compute-bound. Any kernel below is memory-bound.
 
-This is the arithmetic intensity at which a kernel transitions from memory-bound to compute-bound. Any kernel with AI > 31.25 FLOP/byte is compute-bound and hits the compute ceiling. Any kernel with AI < 31.25 FLOP/byte is memory-bound and hits the bandwidth ceiling.
-
-**Roofline construction rules:**
-- X axis: arithmetic intensity (FLOP/byte), log scale, range 0.01 to 1000
-- Y axis: attainable performance (GFLOP/s), log scale, range 1 to 100,000
-- Bandwidth ceiling (diagonal): Performance = AI x 320 GB/s, slope = 1 on log-log axes
-- Compute ceiling (flat): Performance = 10,000 GFLOP/s
-- Ridge point: (31.25 FLOP/byte, 10,000 GFLOP/s)
-
-See roofline diagram: `codefest/cf02/profiling/roofline_project.png`
+<img width="1440" height="1036" alt="Roofline diagram showing compute ceiling at 10,000 GFLOP/s, bandwidth ceiling slope, ridge point at 31.25 FLOP/byte, GEMM kernel at 170.7 FLOP/byte on compute ceiling, and vector add at 0.083 FLOP/byte on bandwidth ceiling." src="https://github.com/user-attachments/assets/5f6e0059-d4ec-4219-b466-59ba896e9337" />
 
 ---
 
 ## Task 2: Kernel A — Dense GEMM 1024x1024
 
-**Problem:** Multiply two FP32 matrices A and B, each of size 1024x1024, to produce output matrix C.
+To get each output element C[i,j], I multiply a full row of A by a full column of B (1024 multiplications) and sum everything up (1024 additions). That is 2 x 1024 operations per output element, and there are 1024 x 1024 output elements total.
 
-### (a) FLOPs calculation
-
-Each output element C[i,j] requires multiplying a row of A by a column of B (1024 multiplications) and summing the results (1024 additions). Each element therefore costs 2 x 1024 operations.
-
-Total output elements = 1024 x 1024 = 1,048,576
-
+**FLOPs:**
 ```
-FLOPs = 2 x N^3  where N = 1024
-FLOPs = 2 x 1024 x 1024 x 1024
-FLOPs = 2,147,483,648  (~2.1 GFLOP)
+FLOPs = 2 x N^3 = 2 x 1024^3 = 2,147,483,648
 ```
 
-### (b) Bytes transferred (no cache reuse, all from DRAM)
+**Bytes transferred (no cache reuse, everything comes from DRAM):**
 
-Each matrix element is FP32 = 4 bytes.
-
+Each number is FP32 = 4 bytes.
 ```
-Matrix A:  1024 x 1024 x 4 bytes =  4,194,304 bytes
-Matrix B:  1024 x 1024 x 4 bytes =  4,194,304 bytes
-Matrix C:  1024 x 1024 x 4 bytes =  4,194,304 bytes  (written back to DRAM)
+Matrix A:  1024 x 1024 x 4 =  4,194,304 bytes
+Matrix B:  1024 x 1024 x 4 =  4,194,304 bytes
+Matrix C:  1024 x 1024 x 4 =  4,194,304 bytes
 
-Total bytes = 3 x 4,194,304 = 12,582,912 bytes (~12 MB)
-```
-
-### (c) Arithmetic intensity
-
-```
-AI = FLOPs / bytes = 2,147,483,648 / 12,582,912 = 170.7 FLOP/byte
+Total = 12,582,912 bytes
 ```
 
-### (d) Analysis
+**Arithmetic intensity:**
+```
+AI = 2,147,483,648 / 12,582,912 = 170.7 FLOP/byte
+```
+
+**Analysis:**
 
 | Property | Value |
 |---|---|
-| Arithmetic intensity | 170.7 FLOP/byte |
+| AI | 170.7 FLOP/byte |
 | Ridge point | 31.25 FLOP/byte |
 | Bound | Compute-bound (170.7 >> 31.25) |
 | Attainable performance | 10,000 GFLOP/s (hits compute ceiling) |
 
-**Architectural recommendation:** Since the bottleneck is compute, the most effective improvement is adding more FMA (Fused Multiply-Add) units or wider SIMD execution lanes. Increasing memory bandwidth would have no effect because the processor cannot consume data fast enough to make bandwidth the bottleneck.
+**Recommendation:** Kernel A is compute-bound, so more FMA units or wider SIMD lanes would help. Increasing memory bandwidth would not change anything here because memory is not what is slowing it down.
 
 ---
 
 ## Task 3: Kernel B — Vector addition, length 4,194,304
 
-**Problem:** Add two FP32 vectors A and B element-wise to produce output vector C. Each element: C[i] = A[i] + B[i].
+This is the simplest possible kernel -- one addition per element. Load two numbers, add them, write the result.
 
-### (a) FLOPs calculation
-
-One addition per element.
-
+**FLOPs:**
 ```
-FLOPs = 4,194,304  (~4.2 MFLOP)
+FLOPs = 4,194,304
 ```
 
-### (b) Bytes transferred (no cache reuse, all from DRAM)
-
+**Bytes transferred (no cache reuse, everything from DRAM):**
 ```
-Vector A:  4,194,304 x 4 bytes = 16,777,216 bytes
-Vector B:  4,194,304 x 4 bytes = 16,777,216 bytes
-Vector C:  4,194,304 x 4 bytes = 16,777,216 bytes  (written back to DRAM)
+Vector A:  4,194,304 x 4 = 16,777,216 bytes
+Vector B:  4,194,304 x 4 = 16,777,216 bytes
+Vector C:  4,194,304 x 4 = 16,777,216 bytes
 
-Total bytes = 3 x 16,777,216 = 50,331,648 bytes (~50 MB)
-```
-
-### (c) Arithmetic intensity
-
-```
-AI = FLOPs / bytes = 4,194,304 / 50,331,648 = 0.083 FLOP/byte
+Total = 50,331,648 bytes
 ```
 
-### (d) Analysis
+**Arithmetic intensity:**
+```
+AI = 4,194,304 / 50,331,648 = 0.083 FLOP/byte
+```
+
+**Analysis:**
 
 | Property | Value |
 |---|---|
-| Arithmetic intensity | 0.083 FLOP/byte |
+| AI | 0.083 FLOP/byte |
 | Ridge point | 31.25 FLOP/byte |
 | Bound | Memory-bound (0.083 << 31.25) |
-| Attainable performance | AI x Bpeak = 0.083 x 320 = 26.7 GFLOP/s |
+| Attainable performance | 0.083 x 320 = 26.7 GFLOP/s (hits bandwidth ceiling) |
 
-**Architectural recommendation:** Since the bottleneck is memory bandwidth, the most effective improvement is higher-bandwidth memory such as HBM (High Bandwidth Memory) in place of standard DRAM. HBM can provide 1-2 TB/s bandwidth, which would proportionally increase attainable performance. Adding more compute units would have no effect because the compute units are already idle most of the time waiting for data to arrive.
+**Recommendation:** Kernel B is memory-bound, so the only way to improve it is higher memory bandwidth -- something like HBM instead of DRAM. Adding more compute units would not help because the compute units are already sitting idle waiting for data to arrive.
 
 ---
 
-## Summary table
+## Summary
 
 | Kernel | FLOPs | Bytes | AI (FLOP/byte) | Bound | Attainable (GFLOP/s) |
 |---|---|---|---|---|---|
-| Dense GEMM 1024x1024 | 2,147,483,648 | 12,582,912 | 170.7 | Compute | 10,000 |
-| Vector addition 4M | 4,194,304 | 50,331,648 | 0.083 | Memory | 26.7 |
+| GEMM 1024x1024 | 2,147,483,648 | 12,582,912 | 170.7 | Compute | 10,000 |
+| Vector add 4M | 4,194,304 | 50,331,648 | 0.083 | Memory | 26.7 |
 
 Ridge point: **31.25 FLOP/byte** at **10,000 GFLOP/s**
