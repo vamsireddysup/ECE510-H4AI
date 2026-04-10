@@ -10,8 +10,7 @@ torch._C._nn.linear                   cumtime 0.093s   ( 9.3 ms per run)
 softmax                               cumtime 0.029s   ( 2.9 ms per run)
 ```
 
-The dominant function is `ScaleDotProductAttention.forward()`, accounting for
-53% of total attention computation time. The specific line that drives this cost is:
+The dominant function is `ScaleDotProductAttention.forward()`, accounting for 53% of total MultiHeadAttention forward pass time. The specific line that drives this cost is:
 
 ```python
 score = (q @ k_t) / math.sqrt(d_tensor)   # QK^T matrix multiply
