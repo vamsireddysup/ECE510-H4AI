@@ -92,40 +92,40 @@ Model parameters : 1,050,624
 --- Wall-clock timing (MultiHeadAttention.forward(), 10 runs, median) ---
 T           Median (ms)     QK^T GFLOP/s    Layer GFLOP/s    Memory (MB)
 ----------------------------------------------------------------------
-128              4.3089           3.8936         194.7127           2.88
-256              8.4223           7.9680         207.2313           6.82
-512             23.0875          11.6269         162.8672          17.83
+128              7.0352           2.3847         119.2556           2.88
+256              9.0540           7.4121         192.7713           6.82
+512             23.6401          11.3551         159.0598          17.83
 
 --- Latency scaling with T ---
 T           Median (ms)     Ratio vs T=128
 ------------------------------------------
-128              4.3089              1.00x
-256              8.4223              1.95x
-512             23.0875              5.36x
+128              7.0352              1.00x
+256              9.0540              1.29x
+512             23.6401              3.36x
 
 Latency grows faster than 2x per doubling of T,
 consistent with QK^T T^2 scaling dominating at larger T.
 
 --- cProfile: function-level breakdown at T=512 ---
 (10 runs of MultiHeadAttention.forward())
-         704 function calls (584 primitive calls) in 0.243 seconds
+         704 function calls (584 primitive calls) in 0.246 seconds
 
    Ordered by: cumulative time
    List reduced from 29 to 20 due to restriction <20>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-    70/10    0.000    0.000    0.243    0.024 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/module.py:1775(_wrapped_call_impl)
-    70/10    0.033    0.000    0.243    0.024 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/module.py:1783(_call_impl)
-       10    0.001    0.000    0.210    0.021 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/multi_head_attention.py:22(forward)
-       10    0.084    0.008    0.113    0.011 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/scale_dot_product_attention.py:24(forward)
-       40    0.000    0.000    0.093    0.002 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/linear.py:130(forward)
-       40    0.093    0.002    0.093    0.002 {built-in method torch._C._nn.linear}
-       10    0.000    0.000    0.029    0.003 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/activation.py:1811(forward)
-       10    0.000    0.000    0.029    0.003 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/functional.py:2122(softmax)
+    70/10    0.001    0.000    0.246    0.025 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/module.py:1775(_wrapped_call_impl)
+    70/10    0.031    0.000    0.246    0.025 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/module.py:1783(_call_impl)
+       10    0.001    0.000    0.216    0.022 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/multi_head_attention.py:22(forward)
+       10    0.086    0.009    0.116    0.012 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/scale_dot_product_attention.py:24(forward)
+       40    0.000    0.000    0.095    0.002 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/linear.py:130(forward)
+       40    0.094    0.002    0.094    0.002 {built-in method torch._C._nn.linear}
+       10    0.000    0.000    0.030    0.003 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/modules/activation.py:1811(forward)
+       10    0.000    0.000    0.030    0.003 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/nn/functional.py:2122(softmax)
        10    0.029    0.003    0.029    0.003 {method 'softmax' of 'torch._C.TensorBase' objects}
        10    0.000    0.000    0.002    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/multi_head_attention.py:56(concat)
-       10    0.001    0.000    0.001    0.000 {method 'contiguous' of 'torch._C.TensorBase' objects}
        30    0.000    0.000    0.001    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/reference/transformer_pytorch/models/layers/multi_head_attention.py:41(split)
+       10    0.001    0.000    0.001    0.000 {method 'contiguous' of 'torch._C.TensorBase' objects}
        50    0.001    0.000    0.001    0.000 {method 'transpose' of 'torch._C.TensorBase' objects}
        40    0.000    0.000    0.000    0.000 {method 'view' of 'torch._C.TensorBase' objects}
        70    0.000    0.000    0.000    0.000 {built-in method torch._C._get_tracing_state}
@@ -133,7 +133,7 @@ consistent with QK^T T^2 scaling dominating at larger T.
        50    0.000    0.000    0.000    0.000 {method 'size' of 'torch._C.TensorBase' objects}
         1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
        10    0.000    0.000    0.000    0.000 {built-in method math.sqrt}
-        2    0.000    0.000    0.000    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/autograd/grad_mode.py:184(__init__)
+        1    0.000    0.000    0.000    0.000 /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/lib/python3.12/site-packages/torch/autograd/grad_mode.py:80(__enter__)
 
 
 
@@ -146,9 +146,9 @@ Platform        : Intel i5-1145G7 CPU, Ubuntu 24.04, PyTorch 2.11.0
 
 T          Latency (ms)    QK^T AI   Classification
 ----------------------------------------------------
-128              4.3089      16.00    compute-bound
-256              8.4223      21.33    compute-bound
-512             23.0875      25.60    compute-bound
+128              7.0352      16.00    compute-bound
+256              9.0540      21.33    compute-bound
+512             23.6401      25.60    compute-bound
 
 Dominant kernel : ScaleDotProductAttention.forward()
   score = (q @ k_t) / math.sqrt(d_tensor)  [QK^T line]
