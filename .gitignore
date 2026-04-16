@@ -4,3 +4,5 @@ hw4ai-env/
 __pycache__/
 reference/
 project/m2/hdl/tb/obj_dir/
+project/m2/hdl/tb/obj_array/
+project/m2/hdl/tb/obj_pe/
