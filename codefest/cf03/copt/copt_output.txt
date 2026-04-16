@@ -1,0 +1,7 @@
+Device: Tesla T4
+Model device: cuda:0
+Input shape: torch.Size([16, 4])
+Input device: cuda:0
+Output shape: torch.Size([16, 1])
+Output device: cuda:0
+Output (first 4 values): [-0.4458479881286621, -0.6923733949661255, -0.6236091256141663, -0.11956149339675903]
