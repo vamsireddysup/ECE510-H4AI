@@ -1,32 +1,54 @@
-# Makefile for PE testbench
+# Makefile for HDL testbenches
 # Usage:
-#   make        -- compile and run
-#   make compile -- compile only
-#   make run     -- run only
-#   make clean   -- remove generated files
+#   make           -- compile and run both testbenches
+#   make pe        -- compile and run PE testbench only
+#   make array     -- compile and run systolic array testbench only
+#   make clean     -- remove all generated files
 
-SRC_DIR  = ../src
-TB_DIR   = .
-OBJ_DIR  = obj_dir
+SRC_DIR = ../src
+TB_DIR  = .
 
-DUT      = pe
-TB       = tb_pe
+all: pe array
 
-all: compile run
+# -----------------------------------------------------------------------
+# PE testbench
+# -----------------------------------------------------------------------
+pe: compile_pe run_pe
 
-compile:
-	verilator --cc $(SRC_DIR)/$(DUT).sv \
-	          --exe $(TB_DIR)/$(TB).cpp \
+compile_pe:
+	verilator --cc $(SRC_DIR)/pe.sv \
+	          --exe $(TB_DIR)/tb_pe.cpp \
 	          --build \
 	          -Wall \
 	          --trace \
-	          -o $(TB) \
-	          --Mdir $(OBJ_DIR)
+	          -o tb_pe \
+	          --Mdir obj_pe
 
-run:
-	./$(OBJ_DIR)/$(TB)
+run_pe:
+	./obj_pe/tb_pe
+
+# -----------------------------------------------------------------------
+# Systolic array testbench
+# Overrides SIZE=4 and D_HEAD=4 to match the golden reference matrices
+# -----------------------------------------------------------------------
+array: compile_array run_array
+
+compile_array:
+	verilator --cc $(SRC_DIR)/pe.sv \
+	          $(SRC_DIR)/systolic_array.sv \
+	          --exe $(TB_DIR)/tb_systolic_array.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -o tb_systolic_array \
+	          --Mdir obj_array \
+	          --top-module systolic_array
+
+run_array:
+	./obj_array/tb_systolic_array
 
 clean:
-	rm -rf $(OBJ_DIR)
+	rm -rf obj_pe obj_array
 
-.PHONY: all compile run clean
+.PHONY: all pe array compile_pe run_pe compile_array run_array clean

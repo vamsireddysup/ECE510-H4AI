@@ -61,12 +61,21 @@ module pe (
         end
     end
 
+   // -----------------------------------------------------------------------
+    // Pass-through -- registered, one cycle latency
+    // Registered pass-through breaks combinational loop across PE grid.
+    // In real silicon, signals always register between pipeline stages.
     // -----------------------------------------------------------------------
-    // Pass-through -- combinational, zero latency
-    // Neighbors receive the same values this PE received
-    // -----------------------------------------------------------------------
-    assign a_out  = a_in;
-    assign b_out  = b_in;
+    always_ff @(posedge clk) begin
+        if (!rst_n) begin
+            a_out <= 16'sd0;
+            b_out <= 16'sd0;
+        end else begin
+            a_out <= a_in;
+            b_out <= b_in;
+        end
+    end
+
     assign result = acc;
 
 endmodule
