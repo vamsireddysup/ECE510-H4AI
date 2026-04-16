@@ -44,5 +44,3 @@ The remaining bottleneck is low GPU occupancy from the small tile size T=8,
 which gives only 64 threads per block. This under-utilizes the T4's warp
 schedulers and limits parallelism. A larger tile (T=16 or T=32) would improve
 occupancy and push the kernel closer to the compute ceiling.
-EOF
-print("Written gemm_analysis.md")
