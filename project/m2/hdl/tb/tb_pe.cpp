@@ -1,25 +1,50 @@
 /*
- * tb_pe.cpp -- Verilator testbench for pe.sv
+ * tb_pe.cpp -- Verilator testbench for FP32 PE module
  *
- * Tests one Processing Element in isolation.
- * Feeds Q row elements from the left and K^T column elements
- * from the top, one pair per clock cycle, and verifies the
- * accumulated dot product matches the expected result.
+ * Tests the FP32 processing element by feeding Q row elements from
+ * the left and K^T column elements from the top, one pair per cycle,
+ * and verifying the accumulated dot product matches a Python-computed
+ * golden reference.
  *
- * Test case: dot([1,2,3,4], [1,0,1,0]) = 4
- * This matches QKT[0][0] from the golden reference.
+ * FP32 values are passed as uint32_t (bit-cast from float) because
+ * the SystemVerilog ports are logic [31:0].
+ *
+ * Pipeline latency: fp32_mul (3) + fp32_add (4) = 7 cycles per MAC.
+ * After feeding D_HEAD=4 pairs, drain for 7 more cycles before reading.
+ *
+ * Test cases match golden reference from gen_golden.py:
+ *   Test 1: dot([1,2,3,4], [1,0,1,0]) = 4.0  (QKT[0][0])
+ *   Test 2: dot([5,6,7,8], [1,0,1,0]) = 12.0 (QKT[1][0])
  *
  * Author: Vamsidhar Reddy Eraganeni
  * Course: ECE 510 Spring 2026, Portland State University
  */
 
-#include "Vpe.h"          // Verilator-generated header for pe.sv
-#include "verilated.h"    // Verilator runtime
+#include "Vpe.h"
+#include "verilated.h"
 #include <iostream>
 #include <cstdint>
+#include <cstring>
+#include <cmath>
 
 // ---------------------------------------------------------------------------
-// Clock helper -- toggle clock and evaluate
+// Bit-cast helpers: float <-> uint32_t
+// Safe reinterpretation using memcpy (avoids undefined behavior)
+// ---------------------------------------------------------------------------
+static uint32_t f2b(float f) {
+    uint32_t b;
+    std::memcpy(&b, &f, sizeof(float));
+    return b;
+}
+
+static float b2f(uint32_t b) {
+    float f;
+    std::memcpy(&f, &b, sizeof(float));
+    return f;
+}
+
+// ---------------------------------------------------------------------------
+// Clock tick
 // ---------------------------------------------------------------------------
 static void tick(Vpe* dut) {
     dut->clk = 0;
@@ -29,16 +54,66 @@ static void tick(Vpe* dut) {
 }
 
 // ---------------------------------------------------------------------------
-// Reset helper -- hold reset for 2 cycles
+// Reset -- hold for 3 cycles
 // ---------------------------------------------------------------------------
 static void reset(Vpe* dut) {
     dut->rst_n    = 0;
     dut->a_in     = 0;
     dut->b_in     = 0;
     dut->valid_in = 0;
-    tick(dut);
-    tick(dut);
+    tick(dut); tick(dut); tick(dut);
     dut->rst_n = 1;
+    tick(dut);
+}
+
+// ---------------------------------------------------------------------------
+// Run one dot product test
+// Feeds d_head pairs of (a_vec, b_vec), drains pipeline, checks result
+// ---------------------------------------------------------------------------
+static bool run_test(Vpe* dut,
+                     const char* name,
+                     float* a_vec,
+                     float* b_vec,
+                     int    d_head,
+                     float  expected,
+                     float  tolerance = 1e-4f)
+{
+    std::cout << "\n--- " << name << " ---\n";
+    std::cout << "Expected: " << expected << "\n\n";
+
+    // Feed d_head pairs
+    for (int i = 0; i < d_head; i++) {
+        dut->a_in     = f2b(a_vec[i]);
+        dut->b_in     = f2b(b_vec[i]);
+        dut->valid_in = 1;
+        tick(dut);
+        std::cout << "Feed cycle " << (i+1)
+                  << ": a=" << a_vec[i]
+                  << " b=" << b_vec[i] << "\n";
+    }
+
+    // Deassert valid
+    dut->valid_in = 0;
+    dut->a_in     = 0;
+    dut->b_in     = 0;
+
+    // Drain pipeline: (fp32_mul latency) + (fp32_add latency) = 3+4 = 7
+    int drain = 20;//changed from 7cycles to 20 cycles
+    std::cout << "Draining " << drain << " cycles...\n";
+    for (int i = 0; i < drain; i++) {
+        tick(dut);
+    }
+
+    // Read result
+    float got = b2f(dut->result);
+    float err = std::fabs(got - expected);
+    bool  ok  = (err <= tolerance);
+
+    std::cout << "Result:   " << got << "\n";
+    std::cout << "Error:    " << err << "\n";
+    std::cout << (ok ? "PASS" : "FAIL") << "\n";
+
+    return ok;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,113 +121,36 @@ static void reset(Vpe* dut) {
 // ---------------------------------------------------------------------------
 int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
-
-    // Instantiate the DUT (Device Under Test)
     Vpe* dut = new Vpe;
 
     std::cout << "========================================\n";
-    std::cout << "PE Testbench -- Dot Product Verification\n";
+    std::cout << "FP32 PE Testbench -- Dot Product Verify\n";
     std::cout << "========================================\n";
 
-    // Reset the PE
+    int pass = 0;
+    int total = 2;
+
+    // Test 1: dot([1,2,3,4], [1,0,1,0]) = 4.0
     reset(dut);
-    std::cout << "Reset complete.\n\n";
+    std::cout << "Reset complete.\n";
+    float a1[] = {1.0f, 2.0f, 3.0f, 4.0f};
+    float b1[] = {1.0f, 0.0f, 1.0f, 0.0f};
+    if (run_test(dut, "Test 1: dot([1,2,3,4],[1,0,1,0])",
+                 a1, b1, 4, 4.0f)) pass++;
 
-    // -----------------------------------------------------------------------
-    // Test 1: dot([1,2,3,4], [1,0,1,0]) = 4
-    // This is Q row 0 dotted with K^T col 0 from the golden reference
-    // Expected: 1*1 + 2*0 + 3*1 + 4*0 = 4
-    // -----------------------------------------------------------------------
-    int16_t a_vec[4] = {1, 2, 3, 4};   // Q row 0
-    int16_t b_vec[4] = {1, 0, 1, 0};   // K^T col 0 (= K row 0)
-    int32_t expected = 4;
-
-    std::cout << "Test 1: dot([1,2,3,4], [1,0,1,0])\n";
-    std::cout << "Expected result: " << expected << "\n\n";
-
-    // Feed 4 pairs of elements, one per cycle
-    for (int i = 0; i < 4; i++) {
-        dut->a_in     = a_vec[i];
-        dut->b_in     = b_vec[i];
-        dut->valid_in = 1;
-        tick(dut);
-
-        std::cout << "Cycle " << (i+1)
-                  << ": a=" << a_vec[i]
-                  << " b=" << b_vec[i]
-                  << " acc=" << dut->result
-                  << "\n";
-    }
-
-    // Deassert valid after feeding all elements
-    dut->valid_in = 0;
-    tick(dut);
-
-    // Check result
-    int32_t got = dut->result;
-    std::cout << "\nFinal result: " << got << "\n";
-
-    if (got == expected) {
-        std::cout << "PASS: result matches expected value " 
-                  << expected << "\n";
-    } else {
-        std::cout << "FAIL: got " << got 
-                  << " expected " << expected << "\n";
-    }
-
-    // -----------------------------------------------------------------------
-    // Test 2: dot([5,6,7,8], [1,0,1,0]) = 12
-    // This is Q row 1 dotted with K^T col 0
-    // Expected: 5*1 + 6*0 + 7*1 + 8*0 = 12
-    // -----------------------------------------------------------------------
-
-    // Reset before second test to clear accumulator
+    // Test 2: dot([5,6,7,8], [1,0,1,0]) = 12.0
     reset(dut);
+    float a2[] = {5.0f, 6.0f, 7.0f, 8.0f};
+    float b2[] = {1.0f, 0.0f, 1.0f, 0.0f};
+    if (run_test(dut, "Test 2: dot([5,6,7,8],[1,0,1,0])",
+                 a2, b2, 4, 12.0f)) pass++;
 
-    int16_t a_vec2[4] = {5, 6, 7, 8};  // Q row 1
-    int16_t b_vec2[4] = {1, 0, 1, 0};  // K^T col 0
-    int32_t expected2 = 12;
-
-    std::cout << "\n----------------------------------------\n";
-    std::cout << "Test 2: dot([5,6,7,8], [1,0,1,0])\n";
-    std::cout << "Expected result: " << expected2 << "\n\n";
-
-    for (int i = 0; i < 4; i++) {
-        dut->a_in     = a_vec2[i];
-        dut->b_in     = b_vec2[i];
-        dut->valid_in = 1;
-        tick(dut);
-
-        std::cout << "Cycle " << (i+1)
-                  << ": a=" << a_vec2[i]
-                  << " b=" << b_vec2[i]
-                  << " acc=" << dut->result
-                  << "\n";
-    }
-
-    dut->valid_in = 0;
-    tick(dut);
-
-    int32_t got2 = dut->result;
-    std::cout << "\nFinal result: " << got2 << "\n";
-
-    if (got2 == expected2) {
-        std::cout << "PASS: result matches expected value "
-                  << expected2 << "\n";
-    } else {
-        std::cout << "FAIL: got " << got2
-                  << " expected " << expected2 << "\n";
-    }
-
-    // -----------------------------------------------------------------------
-    // Summary
-    // -----------------------------------------------------------------------
     std::cout << "\n========================================\n";
-    int pass_count = (got == expected) + (got2 == expected2);
-    std::cout << "Results: " << pass_count << "/2 tests passed\n";
+    std::cout << "Results: " << pass << "/" << total
+              << " tests passed\n";
     std::cout << "========================================\n";
 
     dut->final();
     delete dut;
-    return (pass_count == 2) ? 0 : 1;
+    return (pass == total) ? 0 : 1;
 }

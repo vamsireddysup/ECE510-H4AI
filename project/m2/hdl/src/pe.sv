@@ -1,78 +1,102 @@
 /*
- * pe.sv -- Processing Element for QK^T Systolic Array
+ * pe.sv -- FP32 Processing Element for QK^T Systolic Array
  *
  * Each PE computes one element of the output matrix QK^T.
- * It receives one element from Q (a_in, from left neighbor) and
- * one element from K^T (b_in, from top neighbor) every clock cycle,
- * multiplies them, and accumulates the result.
+ * Receives one FP32 element from Q (a_in, from left neighbor) and
+ * one FP32 element from K^T (b_in, from top neighbor) every clock
+ * cycle, multiplies them using fp32_mul, accumulates using fp32_add.
  *
- * Data passes through to neighbors unchanged so the wavefront
- * propagates across the full array.
+ * Pipeline latency:
+ *   fp32_mul: 3 cycles
+ *   fp32_add: 4 cycles
+ *   Total per MAC: 7 cycles
  *
- * Precision: 16-bit fixed-point input, 32-bit accumulator.
- * Q16.0 format: 16-bit integer arithmetic.
- * Accumulator is 32-bit to avoid overflow during accumulation.
+ * Pass-throughs (a_out, b_out) are registered to break combinational
+ * loops across the PE grid.
  *
  * Author: Vamsidhar Reddy Eraganeni
  * Course: ECE 510 Spring 2026, Portland State University
  */
 
 module pe (
-    input  logic        clk,        // clock
-    input  logic        rst_n,      // active-low synchronous reset
-    input  logic signed [15:0] a_in,     // element from Q row (from left)
-    input  logic signed [15:0] b_in,     // element from K^T col (from top)
-    input  logic        valid_in,   // high when a_in and b_in carry valid data
+    input  logic        clk,
+    input  logic        rst_n,
+    input  logic [31:0] a_in,
+    input  logic [31:0] b_in,
+    input  logic        valid_in,
 
-    output logic signed [15:0] a_out,    // pass a_in to right neighbor
-    output logic signed [15:0] b_out,   // pass b_in to bottom neighbor
-    output logic        valid_out,  // delayed valid signal to neighbors
-    output logic signed [31:0] result,   // accumulated dot product
-    output logic        result_valid // high when result holds a complete value
+    output logic [31:0] a_out,
+    output logic [31:0] b_out,
+    output logic        valid_out,
+    output logic [31:0] result,
+    output logic        result_valid
 );
 
     // -----------------------------------------------------------------------
-    // Internal signals
-    // -----------------------------------------------------------------------
-    logic signed [31:0] product;    // one multiply result (16b x 16b = 32b)
-    logic signed [31:0] acc;        // accumulator register
-
-    // -----------------------------------------------------------------------
-    // Multiply -- combinational, no register
-    // Multiply a_in by b_in every cycle when valid
-    // -----------------------------------------------------------------------
-    assign product = {{16{a_in[15]}}, a_in} * {{16{b_in[15]}}, b_in};
-
-    // -----------------------------------------------------------------------
-    // Accumulator -- registered, updates every valid cycle
+    // Registered pass-throughs -- breaks combinational loops across PE grid
     // -----------------------------------------------------------------------
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            acc          <= 32'sd0;
-            valid_out    <= 1'b0;
-            result_valid <= 1'b0;
+            a_out     <= 32'h0;
+            b_out     <= 32'h0;
+            valid_out <= 1'b0;
         end else begin
-            valid_out <= valid_in;  // pass valid to neighbors one cycle later
-
-            if (valid_in) begin
-                acc          <= acc + product;  // accumulate
-                result_valid <= 1'b1;           // result is being built
-            end
+            a_out     <= a_in;
+            b_out     <= b_in;
+            valid_out <= valid_in;
         end
     end
 
-   // -----------------------------------------------------------------------
-    // Pass-through -- registered, one cycle latency
-    // Registered pass-through breaks combinational loop across PE grid.
-    // In real silicon, signals always register between pipeline stages.
+    // -----------------------------------------------------------------------
+    // FP32 Multiply: a_in * b_in -> product (3-cycle latency)
+    // -----------------------------------------------------------------------
+    logic [31:0] product;
+    logic        product_valid;
+
+    fp32_mul u_mul (
+        .clk       (clk),
+        .rst_n     (rst_n),
+        .a         (a_in),
+        .b         (b_in),
+        .valid_in  (valid_in),
+        .result    (product),
+        .valid_out (product_valid)
+    );
+
+    // -----------------------------------------------------------------------
+    // FP32 Accumulator: acc + product -> acc (4-cycle latency)
+    // When product is not valid, add 0.0 to acc (identity, no change)
+    // -----------------------------------------------------------------------
+    logic [31:0] acc;
+    logic [31:0] add_result;
+    logic        add_valid;
+
+    // 0.0 in IEEE 754 FP32 = 32'h00000000
+    logic [31:0] add_b;
+    assign add_b = product_valid ? product : 32'h0;
+
+    fp32_add u_add (
+        .clk       (clk),
+        .rst_n     (rst_n),
+        .a         (acc),
+        .b         (add_b),
+        .valid_in  (product_valid | result_valid),
+        .result    (add_result),
+        .valid_out (add_valid)
+    );
+
+    // -----------------------------------------------------------------------
+    // Accumulator register
     // -----------------------------------------------------------------------
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            a_out <= 16'sd0;
-            b_out <= 16'sd0;
+            acc          <= 32'h0;
+            result_valid <= 1'b0;
         end else begin
-            a_out <= a_in;
-            b_out <= b_in;
+            if (add_valid) begin
+                acc          <= add_result;
+                result_valid <= 1'b1;
+            end
         end
     end
 
