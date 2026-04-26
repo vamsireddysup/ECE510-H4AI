@@ -6,3 +6,9 @@ reference/
 project/m2/hdl/tb/obj_dir/
 project/m2/hdl/tb/obj_array/
 project/m2/hdl/tb/obj_pe/
+codefest/cf04/hdl/sim_A
+codefest/cf04/hdl/sim_B
+codefest/cf04/hdl/sim_correct
+codefest/cf04/cocotb_mac/__pycache__/
+codefest/cf04/cocotb_mac/sim_build/
+codefest/cf04/cocotb_mac/results.xml
