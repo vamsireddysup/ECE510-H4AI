@@ -1,0 +1,8 @@
+PASS cycle 1: out = 12
+PASS cycle 2: out = 24
+PASS cycle 3: out = 36
+PASS cycle 4: out = 0
+PASS cycle 5: out = -10
+PASS cycle 6: out = -20
+Testbench complete.
+mac_tb.v:81: $finish called at 76000 (1ps)
