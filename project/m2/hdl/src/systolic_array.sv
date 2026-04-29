@@ -28,7 +28,7 @@
 
 module systolic_array #(
     parameter int SIZE   = 8,    // array dimension
-    //parameter int D_HEAD = 64,   // dot product length
+    parameter int D_HEAD = 4,   // dot product length
     parameter int WIDTH  = 32,   // input data width
     parameter int ACC_W  = 32    // accumulator width
 )(
@@ -122,7 +122,7 @@ module systolic_array #(
     generate
         for (genvar i = 0; i < SIZE; i++) begin : gen_row
             for (genvar j = 0; j < SIZE; j++) begin : gen_col
-                pe u_pe (
+                pe #(.D_HEAD(D_HEAD)) u_pe (
                     .clk         (clk),
                     .rst_n       (rst_n),
                     .a_in        (a_wire[i][j]),
