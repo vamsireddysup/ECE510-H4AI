@@ -62,6 +62,37 @@ run_array:
 
 array_debug: compile_array_debug run_array
 
+# -----------------------------------------------------------------------
+# AXI4-Lite control interface testbench
+# -----------------------------------------------------------------------
+axi: compile_axi run_axi
+
+compile_axi:
+	verilator --cc $(SRC_DIR)/axi4_lite_ctrl.sv \
+	          --exe $(TB_DIR)/tb_axi4_lite_ctrl.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -o tb_axi4_lite_ctrl \
+	          --Mdir obj_axi \
+	          --top-module axi4_lite_ctrl
+
+run_axi:
+	./obj_axi/tb_axi4_lite_ctrl
+
+axi_debug: compile_axi_debug run_axi
+
+compile_axi_debug:
+	verilator --cc $(SRC_DIR)/axi4_lite_ctrl.sv \
+	          --exe $(TB_DIR)/tb_axi4_lite_ctrl.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -DDEBUG_AXI \
+	          -o tb_axi4_lite_ctrl \
+	          --Mdir obj_axi \
+	          --top-module axi4_lite_ctrl
+
 compile_array_debug:
 	verilator --cc $(SRC_DIR)/fp32_mul.sv \
 	          $(SRC_DIR)/fp32_add.sv \
