@@ -98,12 +98,13 @@ static bool run_test(Vpe* dut,
     dut->b_in     = 0;
 
     // Drain pipeline: (fp32_mul latency) + (fp32_add latency) = 3+4 = 7
-    int drain = 20;//changed from 7cycles to 20 cycles
+    int drain = 6;
     std::cout << "Draining " << drain << " cycles...\n";
     for (int i = 0; i < drain; i++) {
         tick(dut);
     }
-
+    
+    
     // Read result
     float got = b2f(dut->result);
     float err = std::fabs(got - expected);
