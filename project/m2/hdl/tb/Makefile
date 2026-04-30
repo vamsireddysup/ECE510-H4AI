@@ -93,6 +93,39 @@ compile_axi_debug:
 	          --Mdir obj_axi \
 	          --top-module axi4_lite_ctrl
 
+# -----------------------------------------------------------------------
+# AXI4-Stream data interface testbench
+# -----------------------------------------------------------------------
+stream: compile_stream run_stream
+
+compile_stream:
+	verilator --cc $(SRC_DIR)/axi4_stream.sv \
+	          --exe $(TB_DIR)/tb_axi4_stream.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -o tb_axi4_stream \
+	          --Mdir obj_stream \
+	          --top-module axi4_stream
+
+run_stream:
+	./obj_stream/tb_axi4_stream
+
+stream_debug: compile_stream_debug run_stream
+
+compile_stream_debug:
+	verilator --cc $(SRC_DIR)/axi4_stream.sv \
+	          --exe $(TB_DIR)/tb_axi4_stream.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -DDEBUG_STREAM \
+	          -o tb_axi4_stream \
+	          --Mdir obj_stream \
+	          --top-module axi4_stream
+
 compile_array_debug:
 	verilator --cc $(SRC_DIR)/fp32_mul.sv \
 	          $(SRC_DIR)/fp32_add.sv \
