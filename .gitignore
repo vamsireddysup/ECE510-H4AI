@@ -17,3 +17,5 @@ project/m2/hdl/tb/obj_pe/
 project/m2/hdl/tb/obj_array/
 project/m2/hdl/tb/obj_axi/
 project/m2/hdl/tb/obj_stream/
+*.swp
+*.swo
