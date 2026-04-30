@@ -1,0 +1,31 @@
+          --exe ./tb_axi4_lite_ctrl.cpp \
+          --build \
+          -Wall \
+          --trace \
+          -o tb_axi4_lite_ctrl \
+          --Mdir obj_axi \
+          --top-module axi4_lite_ctrl
+./obj_axi/tb_axi4_lite_ctrl
+============================================
+AXI4-Lite Control Interface Testbench
+============================================
+Reset complete.
+
+--- Test 1: Write START=1 to CTRL register (addr=0x00) ---
+  AXI Write: addr=0x0 data=0x1
+  Write complete: bresp=0 OK
+  PASS: Write transaction completed successfully
+
+Simulating compute core running for 10 cycles...
+Compute core done signal asserted.
+
+--- Test 2: Read STATUS register (addr=0x04), expect DONE=1 ---
+  AXI Read: addr=0x4
+  Read complete: data=0x1 rresp=0 OK
+  PASS: STATUS = 0x1 -- DONE=1 confirmed
+
+============================================
+Results: 2/2 transactions passed
+ALL PASS -- AXI4-Lite interface verified
+============================================
+Waveform saved to axi_wave.vcd
