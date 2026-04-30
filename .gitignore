@@ -19,3 +19,5 @@ project/m2/hdl/tb/obj_axi/
 project/m2/hdl/tb/obj_stream/
 *.swp
 *.swo
+project/m2/tb/obj_*/
+project/m2/tb/*.vcd
