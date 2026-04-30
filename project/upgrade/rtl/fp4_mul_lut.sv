@@ -8,17 +8,13 @@
  * Author: Vamsidhar Reddy Eraganeni
  * Course: ECE 510 Spring 2026, Portland State University
  */
-
 module fp4_mul_lut (
     input  logic [3:0]  a,
     input  logic [3:0]  b,
     output logic [31:0] result
 );
-
     // 256-entry ROM: index = {a[3:0], b[3:0]}
     // Each entry is the FP32 IEEE 754 encoding of a*b
-    logic [31:0] lut [0:255];
-
     always_comb begin
         case ({a, b})
             8'h00: result = 32'h00000000;  //   0.0 x   0.0 =   0.0000
@@ -280,5 +276,4 @@ module fp4_mul_lut (
             default: result = 32'h00000000;
         endcase
     end
-
 endmodule
