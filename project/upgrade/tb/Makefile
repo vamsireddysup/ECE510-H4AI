@@ -48,3 +48,42 @@ clean:
 .PHONY: all fp4_mul fp4_mul_debug \
         compile_fp4_mul compile_fp4_mul_debug \
         run_fp4_mul clean
+
+# -----------------------------------------------------------------------
+# FP4 PE testbench
+# -----------------------------------------------------------------------
+pe: compile_pe run_pe
+
+compile_pe:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          --exe $(TB_DIR)/tb_pe.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GD_HEAD=4 \
+	          -o tb_pe \
+	          --Mdir obj_pe \
+	          --top-module pe
+
+run_pe:
+	./obj_pe/tb_pe
+
+pe_debug: compile_pe_debug run_pe
+
+compile_pe_debug:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          --exe $(TB_DIR)/tb_pe.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GD_HEAD=4 \
+	          -DDEBUG_PE \
+	          -o tb_pe \
+	          --Mdir obj_pe \
+	          --top-module pe
