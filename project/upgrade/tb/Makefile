@@ -87,3 +87,46 @@ compile_pe_debug:
 	          -o tb_pe \
 	          --Mdir obj_pe \
 	          --top-module pe
+
+# -----------------------------------------------------------------------
+# FP4 systolic array testbench (SIZE=4 for verification)
+# -----------------------------------------------------------------------
+array: compile_array run_array
+
+compile_array:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          --exe $(TB_DIR)/tb_systolic_array.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -GD_HEAD=4 \
+	          -o tb_systolic_array \
+	          --Mdir obj_array \
+	          --top-module systolic_array
+
+run_array:
+	./obj_array/tb_systolic_array
+
+array_debug: compile_array_debug run_array
+
+compile_array_debug:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          --exe $(TB_DIR)/tb_systolic_array.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -GD_HEAD=4 \
+	          -DDEBUG_PE \
+	          -o tb_systolic_array \
+	          --Mdir obj_array \
+	          --top-module systolic_array
