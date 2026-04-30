@@ -12,3 +12,8 @@ codefest/cf04/hdl/sim_correct
 codefest/cf04/cocotb_mac/__pycache__/
 codefest/cf04/cocotb_mac/sim_build/
 codefest/cf04/cocotb_mac/results.xml
+project/m2/hdl/tb/*.vcd
+project/m2/hdl/tb/obj_pe/
+project/m2/hdl/tb/obj_array/
+project/m2/hdl/tb/obj_axi/
+project/m2/hdl/tb/obj_stream/
