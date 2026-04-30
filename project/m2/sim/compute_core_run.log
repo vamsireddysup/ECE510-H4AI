@@ -1,6 +1,6 @@
-          ../src/fp32_add.sv \
-          ../src/pe.sv \
-          ../src/systolic_array.sv \
+          ../rtl/fp32_add.sv \
+          ../rtl/pe.sv \
+          ../rtl/systolic_array.sv \
           --exe ./tb_systolic_array.cpp \
           --build \
           -Wall \
