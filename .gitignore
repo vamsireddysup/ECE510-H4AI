@@ -21,3 +21,5 @@ project/m2/hdl/tb/obj_stream/
 *.swo
 project/m2/tb/obj_*/
 project/m2/tb/*.vcd
+project/upgrade/tb/obj_*/
+project/upgrade/tb/*.vcd
