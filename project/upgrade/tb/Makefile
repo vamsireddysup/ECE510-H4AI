@@ -130,3 +130,27 @@ compile_array_debug:
 	          -o tb_systolic_array \
 	          --Mdir obj_array \
 	          --top-module systolic_array
+
+# -----------------------------------------------------------------------
+# FP4 systolic array golden reference testbench
+# -----------------------------------------------------------------------
+array_golden: compile_array_golden run_array_golden
+
+compile_array_golden:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          --exe $(TB_DIR)/tb_systolic_array_golden.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -GD_HEAD=4 \
+	          -o tb_systolic_array_golden \
+	          --Mdir obj_array_golden \
+	          --top-module systolic_array
+
+run_array_golden:
+	./obj_array_golden/tb_systolic_array_golden
