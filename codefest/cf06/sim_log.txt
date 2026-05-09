@@ -1,0 +1,14 @@
+Loading weight matrix...
+Applying input [10, 20, 30, 40]...
+
+--- Output verification ---
+Hand-calculated: out=[-40, 0, -20, -20]
+
+out[0] = -40 (expected -40) PASS
+out[1] = 0 (expected 0) PASS
+out[2] = -20 (expected -20) PASS
+out[3] = -20 (expected -20) PASS
+
+Results: 4/4 outputs correct
+ALL PASS -- crossbar MAC verified
+crossbar_tb.sv:138: $finish called at 236000 (1ps)
