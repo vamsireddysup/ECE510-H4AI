@@ -31,7 +31,7 @@
  * Author: Vamsidhar Reddy Eraganeni
  * Course: ECE 510 Spring 2026, Portland State University
  */
-
+ /* verilator lint_off UNUSEDSIGNAL */
 module tile_controller #(
     parameter int TILE_SIZE = 16,
     parameter int D_HEAD    = 64,
@@ -534,3 +534,5 @@ module tile_controller #(
     end
 
 endmodule
+
+/* verilator lint_on UNUSEDSIGNAL */

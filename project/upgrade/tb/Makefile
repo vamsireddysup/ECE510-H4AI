@@ -154,3 +154,109 @@ compile_array_golden:
 
 run_array_golden:
 	./obj_array_golden/tb_systolic_array_golden
+
+# -----------------------------------------------------------------------
+# Tile controller testbench
+# -----------------------------------------------------------------------
+ctrl: compile_ctrl run_ctrl
+
+compile_ctrl:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          $(RTL_DIR)/scale_sram.sv \
+	          $(RTL_DIR)/tile_buffer.sv \
+	          $(RTL_DIR)/tile_controller.sv \
+	          --exe $(TB_DIR)/tb_tile_controller.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GTILE_SIZE=4 \
+	          -GD_HEAD=4 \
+	          -GT_MAX=16 \
+	          -o tb_tile_controller \
+	          --Mdir obj_ctrl \
+	          --top-module tile_controller
+
+run_ctrl:
+	./obj_ctrl/tb_tile_controller
+
+ctrl_debug: compile_ctrl_debug run_ctrl
+
+compile_ctrl_debug:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          $(RTL_DIR)/scale_sram.sv \
+	          $(RTL_DIR)/tile_buffer.sv \
+	          $(RTL_DIR)/tile_controller.sv \
+	          --exe $(TB_DIR)/tb_tile_controller.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GTILE_SIZE=4 \
+	          -GD_HEAD=4 \
+	          -GT_MAX=16 \
+	          -DDEBUG_CTRL \
+	          -DDEBUG_SRAM \
+	          -DDEBUG_TBUF \
+	          -o tb_tile_controller \
+	          --Mdir obj_ctrl \
+	          --top-module tile_controller
+
+# -----------------------------------------------------------------------
+# Tile controller testbench
+# -----------------------------------------------------------------------
+ctrl: compile_ctrl run_ctrl
+
+compile_ctrl:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          $(RTL_DIR)/scale_sram.sv \
+	          $(RTL_DIR)/tile_buffer.sv \
+	          $(RTL_DIR)/tile_controller.sv \
+	          --exe $(TB_DIR)/tb_tile_controller.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GTILE_SIZE=4 \
+	          -GD_HEAD=4 \
+	          -GT_MAX=16 \
+	          -o tb_tile_controller \
+	          --Mdir obj_ctrl \
+	          --top-module tile_controller
+
+run_ctrl:
+	./obj_ctrl/tb_tile_controller
+
+ctrl_debug: compile_ctrl_debug run_ctrl
+
+compile_ctrl_debug:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          $(RTL_DIR)/scale_sram.sv \
+	          $(RTL_DIR)/tile_buffer.sv \
+	          $(RTL_DIR)/tile_controller.sv \
+	          --exe $(TB_DIR)/tb_tile_controller.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GTILE_SIZE=4 \
+	          -GD_HEAD=4 \
+	          -GT_MAX=16 \
+	          -DDEBUG_CTRL \
+	          -DDEBUG_SRAM \
+	          -DDEBUG_TBUF \
+	          -o tb_tile_controller \
+	          --Mdir obj_ctrl \
+	          --top-module tile_controller
