@@ -1,50 +1,58 @@
+          ../rtl/fp4_mul.sv \
           ../rtl/fp32_add.sv \
           ../rtl/pe.sv \
           ../rtl/systolic_array.sv \
-          --exe ./tb_systolic_array.cpp \
+          --exe ./tb_systolic_array_golden.cpp \
           --build \
           -Wall \
           --trace \
           -GSIZE=4 \
-          -o tb_systolic_array \
-          --Mdir obj_array \
+          -GD_HEAD=4 \
+          -o tb_systolic_array_golden \
+          --Mdir obj_array_golden \
           --top-module systolic_array
-./obj_array/tb_systolic_array
+./obj_array_golden/tb_systolic_array_golden
 ============================================
-Systolic Array Testbench -- 4x4 QK^T verify
+FP4 Systolic Array -- Golden Reference Test
+FP4 E2M1 inputs + FP32 accumulate
+Microscaling dequantization applied
 ============================================
 Reset complete.
 
-Feeding 4 cycles of input data...
-  Feed cycle 1: a=[1,5,1,2] b=[1,0,1,0]
-  Feed cycle 2: a=[2,6,0,3] b=[0,1,1,0]
-  Feed cycle 3: a=[3,7,1,2] b=[1,0,0,1]
-  Feed cycle 4: a=[4,8,0,3] b=[0,1,0,1]
+Feeding 4 cycles of FP4 input...
+  Cycle 1: a=[0xb,0xe,0x3,0x7] b=[0xf,0x4,0xa,0x2]
+  Cycle 2: a=[0x7,0xe,0x5,0xf] b=[0x1,0xf,0x7,0xf]
+  Cycle 3: a=[0x5,0xf,0xf,0xf] b=[0xc,0xd,0xf,0x3]
+  Cycle 4: a=[0x3,0x6,0x7,0xf] b=[0xf,0xc,0x1,0xe]
 
-Draining up to 60 cycles...
-  result_valid asserted at drain cycle 19
+Draining up to 40 cycles...
+  result_valid at drain cycle 17
 
---- Output matrix ---
-  result[0][0] = 4 (expected 4) PASS
-  result[0][1] = 6 (expected 6) PASS
-  result[0][2] = 3 (expected 3) PASS
-  result[0][3] = 7 (expected 7) PASS
-  result[1][0] = 12 (expected 12) PASS
-  result[1][1] = 14 (expected 14) PASS
-  result[1][2] = 11 (expected 11) PASS
-  result[1][3] = 15 (expected 15) PASS
-  result[2][0] = 2 (expected 2) PASS
-  result[2][1] = 0 (expected 0) PASS
-  result[2][2] = 1 (expected 1) PASS
-  result[2][3] = 1 (expected 1) PASS
-  result[3][0] = 4 (expected 4) PASS
-  result[3][1] = 6 (expected 6) PASS
-  result[3][2] = 5 (expected 5) PASS
-  result[3][3] = 5 (expected 5) PASS
+--- Output verification ---
+Format: [raw_result] -> [dequantized] (expected) error
+
+  [0][0] raw=-3 deq=-0.501845 exp=-0.501845 err=4.17233e-07 PASS
+  [0][1] raw=-51 deq=-14.732 exp=-14.732 err=0 PASS
+  [0][2] raw=20.25 deq=4.87301 exp=4.87301 err=0 PASS
+  [0][3] raw=-39 deq=-14.1732 exp=-14.1732 err=0 PASS
+  [1][0] raw=10 deq=1.64016 exp=1.64016 err=2.38419e-07 PASS
+  [1][1] raw=26 deq=7.36383 exp=7.36383 err=0 PASS
+  [1][2] raw=18 deq=4.24701 exp=4.24701 err=4.76837e-07 PASS
+  [1][3] raw=-5 deq=-1.78161 exp=-1.78161 err=1.19209e-07 PASS
+  [2][0] raw=-31.5 deq=-5.60493 exp=-5.60493 err=0 PASS
+  [2][1] raw=-9 deq=-2.76532 exp=-2.76532 err=2.38419e-07 PASS
+  [2][2] raw=55.5 deq=14.2061 exp=14.2061 err=0 PASS
+  [2][3] raw=-49.5 deq=-19.1346 exp=-19.1346 err=0 PASS
+  [3][0] raw=9 deq=1.11047 exp=1.11047 err=3.57628e-07 PASS
+  [3][1] raw=78 deq=16.6189 exp=16.6189 err=0 PASS
+  [3][2] raw=-9 deq=-1.59746 exp=-1.59746 err=1.19209e-07 PASS
+  [3][3] raw=57 deq=15.279 exp=15.279 err=0 PASS
 
 ============================================
 Results: 16/16 elements correct
-ALL PASS -- QK^T output matches golden reference
+MAE (dequantized): 1.22935e-07
+Max error:         4.76837e-07
+ALL PASS -- FP4 QK^T with microscaling verified
 ============================================
-Waveform saved to systolic_wave.vcd
-View with: gtkwave systolic_wave.vcd
+Profiling: result_valid at drain cycle 17
+Waveform: systolic_fp4_golden_wave.vcd

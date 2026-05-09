@@ -1,21 +1,69 @@
-SRC_DIR = ../rtl
+# Makefile for upgrade/ FP4 design testbenches
+# Usage:
+#   make fp4_mul         -- compile and run FP4 multiplier testbench
+#   make fp4_mul_debug   -- compile and run with DEBUG_FP4MUL traces
+#   make clean           -- remove all generated files
+
+RTL_DIR = ../rtl
 TB_DIR  = .
 
-all: pe
+all: fp4_mul
 
 # -----------------------------------------------------------------------
-# FP32 PE testbench
+# FP4 multiplier testbench
+# -----------------------------------------------------------------------
+fp4_mul: compile_fp4_mul run_fp4_mul
+
+compile_fp4_mul:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          --exe $(TB_DIR)/tb_fp4_mul.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -o tb_fp4_mul \
+	          --Mdir obj_fp4_mul \
+	          --top-module fp4_mul
+
+run_fp4_mul:
+	./obj_fp4_mul/tb_fp4_mul
+
+fp4_mul_debug: compile_fp4_mul_debug run_fp4_mul
+
+compile_fp4_mul_debug:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          --exe $(TB_DIR)/tb_fp4_mul.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -DDEBUG_FP4MUL \
+	          -o tb_fp4_mul \
+	          --Mdir obj_fp4_mul \
+	          --top-module fp4_mul
+
+clean:
+	rm -rf obj_fp4_mul *.vcd
+
+.PHONY: all fp4_mul fp4_mul_debug \
+        compile_fp4_mul compile_fp4_mul_debug \
+        run_fp4_mul clean
+
+# -----------------------------------------------------------------------
+# FP4 PE testbench
 # -----------------------------------------------------------------------
 pe: compile_pe run_pe
 
 compile_pe:
-	verilator --cc $(SRC_DIR)/fp32_mul.sv \
-	          $(SRC_DIR)/fp32_add.sv \
-	          $(SRC_DIR)/pe.sv \
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
 	          --exe $(TB_DIR)/tb_pe.cpp \
 	          --build \
 	          -Wall \
 	          --trace \
+	          -GD_HEAD=4 \
 	          -o tb_pe \
 	          --Mdir obj_pe \
 	          --top-module pe
@@ -26,33 +74,37 @@ run_pe:
 pe_debug: compile_pe_debug run_pe
 
 compile_pe_debug:
-	verilator --cc $(SRC_DIR)/fp32_mul.sv \
-	          $(SRC_DIR)/fp32_add.sv \
-	          $(SRC_DIR)/pe.sv \
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
 	          --exe $(TB_DIR)/tb_pe.cpp \
 	          --build \
 	          -Wall \
 	          --trace \
+	          -GD_HEAD=4 \
 	          -DDEBUG_PE \
 	          -o tb_pe \
 	          --Mdir obj_pe \
 	          --top-module pe
 
 # -----------------------------------------------------------------------
-# FP32 Systolic array testbench
+# FP4 systolic array testbench (SIZE=4 for verification)
 # -----------------------------------------------------------------------
 array: compile_array run_array
 
 compile_array:
-	verilator --cc $(SRC_DIR)/fp32_mul.sv \
-	          $(SRC_DIR)/fp32_add.sv \
-	          $(SRC_DIR)/pe.sv \
-	          $(SRC_DIR)/systolic_array.sv \
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
 	          --exe $(TB_DIR)/tb_systolic_array.cpp \
 	          --build \
 	          -Wall \
 	          --trace \
 	          -GSIZE=4 \
+	          -GD_HEAD=4 \
 	          -o tb_systolic_array \
 	          --Mdir obj_array \
 	          --top-module systolic_array
@@ -62,13 +114,106 @@ run_array:
 
 array_debug: compile_array_debug run_array
 
+compile_array_debug:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          --exe $(TB_DIR)/tb_systolic_array.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -GD_HEAD=4 \
+	          -DDEBUG_PE \
+	          -o tb_systolic_array \
+	          --Mdir obj_array \
+	          --top-module systolic_array
+
+# -----------------------------------------------------------------------
+# FP4 systolic array golden reference testbench
+# -----------------------------------------------------------------------
+array_golden: compile_array_golden run_array_golden
+
+compile_array_golden:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          --exe $(TB_DIR)/tb_systolic_array_golden.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=4 \
+	          -GD_HEAD=4 \
+	          -o tb_systolic_array_golden \
+	          --Mdir obj_array_golden \
+	          --top-module systolic_array
+
+run_array_golden:
+	./obj_array_golden/tb_systolic_array_golden
+
+# -----------------------------------------------------------------------
+# Tile controller testbench
+# -----------------------------------------------------------------------
+ctrl: compile_ctrl run_ctrl
+
+compile_ctrl:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          $(RTL_DIR)/scale_sram.sv \
+	          $(RTL_DIR)/tile_buffer.sv \
+	          $(RTL_DIR)/tile_controller.sv \
+	          --exe $(TB_DIR)/tb_tile_controller.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GTILE_SIZE=4 \
+	          -GD_HEAD=4 \
+	          -GT_MAX=16 \
+	          -o tb_tile_controller \
+	          --Mdir obj_ctrl \
+	          --top-module tile_controller
+
+run_ctrl:
+	./obj_ctrl/tb_tile_controller
+
+ctrl_debug: compile_ctrl_debug run_ctrl
+
+compile_ctrl_debug:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          $(RTL_DIR)/scale_sram.sv \
+	          $(RTL_DIR)/tile_buffer.sv \
+	          $(RTL_DIR)/tile_controller.sv \
+	          --exe $(TB_DIR)/tb_tile_controller.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GTILE_SIZE=4 \
+	          -GD_HEAD=4 \
+	          -GT_MAX=16 \
+	          -DDEBUG_CTRL \
+	          -DDEBUG_SRAM \
+	          -DDEBUG_TBUF \
+	          -o tb_tile_controller \
+	          --Mdir obj_ctrl \
+
 # -----------------------------------------------------------------------
 # AXI4-Lite control interface testbench
 # -----------------------------------------------------------------------
 axi: compile_axi run_axi
 
 compile_axi:
-	verilator --cc $(SRC_DIR)/axi4_lite_ctrl.sv \
+	verilator --cc $(RTL_DIR)/axi4_lite_ctrl.sv \
 	          --exe $(TB_DIR)/tb_axi4_lite_ctrl.cpp \
 	          --build \
 	          -Wall \
@@ -79,71 +224,3 @@ compile_axi:
 
 run_axi:
 	./obj_axi/tb_axi4_lite_ctrl
-
-axi_debug: compile_axi_debug run_axi
-
-compile_axi_debug:
-	verilator --cc $(SRC_DIR)/axi4_lite_ctrl.sv \
-	          --exe $(TB_DIR)/tb_axi4_lite_ctrl.cpp \
-	          --build \
-	          -Wall \
-	          --trace \
-	          -DDEBUG_AXI \
-	          -o tb_axi4_lite_ctrl \
-	          --Mdir obj_axi \
-	          --top-module axi4_lite_ctrl
-
-# -----------------------------------------------------------------------
-# AXI4-Stream data interface testbench
-# -----------------------------------------------------------------------
-stream: compile_stream run_stream
-
-compile_stream:
-	verilator --cc $(SRC_DIR)/axi4_stream.sv \
-	          --exe $(TB_DIR)/tb_axi4_stream.cpp \
-	          --build \
-	          -Wall \
-	          --trace \
-	          -GSIZE=4 \
-	          -o tb_axi4_stream \
-	          --Mdir obj_stream \
-	          --top-module axi4_stream
-
-run_stream:
-	./obj_stream/tb_axi4_stream
-
-stream_debug: compile_stream_debug run_stream
-
-compile_stream_debug:
-	verilator --cc $(SRC_DIR)/axi4_stream.sv \
-	          --exe $(TB_DIR)/tb_axi4_stream.cpp \
-	          --build \
-	          -Wall \
-	          --trace \
-	          -GSIZE=4 \
-	          -DDEBUG_STREAM \
-	          -o tb_axi4_stream \
-	          --Mdir obj_stream \
-	          --top-module axi4_stream
-
-compile_array_debug:
-	verilator --cc $(SRC_DIR)/fp32_mul.sv \
-	          $(SRC_DIR)/fp32_add.sv \
-	          $(SRC_DIR)/pe.sv \
-	          $(SRC_DIR)/systolic_array.sv \
-	          --exe $(TB_DIR)/tb_systolic_array.cpp \
-	          --build \
-	          -Wall \
-	          --trace \
-	          -GSIZE=4 \
-	          -DDEBUG_PE \
-	          -o tb_systolic_array \
-	          --Mdir obj_array \
-	          --top-module systolic_array
-
-clean:
-	rm -rf obj_pe obj_array
-
-.PHONY: all pe pe_debug array array_debug \
-        compile_pe compile_pe_debug run_pe \
-        compile_array compile_array_debug run_array clean

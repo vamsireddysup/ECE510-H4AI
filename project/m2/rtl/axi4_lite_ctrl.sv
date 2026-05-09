@@ -1,25 +1,58 @@
 /*
- * axi4_lite_ctrl.sv -- AXI4-Lite Control Interface for QK^T Chiplet
+ * axi4_lite_ctrl.sv -- AXI4-Lite Control Interface for FP4 QK^T Chiplet
  *
  * Register map:
- *   0x00 CTRL   -- bit 0 = START (write 1 to begin computation)
- *   0x04 STATUS -- bit 0 = DONE  (read 1 when computation complete)
+ *   0x00 CTRL         -- bit 0 = START (write 1 to begin computation)
+ *   0x04 STATUS       -- bit 0 = DONE  (read 1 when computation complete)
+ *   0x08 MATRIX_SIZE  -- configurable sequence length T (read/write)
+ *   0x0C TILE_COUNT   -- number of tiles completed (read only)
+ *   0x10 CYCLE_COUNT  -- total cycles since START (read only)
+ *   0x14 TILE_CYCLES  -- cycles taken for last tile (read only)
+ *   0x18 SCALE_FACTOR -- global scale factor override (read/write, future use)
  *
  * AXI4-Lite slave -- host is master, chiplet is slave.
+ * Single clock domain (clk), active-low synchronous reset (rst_n).
  *
- * Write transaction sequence:
- *   1. Host asserts awvalid + awaddr
- *   2. Slave asserts awready (accepts address)
- *   3. Host asserts wvalid + wdata + wstrb
- *   4. Slave asserts wready (accepts data), writes register
- *   5. Slave asserts bvalid + bresp=0 (OK)
- *   6. Host asserts bready (acknowledges response)
+ * Write transaction (5-channel handshake):
+ *   1. Host: awvalid=1, awaddr
+ *   2. Slave: awready=1
+ *   3. Host: wvalid=1, wdata, wstrb
+ *   4. Slave: wready=1, writes register
+ *   5. Slave: bvalid=1, bresp=OKAY
+ *   6. Host: bready=1
  *
- * Read transaction sequence:
- *   1. Host asserts arvalid + araddr
- *   2. Slave asserts arready (accepts address)
- *   3. Slave asserts rvalid + rdata + rresp=0
- *   4. Host asserts rready (acknowledges data)
+ * Read transaction:
+ *   1. Host: arvalid=1, araddr
+ *   2. Slave: arready=1
+ *   3. Slave: rvalid=1, rdata, rresp=OKAY
+ *   4. Host: rready=1
+ *
+ * Ports:
+ *   clk          input  1-bit   system clock
+ *   rst_n        input  1-bit   active-low synchronous reset
+ *   awvalid      input  1-bit   write address valid
+ *   awready      output 1-bit   write address ready
+ *   awaddr       input  32-bit  write address
+ *   wvalid       input  1-bit   write data valid
+ *   wready       output 1-bit   write data ready
+ *   wdata        input  32-bit  write data
+ *   wstrb        input  4-bit   write byte strobes (unused, all bytes written)
+ *   bvalid       output 1-bit   write response valid
+ *   bready       input  1-bit   write response ready
+ *   bresp        output 2-bit   write response (00=OKAY)
+ *   arvalid      input  1-bit   read address valid
+ *   arready      output 1-bit   read address ready
+ *   araddr       input  32-bit  read address
+ *   rvalid       output 1-bit   read data valid
+ *   rready       input  1-bit   read data ready
+ *   rdata        output 32-bit  read data
+ *   rresp        output 2-bit   read response (00=OKAY)
+ *   start        output 1-bit   pulse to tiling controller: begin computation
+ *   done         input  1-bit   from tiling controller: computation complete
+ *   matrix_size  output 32-bit  configurable T to tiling controller
+ *   tile_count   input  32-bit  profiling: tiles completed
+ *   cycle_count  input  32-bit  profiling: total cycles
+ *   tile_cycles  input  32-bit  profiling: last tile cycles
  *
  * Debug: compile with -DDEBUG_AXI for transaction traces
  *
@@ -60,26 +93,31 @@ module axi4_lite_ctrl (
     output logic [31:0] rdata,
     output logic [1:0]  rresp,
 
-    // Control signals to compute core
-    output logic        start,   // pulse high for one cycle to start computation
-    input  logic        done     // high when computation is complete
+    // Control signals to tiling controller
+    output logic        start,
+    input  logic        done,
+    output logic [31:0] matrix_size,
+
+    // Profiling inputs from tiling controller
+    input  logic [31:0] tile_count,
+    input  logic [31:0] cycle_count,
+    input  logic [31:0] tile_cycles
 );
 
     // -----------------------------------------------------------------------
     // Internal registers
     // -----------------------------------------------------------------------
-    logic [31:0] ctrl_reg;    // address 0x00 -- bit 0 = START
-    logic [31:0] status_reg;  // address 0x04 -- bit 0 = DONE
+    logic [31:0] ctrl_reg;         // 0x00 -- bit 0 = START
+    logic [31:0] status_reg;       // 0x04 -- bit 0 = DONE (read only)
+    logic [31:0] matrix_size_reg;  // 0x08 -- configurable T
+    logic [31:0] scale_factor_reg; // 0x18 -- future microscaling
 
-    // DONE comes from compute core
-    always_comb status_reg = {31'h0, done};
-
-    // START is bit 0 of ctrl_reg -- pulse for one cycle then clear
-    assign start = ctrl_reg[0];
+    assign status_reg  = {31'h0, done};
+    assign start       = ctrl_reg[0];
+    assign matrix_size = matrix_size_reg;
 
     // -----------------------------------------------------------------------
-    // Write state machine
-    // States: W_IDLE -> W_ADDR -> W_DATA -> W_RESP
+    // Write state machine -- identical to M2, extended register map
     // -----------------------------------------------------------------------
     typedef enum logic [1:0] {
         W_IDLE = 2'b00,
@@ -89,19 +127,20 @@ module axi4_lite_ctrl (
     } wstate_t;
 
     wstate_t     wstate;
-    logic [31:0] waddr_lat;  // latched write address
+    logic [31:0] waddr_lat;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            wstate   <= W_IDLE;
-            awready  <= 1'b0;
-            wready   <= 1'b0;
-            bvalid   <= 1'b0;
-            bresp    <= 2'b00;
-            waddr_lat<= 32'h0;
-            ctrl_reg <= 32'h0;
+            wstate          <= W_IDLE;
+            awready         <= 1'b0;
+            wready          <= 1'b0;
+            bvalid          <= 1'b0;
+            bresp           <= 2'b00;
+            waddr_lat       <= 32'h0;
+            ctrl_reg        <= 32'h0;
+            matrix_size_reg <= 32'd512;    // default T=512
+            scale_factor_reg<= 32'h3F800000; // default 1.0
         end else begin
-            // Default deassert
             awready <= 1'b0;
             wready  <= 1'b0;
 
@@ -117,10 +156,8 @@ module axi4_lite_ctrl (
                         waddr_lat <= awaddr;
                         awready   <= 1'b1;
                         wstate    <= W_DATA;
-
                         `ifdef DEBUG_AXI
-                        $display("[AXI-W] ADDR accepted: 0x%08h at t=%0t",
-                                 awaddr, $time);
+                        $display("[AXI-W] ADDR: 0x%08h at t=%0t", awaddr, $time);
                         `endif
                     end
                 end
@@ -129,25 +166,35 @@ module axi4_lite_ctrl (
                     awready <= 1'b0;
                     if (wvalid) begin
                         wready <= 1'b1;
-
-                        // Write to register based on address
                         case (waddr_lat)
                             32'h00: begin
                                 ctrl_reg <= wdata;
                                 `ifdef DEBUG_AXI
-                                $display("[AXI-W] CTRL write: 0x%08h at t=%0t",
+                                $display("[AXI-W] CTRL=0x%08h at t=%0t",
+                                         wdata, $time);
+                                `endif
+                            end
+                            32'h08: begin
+                                matrix_size_reg <= wdata;
+                                `ifdef DEBUG_AXI
+                                $display("[AXI-W] MATRIX_SIZE=%0d at t=%0t",
+                                         wdata, $time);
+                                `endif
+                            end
+                            32'h18: begin
+                                scale_factor_reg <= wdata;
+                                `ifdef DEBUG_AXI
+                                $display("[AXI-W] SCALE_FACTOR=0x%08h at t=%0t",
                                          wdata, $time);
                                 `endif
                             end
                             default: begin
-                                // Ignore writes to unknown addresses
                                 `ifdef DEBUG_AXI
                                 $display("[AXI-W] Unknown addr 0x%08h at t=%0t",
                                          waddr_lat, $time);
                                 `endif
                             end
                         endcase
-
                         wstate <= W_RESP;
                     end
                 end
@@ -155,12 +202,10 @@ module axi4_lite_ctrl (
                 W_RESP: begin
                     wready <= 1'b0;
                     bvalid <= 1'b1;
-                    bresp  <= 2'b00;  // OKAY response
-
+                    bresp  <= 2'b00;
                     if (bready) begin
                         bvalid <= 1'b0;
                         wstate <= W_IDLE;
-
                         `ifdef DEBUG_AXI
                         $display("[AXI-W] Response accepted at t=%0t", $time);
                         `endif
@@ -168,14 +213,12 @@ module axi4_lite_ctrl (
                 end
 
                 default: wstate <= W_IDLE;
-
             endcase
         end
     end
 
     // -----------------------------------------------------------------------
-    // Read state machine
-    // States: R_IDLE -> R_ADDR -> R_DATA
+    // Read state machine -- extended register map
     // -----------------------------------------------------------------------
     typedef enum logic [1:0] {
         R_IDLE = 2'b00,
@@ -184,16 +227,16 @@ module axi4_lite_ctrl (
     } rstate_t;
 
     rstate_t     rstate;
-    logic [31:0] raddr_lat;  // latched read address
+    logic [31:0] raddr_lat;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            rstate   <= R_IDLE;
-            arready  <= 1'b0;
-            rvalid   <= 1'b0;
-            rdata    <= 32'h0;
-            rresp    <= 2'b00;
-            raddr_lat<= 32'h0;
+            rstate    <= R_IDLE;
+            arready   <= 1'b0;
+            rvalid    <= 1'b0;
+            rdata     <= 32'h0;
+            rresp     <= 2'b00;
+            raddr_lat <= 32'h0;
         end else begin
             arready <= 1'b0;
 
@@ -205,10 +248,8 @@ module axi4_lite_ctrl (
                         raddr_lat <= araddr;
                         arready   <= 1'b1;
                         rstate    <= R_DATA;
-
                         `ifdef DEBUG_AXI
-                        $display("[AXI-R] ADDR accepted: 0x%08h at t=%0t",
-                                 araddr, $time);
+                        $display("[AXI-R] ADDR: 0x%08h at t=%0t", araddr, $time);
                         `endif
                     end
                 end
@@ -217,23 +258,23 @@ module axi4_lite_ctrl (
                     arready <= 1'b0;
                     rvalid  <= 1'b1;
                     rresp   <= 2'b00;
-
-                    // Read from register based on address
                     case (raddr_lat)
                         32'h00: rdata <= ctrl_reg;
                         32'h04: rdata <= status_reg;
+                        32'h08: rdata <= matrix_size_reg;
+                        32'h0C: rdata <= tile_count;
+                        32'h10: rdata <= cycle_count;
+                        32'h14: rdata <= tile_cycles;
+                        32'h18: rdata <= scale_factor_reg;
                         default: rdata <= 32'hDEADBEEF;
                     endcase
-
                     `ifdef DEBUG_AXI
-                    $display("[AXI-R] DATA sent: 0x%08h from addr 0x%08h at t=%0t",
+                    $display("[AXI-R] DATA=0x%08h addr=0x%08h at t=%0t",
                              rdata, raddr_lat, $time);
                     `endif
-
                     if (rready) begin
                         rvalid <= 1'b0;
                         rstate <= R_IDLE;
-
                         `ifdef DEBUG_AXI
                         $display("[AXI-R] Response accepted at t=%0t", $time);
                         `endif
@@ -241,7 +282,6 @@ module axi4_lite_ctrl (
                 end
 
                 default: rstate <= R_IDLE;
-
             endcase
         end
     end
