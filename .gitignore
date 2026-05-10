@@ -24,3 +24,7 @@ project/m2/tb/*.vcd
 project/upgrade/tb/obj_*/
 project/upgrade/tb/*.vcd
 project/upgrade/tb/obj_array_golden/
+project/upgrade_archive/tb/obj_*/
+project/upgrade_archive/tb/*.vcd
+project/m2/tb/obj_*/
+project/m2/tb/*.vcd

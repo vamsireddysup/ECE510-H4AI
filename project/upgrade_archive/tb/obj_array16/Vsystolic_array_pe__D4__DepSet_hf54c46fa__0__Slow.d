@@ -1,3 +1,0 @@
-Vsystolic_array_pe__D4__DepSet_hf54c46fa__0__Slow.o: \
- Vsystolic_array_pe__D4__DepSet_hf54c46fa__0__Slow.cpp \
- Vsystolic_array__pch.h Vsystolic_array_pe__D4.h
