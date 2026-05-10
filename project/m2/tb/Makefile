@@ -208,19 +208,69 @@ compile_ctrl_debug:
 	          --Mdir obj_ctrl \
 
 # -----------------------------------------------------------------------
-# AXI4-Lite control interface testbench
+# FP4 PE extended random value testbench
 # -----------------------------------------------------------------------
-axi: compile_axi run_axi
+pe_random: compile_pe_random run_pe_random
 
-compile_axi:
-	verilator --cc $(RTL_DIR)/axi4_lite_ctrl.sv \
-	          --exe $(TB_DIR)/tb_axi4_lite_ctrl.cpp \
+compile_pe_random:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          --exe $(TB_DIR)/tb_pe_random.cpp \
 	          --build \
 	          -Wall \
 	          --trace \
-	          -o tb_axi4_lite_ctrl \
-	          --Mdir obj_axi \
-	          --top-module axi4_lite_ctrl
+	          -GD_HEAD=4 \
+	          -o tb_pe_random \
+	          --Mdir obj_pe_random \
+	          --top-module pe
 
-run_axi:
-	./obj_axi/tb_axi4_lite_ctrl
+run_pe_random:
+	./obj_pe_random/tb_pe_random
+
+# -----------------------------------------------------------------------
+# FP4 systolic array SIZE=16 elaboration and basic test
+# -----------------------------------------------------------------------
+array16: compile_array16 run_array16
+
+compile_array16:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          $(RTL_DIR)/systolic_array.sv \
+	          --exe $(TB_DIR)/tb_systolic_array16.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GSIZE=16 \
+	          -GD_HEAD=4 \
+	          -o tb_systolic_array16 \
+	          --Mdir obj_array16 \
+	          --top-module systolic_array
+
+run_array16:
+	./obj_array16/tb_systolic_array16
+
+# -----------------------------------------------------------------------
+# FP4 PE D_HEAD=64 test
+# -----------------------------------------------------------------------
+pe_dhead64: compile_pe_dhead64 run_pe_dhead64
+
+compile_pe_dhead64:
+	verilator --cc $(RTL_DIR)/fp4_mul_lut.sv \
+	          $(RTL_DIR)/fp4_mul.sv \
+	          $(RTL_DIR)/fp32_add.sv \
+	          $(RTL_DIR)/pe.sv \
+	          --exe $(TB_DIR)/tb_pe_dhead64.cpp \
+	          --build \
+	          -Wall \
+	          --trace \
+	          -GD_HEAD=64 \
+	          -o tb_pe_dhead64 \
+	          --Mdir obj_pe_dhead64 \
+	          --top-module pe
+
+run_pe_dhead64:
+	./obj_pe_dhead64/tb_pe_dhead64
