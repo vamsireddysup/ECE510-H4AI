@@ -1,0 +1,9 @@
+read_verilog -sv codefest/cf07/hdl/synth_top.sv
+hierarchy -check -top crossbar_mac
+proc
+flatten
+opt
+synth -top crossbar_mac -noabc
+clean
+tee -o codefest/cf07/synth/sta_report.txt stat
+tee -a codefest/cf07/synth/sta_report.txt ltp -noff

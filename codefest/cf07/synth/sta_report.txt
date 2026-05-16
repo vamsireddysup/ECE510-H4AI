@@ -1,0 +1,61 @@
+
+7. Printing statistics.
+
+=== crossbar_mac ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1076 wires
+    15472 wire bits
+       31 public wires
+      297 public wire bits
+       15 ports
+      169 port bits
+     4318 cells
+     1837   $_AND_
+        1   $_DFF_P_
+       37   $_NOT_
+      745   $_OR_
+       16   $_SDFFE_PN0P_
+       73   $_SDFF_PN0_
+     1609   $_XOR_
+
+8. Executing LTP pass (find longest path).
+
+Longest topological path in crossbar_mac (length=34):
+    0: \w10 [6]
+    1: $auto$rtlil.cc:3255:Not$1013 [1] (via $auto$simplemap.cc:46:simplemap_not$2396)
+    2: $auto$maccmap.cc:114:fulladd$1018.A [8] (via $auto$simplemap.cc:106:simplemap_bitop$2384)
+    3: $auto$maccmap.cc:114:fulladd$1018.t1 [8] (via $auto$simplemap.cc:106:simplemap_bitop$10079)
+    4: $auto$maccmap.cc:114:fulladd$1018.Y [8] (via $auto$simplemap.cc:106:simplemap_bitop$10022)
+    5: $auto$maccmap.cc:114:fulladd$1054.t1 [8] (via $auto$simplemap.cc:106:simplemap_bitop$10165)
+    6: $auto$maccmap.cc:114:fulladd$1054.t3 [8] (via $auto$simplemap.cc:106:simplemap_bitop$10127)
+    7: $auto$maccmap.cc:114:fulladd$1054.X [8] (via $auto$simplemap.cc:106:simplemap_bitop$10089)
+    8: $auto$maccmap.cc:114:fulladd$1078.t1 [9] (via $auto$simplemap.cc:106:simplemap_bitop$10261)
+    9: $auto$maccmap.cc:114:fulladd$1078.t3 [9] (via $auto$simplemap.cc:106:simplemap_bitop$10223)
+   10: $auto$maccmap.cc:114:fulladd$1078.X [9] (via $auto$simplemap.cc:106:simplemap_bitop$10185)
+   11: $auto$maccmap.cc:114:fulladd$1093.t1 [10] (via $auto$simplemap.cc:106:simplemap_bitop$10357)
+   12: $auto$maccmap.cc:114:fulladd$1093.t3 [10] (via $auto$simplemap.cc:106:simplemap_bitop$10319)
+   13: $auto$maccmap.cc:114:fulladd$1093.X [10] (via $auto$simplemap.cc:106:simplemap_bitop$10281)
+   14: $auto$maccmap.cc:114:fulladd$1102.t1 [11] (via $auto$simplemap.cc:106:simplemap_bitop$10453)
+   15: $auto$maccmap.cc:114:fulladd$1102.t3 [11] (via $auto$simplemap.cc:106:simplemap_bitop$10415)
+   16: $auto$maccmap.cc:114:fulladd$1102.X [11] (via $auto$simplemap.cc:106:simplemap_bitop$10377)
+   17: $auto$maccmap.cc:114:fulladd$1108.t1 [12] (via $auto$simplemap.cc:106:simplemap_bitop$10549)
+   18: $auto$maccmap.cc:114:fulladd$1108.t3 [12] (via $auto$simplemap.cc:106:simplemap_bitop$10511)
+   19: $auto$maccmap.cc:114:fulladd$1108.X [12] (via $auto$simplemap.cc:106:simplemap_bitop$10473)
+   20: $auto$maccmap.cc:114:fulladd$1114.t1 [13] (via $auto$simplemap.cc:106:simplemap_bitop$10645)
+   21: $auto$maccmap.cc:114:fulladd$1114.t3 [13] (via $auto$simplemap.cc:106:simplemap_bitop$10607)
+   22: $auto$maccmap.cc:114:fulladd$1114.X [13] (via $auto$simplemap.cc:106:simplemap_bitop$10569)
+   23: $auto$maccmap.cc:114:fulladd$1117.t1 [14] (via $auto$simplemap.cc:106:simplemap_bitop$10741)
+   24: $auto$maccmap.cc:114:fulladd$1117.t3 [14] (via $auto$simplemap.cc:106:simplemap_bitop$10703)
+   25: $auto$maccmap.cc:114:fulladd$1117.X [14] (via $auto$simplemap.cc:106:simplemap_bitop$10665)
+   26: $auto$maccmap.cc:240:synth$1118.P [15] (via $auto$simplemap.cc:106:simplemap_bitop$17440)
+   27: $techmap$auto$maccmap.cc:240:synth$1118.lcu.$and$/share/techmap.v:241$7511_Y (via $auto$simplemap.cc:106:simplemap_bitop$17492)
+   28: $techmap$auto$maccmap.cc:240:synth$1118.lcu.$and$/share/techmap.v:241$7526_Y (via $auto$simplemap.cc:106:simplemap_bitop$17477)
+   29: $techmap$auto$maccmap.cc:240:synth$1118.lcu.$and$/share/techmap.v:241$7532_Y (via $auto$simplemap.cc:106:simplemap_bitop$17471)
+   30: $techmap$auto$maccmap.cc:240:synth$1118.lcu.$and$/share/techmap.v:240$7533_Y (via $auto$simplemap.cc:106:simplemap_bitop$17470)
+   31: $auto$maccmap.cc:240:synth$1118.CO [15] (via $auto$simplemap.cc:106:simplemap_bitop$17469)
+   32: $techmap$auto$maccmap.cc:240:synth$1118.lcu.$and$/share/techmap.v:248$7548_Y (via $auto$simplemap.cc:106:simplemap_bitop$17455)
+   33: $auto$maccmap.cc:240:synth$1118.CO [17] (via $auto$simplemap.cc:106:simplemap_bitop$17454)
+   34: $auto$maccmap.cc:240:synth$1118.Y [18] (via $auto$simplemap.cc:106:simplemap_bitop$10764)
+   ff: \out0 [30] (via $auto$ff.cc:337:slice$1426)

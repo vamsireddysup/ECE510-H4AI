@@ -1,0 +1,1850 @@
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.65 (git sha1 b85cad634, ccache clang++  -O3 -fwasm-exceptions -mllvm) [yowasp/yosys at release-0.65]
+
+-- Executing script file `codefest/cf07/synth/synth_crossbar.ys' --
+
+1. Executing Verilog-2005 frontend: codefest/cf07/hdl/synth_top.sv
+Parsing SystemVerilog input from `codefest/cf07/hdl/synth_top.sv' to AST representation.
+Generating RTLIL representation for module `\crossbar_mac'.
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+
+2.2. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+Removed 0 unused modules.
+
+3. Executing PROC pass (convert processes to netlists).
+
+3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 1 switch rules as full_case in process $proc$codefest/cf07/hdl/synth_top.sv:59$19 in module crossbar_mac.
+Marked 2 switch rules as full_case in process $proc$codefest/cf07/hdl/synth_top.sv:30$1 in module crossbar_mac.
+Removed a total of 0 dead cases.
+
+3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 5 redundant assignments.
+Promoted 0 assignments to connections.
+
+3.4. Executing PROC_INIT pass (extract init attributes).
+
+3.5. Executing PROC_ARST pass (detect async resets in processes).
+
+3.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~4 debug messages>
+
+3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+     1/5: $0\valid[0:0]
+     2/5: $0\out3[31:0]
+     3/5: $0\out2[31:0]
+     4/5: $0\out1[31:0]
+     5/5: $0\out0[31:0]
+Creating decoders for process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+     1/16: $0\w33[7:0]
+     2/16: $0\w32[7:0]
+     3/16: $0\w31[7:0]
+     4/16: $0\w30[7:0]
+     5/16: $0\w23[7:0]
+     6/16: $0\w22[7:0]
+     7/16: $0\w21[7:0]
+     8/16: $0\w20[7:0]
+     9/16: $0\w13[7:0]
+    10/16: $0\w12[7:0]
+    11/16: $0\w11[7:0]
+    12/16: $0\w10[7:0]
+    13/16: $0\w03[7:0]
+    14/16: $0\w02[7:0]
+    15/16: $0\w01[7:0]
+    16/16: $0\w00[7:0]
+
+3.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+3.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\crossbar_mac.\out0' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$296' with positive edge clock.
+Creating register for signal `\crossbar_mac.\out1' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$297' with positive edge clock.
+Creating register for signal `\crossbar_mac.\out2' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$298' with positive edge clock.
+Creating register for signal `\crossbar_mac.\out3' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$299' with positive edge clock.
+Creating register for signal `\crossbar_mac.\valid' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$300' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w00' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$301' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w01' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$302' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w02' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$303' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w03' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$304' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w10' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$305' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w11' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$306' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w12' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$307' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w13' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$308' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w20' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$309' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w21' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$310' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w22' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$311' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w23' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$312' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w30' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$313' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w31' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$314' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w32' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$315' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w33' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$316' with positive edge clock.
+
+3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+Removing empty process `crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+Found and cleaned up 3 empty switches in `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+Removing empty process `crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+Cleaned up 4 empty switches.
+
+3.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+<suppressed ~22 debug messages>
+
+4. Executing FLATTEN pass (flatten design).
+
+5. Executing OPT pass (performing simple optimizations).
+
+5.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+5.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 136 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 135 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+5.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~90 debug messages>
+
+5.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+5.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 135 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 120 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+<suppressed ~45 debug messages>
+Removed a total of 15 cells.
+
+5.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding SRST signal on $procdff$316 ($dff) from module crossbar_mac (D = $procmux$66_Y, Q = \w33, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$317 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:53$18_Y, Q = \w33).
+Adding SRST signal on $procdff$301 ($dff) from module crossbar_mac (D = $procmux$291_Y, Q = \w00, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$321 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y, Q = \w00).
+Adding SRST signal on $procdff$302 ($dff) from module crossbar_mac (D = $procmux$269_Y, Q = \w01, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$325 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:39$4_Y, Q = \w01).
+Adding SRST signal on $procdff$303 ($dff) from module crossbar_mac (D = $procmux$248_Y, Q = \w02, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$329 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:40$5_Y, Q = \w02).
+Adding SRST signal on $procdff$304 ($dff) from module crossbar_mac (D = $procmux$228_Y, Q = \w03, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$333 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:41$6_Y, Q = \w03).
+Adding SRST signal on $procdff$305 ($dff) from module crossbar_mac (D = $procmux$209_Y, Q = \w10, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$337 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:42$7_Y, Q = \w10).
+Adding SRST signal on $procdff$306 ($dff) from module crossbar_mac (D = $procmux$191_Y, Q = \w11, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$341 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:43$8_Y, Q = \w11).
+Adding SRST signal on $procdff$307 ($dff) from module crossbar_mac (D = $procmux$174_Y, Q = \w12, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$345 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:44$9_Y, Q = \w12).
+Adding SRST signal on $procdff$308 ($dff) from module crossbar_mac (D = $procmux$158_Y, Q = \w13, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$349 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:45$10_Y, Q = \w13).
+Adding SRST signal on $procdff$309 ($dff) from module crossbar_mac (D = $procmux$143_Y, Q = \w20, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$353 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:46$11_Y, Q = \w20).
+Adding SRST signal on $procdff$310 ($dff) from module crossbar_mac (D = $procmux$129_Y, Q = \w21, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$357 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:47$12_Y, Q = \w21).
+Adding SRST signal on $procdff$311 ($dff) from module crossbar_mac (D = $procmux$116_Y, Q = \w22, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$361 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:48$13_Y, Q = \w22).
+Adding SRST signal on $procdff$312 ($dff) from module crossbar_mac (D = $procmux$104_Y, Q = \w23, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$365 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:49$14_Y, Q = \w23).
+Adding SRST signal on $procdff$313 ($dff) from module crossbar_mac (D = $procmux$93_Y, Q = \w30, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$369 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:50$15_Y, Q = \w30).
+Adding SRST signal on $procdff$314 ($dff) from module crossbar_mac (D = $procmux$83_Y, Q = \w31, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$373 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:51$16_Y, Q = \w31).
+Adding SRST signal on $procdff$315 ($dff) from module crossbar_mac (D = $procmux$74_Y, Q = \w32, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$377 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:52$17_Y, Q = \w32).
+Adding SRST signal on $procdff$296 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:64$27_Y, Q = \out0, rval = 0).
+Adding SRST signal on $procdff$297 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:65$34_Y, Q = \out1, rval = 0).
+Adding SRST signal on $procdff$298 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:66$41_Y, Q = \out2, rval = 0).
+Adding SRST signal on $procdff$299 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:67$48_Y, Q = \out3, rval = 0).
+
+5.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+Removed 53 unused cells and 127 unused wires.
+<suppressed ~54 debug messages>
+
+5.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+5.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+5.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+5.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+5.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+5.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+5.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+5.16. Finished fast OPT passes. (There is nothing left to do.)
+
+6. Executing SYNTH pass.
+
+6.1. Executing HIERARCHY pass (managing design hierarchy).
+
+6.1.1. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+
+6.1.2. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+Removed 0 unused modules.
+
+6.2. Executing PROC pass (convert processes to netlists).
+
+6.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+6.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+6.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+6.2.4. Executing PROC_INIT pass (extract init attributes).
+
+6.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+6.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+6.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+6.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+6.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+6.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+6.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+6.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.5. Executing CHECK pass (checking for obvious problems).
+Checking module crossbar_mac...
+Found and reported 0 problems.
+
+6.6. Executing OPT pass (performing simple optimizations).
+
+6.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.6.9. Finished fast OPT passes. (There is nothing left to do.)
+
+6.7. Executing FSM pass (extract and optimize FSM).
+
+6.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+
+6.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+6.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+6.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+6.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+6.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+6.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+6.8. Executing OPT pass (performing simple optimizations).
+
+6.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.8.9. Finished fast OPT passes. (There is nothing left to do.)
+
+6.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$157_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$173_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$190_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$208_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell crossbar_mac.$procmux$227_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell crossbar_mac.$procmux$247_CMP0 ($eq).
+Removed top 3 bits (of 4) from port B of cell crossbar_mac.$procmux$268_CMP0 ($eq).
+
+6.10. Executing PEEPOPT pass (run peephole optimizers).
+
+6.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module crossbar_mac:
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul).
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$21 into $add$codefest/cf07/hdl/synth_top.sv:64$23.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$22 into $add$codefest/cf07/hdl/synth_top.sv:64$23.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$23 into $add$codefest/cf07/hdl/synth_top.sv:64$25.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$24 into $add$codefest/cf07/hdl/synth_top.sv:64$25.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$25 into $add$codefest/cf07/hdl/synth_top.sv:64$27.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$26 into $add$codefest/cf07/hdl/synth_top.sv:64$27.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$28 into $add$codefest/cf07/hdl/synth_top.sv:65$30.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$29 into $add$codefest/cf07/hdl/synth_top.sv:65$30.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$30 into $add$codefest/cf07/hdl/synth_top.sv:65$32.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$31 into $add$codefest/cf07/hdl/synth_top.sv:65$32.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$32 into $add$codefest/cf07/hdl/synth_top.sv:65$34.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$33 into $add$codefest/cf07/hdl/synth_top.sv:65$34.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$35 into $add$codefest/cf07/hdl/synth_top.sv:66$37.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$36 into $add$codefest/cf07/hdl/synth_top.sv:66$37.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$37 into $add$codefest/cf07/hdl/synth_top.sv:66$39.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$38 into $add$codefest/cf07/hdl/synth_top.sv:66$39.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$39 into $add$codefest/cf07/hdl/synth_top.sv:66$41.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$40 into $add$codefest/cf07/hdl/synth_top.sv:66$41.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$42 into $add$codefest/cf07/hdl/synth_top.sv:67$44.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$43 into $add$codefest/cf07/hdl/synth_top.sv:67$44.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$44 into $add$codefest/cf07/hdl/synth_top.sv:67$46.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$45 into $add$codefest/cf07/hdl/synth_top.sv:67$46.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$46 into $add$codefest/cf07/hdl/synth_top.sv:67$48.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$47 into $add$codefest/cf07/hdl/synth_top.sv:67$48.
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:65$34: $auto$alumacc.cc:382:replace_macc$385
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:64$27: $auto$alumacc.cc:382:replace_macc$386
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:66$41: $auto$alumacc.cc:382:replace_macc$387
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:67$48: $auto$alumacc.cc:382:replace_macc$388
+  created 0 $alu and 4 $macc cells.
+
+6.13. Executing SHARE pass (SAT-based resource sharing).
+Found 16 cells in module crossbar_mac that may be considered for resource sharing.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:64$25
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:64$23
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$21
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$22
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$24
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$26
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:65$32
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:65$30
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$28
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$29
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$31
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$33
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:66$39
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:66$37
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$35
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$36
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$38
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$40
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:67$46
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:67$44
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$42
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$43
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$45
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$47
+    Cell is never active. Sharing is pointless, we simply remove it.
+Removing 24 cells in module crossbar_mac:
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+
+6.14. Executing OPT pass (performing simple optimizations).
+
+6.14.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.14.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 59 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.14.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.14.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.14.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 59 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.14.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.14.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+Removed 0 unused cells and 24 unused wires.
+<suppressed ~1 debug messages>
+
+6.14.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.14.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+6.14.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.14.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.14.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 59 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.14.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.14.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.14.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.14.16. Finished fast OPT passes. (There is nothing left to do.)
+
+6.15. Executing MEMORY pass.
+
+6.15.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+6.15.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+6.15.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+6.15.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+6.15.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+6.15.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.15.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+6.15.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+6.15.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.15.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+6.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.17. Executing OPT pass (performing simple optimizations).
+
+6.17.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+<suppressed ~1 debug messages>
+
+6.17.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.17.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.17.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+6.17.5. Finished fast OPT passes.
+
+6.18. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+6.19. Executing OPT pass (performing simple optimizations).
+
+6.19.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.19.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.19.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~2 debug messages>
+
+6.19.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+    Consolidated identical input bits for $mux cell $ternary$codefest/cf07/hdl/synth_top.sv:53$18:
+      Old ports: A=8'11111111, B=8'00000001, Y=$ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y
+      New ports: A=1'1, B=1'0, Y=$ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1]
+      New connections: { $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [7:2] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [0] } = { $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] 1'1 }
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 1 changes.
+
+6.19.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.19.6. Executing OPT_SHARE pass.
+
+6.19.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.19.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.19.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+<suppressed ~1 debug messages>
+
+6.19.10. Rerunning OPT passes. (Maybe there is more to do..)
+
+6.19.11. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+6.19.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.19.13. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.19.14. Executing OPT_SHARE pass.
+
+6.19.15. Executing OPT_DFF pass (perform DFF optimizations).
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$378 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$374 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$370 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$366 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$362 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$358 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$354 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$350 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$346 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$342 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$338 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$334 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$330 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$326 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$322 ($sdffe) from module crossbar_mac.
+Setting constant 1-bit at position 0 on $auto$ff.cc:337:slice$318 ($sdffe) from module crossbar_mac.
+
+6.19.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.19.17. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.19.18. Rerunning OPT passes. (Maybe there is more to do..)
+
+6.19.19. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+6.19.20. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.19.21. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.19.22. Executing OPT_SHARE pass.
+
+6.19.23. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.19.24. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.19.25. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.19.26. Finished fast OPT passes. (There is nothing left to do.)
+
+6.20. Executing TECHMAP pass (map to technology primitives).
+
+6.20.1. Executing Verilog-2005 frontend: /share/techmap.v
+Parsing Verilog input from `/share/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
+Successfully finished Verilog frontend.
+
+6.20.2. Continuing TECHMAP pass.
+Using extmapper simplemap for cells of type $sdffe.
+Using extmapper maccmap for cells of type $macc_v2.
+  add { \w03 [7:1] 1'1 } * \in0 (8x8 bits, signed)
+  add { \w33 [7:1] 1'1 } * \in3 (8x8 bits, signed)
+  add { \w23 [7:1] 1'1 } * \in2 (8x8 bits, signed)
+  add { \w13 [7:1] 1'1 } * \in1 (8x8 bits, signed)
+  add { \w02 [7:1] 1'1 } * \in0 (8x8 bits, signed)
+  add { \w32 [7:1] 1'1 } * \in3 (8x8 bits, signed)
+  add { \w22 [7:1] 1'1 } * \in2 (8x8 bits, signed)
+  add { \w12 [7:1] 1'1 } * \in1 (8x8 bits, signed)
+  add { \w00 [7:1] 1'1 } * \in0 (8x8 bits, signed)
+  add { \w30 [7:1] 1'1 } * \in3 (8x8 bits, signed)
+  add { \w20 [7:1] 1'1 } * \in2 (8x8 bits, signed)
+  add { \w10 [7:1] 1'1 } * \in1 (8x8 bits, signed)
+  add { \w01 [7:1] 1'1 } * \in0 (8x8 bits, signed)
+  add { \w31 [7:1] 1'1 } * \in3 (8x8 bits, signed)
+  add { \w21 [7:1] 1'1 } * \in2 (8x8 bits, signed)
+  add { \w11 [7:1] 1'1 } * \in1 (8x8 bits, signed)
+Using extmapper simplemap for cells of type $sdff.
+Using extmapper simplemap for cells of type $reduce_and.
+Using extmapper simplemap for cells of type $not.
+Using extmapper simplemap for cells of type $eq.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $dff.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000001 for cells of type $fa.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000010011 for cells of type $fa.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000010010 for cells of type $fa.
+Using template $paramod$4e6ee5eb737cf7428f8e246e911ae1dac9ae2979\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $and.
+Using extmapper simplemap for cells of type $xor.
+Using extmapper simplemap for cells of type $or.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000010011 for cells of type $lcu.
+Using extmapper simplemap for cells of type $pos.
+Using extmapper simplemap for cells of type $mux.
+No more expansions possible.
+<suppressed ~1621 debug messages>
+
+6.21. Executing OPT pass (performing simple optimizations).
+
+6.21.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+<suppressed ~4216 debug messages>
+
+6.21.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 12250 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 11096 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 9738 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 8785 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 8022 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 7430 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 6838 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 6394 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 6074 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 5762 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 5498 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 5318 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 5174 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 5034 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4930 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4858 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4774 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4698 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4650 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4610 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4570 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4550 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4518 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4486 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4470 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4446 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4422 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4410 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 4386 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+<suppressed ~23592 debug messages>
+Removed a total of 7864 cells.
+
+6.21.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.21.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+Removed 68 unused cells and 1674 unused wires.
+<suppressed ~69 debug messages>
+
+6.21.5. Finished fast OPT passes.
+
+6.22. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `crossbar_mac'. Setting top module to crossbar_mac.
+
+6.22.1. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+
+6.22.2. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+Removed 0 unused modules.
+
+6.23. Printing statistics.
+
+=== crossbar_mac ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1076 wires
+    15472 wire bits
+       31 public wires
+      297 public wire bits
+       15 ports
+      169 port bits
+     4318 cells
+     1837   $_AND_
+        1   $_DFF_P_
+       37   $_NOT_
+      745   $_OR_
+       16   $_SDFFE_PN0P_
+       73   $_SDFF_PN0_
+     1609   $_XOR_
+
+6.24. Executing CHECK pass (checking for obvious problems).
+Checking module crossbar_mac...
+Found and reported 0 problems.
+
+7. Printing statistics.
+
+=== crossbar_mac ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1076 wires
+    15472 wire bits
+       31 public wires
+      297 public wire bits
+       15 ports
+      169 port bits
+     4318 cells
+     1837   $_AND_
+        1   $_DFF_P_
+       37   $_NOT_
+      745   $_OR_
+       16   $_SDFFE_PN0P_
+       73   $_SDFF_PN0_
+     1609   $_XOR_
+
+8. Executing Verilog backend.
+
+8.1. Executing BMUXMAP pass.
+
+8.2. Executing DEMUXMAP pass.
+Dumping module `\crossbar_mac'.
+
+End of script. Logfile hash: c06cde1178, time: 1.58s, user: 1.58s, system: 0.00s
+Yosys 0.65 (git sha1 b85cad634, ccache clang++  -O3 -fwasm-exceptions -mllvm) [yowasp/yosys at release-0.65]
+Time spent: 20% 21x opt_expr (0 sec), 17% 17x opt_merge (0 sec), ...
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.65 (git sha1 b85cad634, ccache clang++  -O3 -fwasm-exceptions -mllvm) [yowasp/yosys at release-0.65]
+
+-- Executing script file `codefest/cf07/synth/sta_crossbar.ys' --
+
+1. Executing Verilog-2005 frontend: codefest/cf07/hdl/synth_top.sv
+Parsing SystemVerilog input from `codefest/cf07/hdl/synth_top.sv' to AST representation.
+Generating RTLIL representation for module `\crossbar_mac'.
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+
+2.2. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+Removed 0 unused modules.
+
+3. Executing PROC pass (convert processes to netlists).
+
+3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 1 switch rules as full_case in process $proc$codefest/cf07/hdl/synth_top.sv:59$19 in module crossbar_mac.
+Marked 2 switch rules as full_case in process $proc$codefest/cf07/hdl/synth_top.sv:30$1 in module crossbar_mac.
+Removed a total of 0 dead cases.
+
+3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 5 redundant assignments.
+Promoted 0 assignments to connections.
+
+3.4. Executing PROC_INIT pass (extract init attributes).
+
+3.5. Executing PROC_ARST pass (detect async resets in processes).
+
+3.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~4 debug messages>
+
+3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+     1/5: $0\valid[0:0]
+     2/5: $0\out3[31:0]
+     3/5: $0\out2[31:0]
+     4/5: $0\out1[31:0]
+     5/5: $0\out0[31:0]
+Creating decoders for process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+     1/16: $0\w33[7:0]
+     2/16: $0\w32[7:0]
+     3/16: $0\w31[7:0]
+     4/16: $0\w30[7:0]
+     5/16: $0\w23[7:0]
+     6/16: $0\w22[7:0]
+     7/16: $0\w21[7:0]
+     8/16: $0\w20[7:0]
+     9/16: $0\w13[7:0]
+    10/16: $0\w12[7:0]
+    11/16: $0\w11[7:0]
+    12/16: $0\w10[7:0]
+    13/16: $0\w03[7:0]
+    14/16: $0\w02[7:0]
+    15/16: $0\w01[7:0]
+    16/16: $0\w00[7:0]
+
+3.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+3.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\crossbar_mac.\out0' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$296' with positive edge clock.
+Creating register for signal `\crossbar_mac.\out1' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$297' with positive edge clock.
+Creating register for signal `\crossbar_mac.\out2' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$298' with positive edge clock.
+Creating register for signal `\crossbar_mac.\out3' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$299' with positive edge clock.
+Creating register for signal `\crossbar_mac.\valid' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+  created $dff cell `$procdff$300' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w00' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$301' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w01' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$302' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w02' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$303' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w03' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$304' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w10' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$305' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w11' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$306' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w12' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$307' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w13' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$308' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w20' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$309' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w21' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$310' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w22' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$311' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w23' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$312' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w30' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$313' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w31' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$314' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w32' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$315' with positive edge clock.
+Creating register for signal `\crossbar_mac.\w33' using process `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+  created $dff cell `$procdff$316' with positive edge clock.
+
+3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+Removing empty process `crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:59$19'.
+Found and cleaned up 3 empty switches in `\crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+Removing empty process `crossbar_mac.$proc$codefest/cf07/hdl/synth_top.sv:30$1'.
+Cleaned up 4 empty switches.
+
+3.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+<suppressed ~22 debug messages>
+
+4. Executing FLATTEN pass (flatten design).
+
+5. Executing OPT pass (performing simple optimizations).
+
+5.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+5.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 136 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 135 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+5.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~90 debug messages>
+
+5.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+5.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 135 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Computing hashes of 120 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+<suppressed ~45 debug messages>
+Removed a total of 15 cells.
+
+5.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding SRST signal on $procdff$316 ($dff) from module crossbar_mac (D = $procmux$66_Y, Q = \w33, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$317 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:53$18_Y, Q = \w33).
+Adding SRST signal on $procdff$301 ($dff) from module crossbar_mac (D = $procmux$291_Y, Q = \w00, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$321 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y, Q = \w00).
+Adding SRST signal on $procdff$302 ($dff) from module crossbar_mac (D = $procmux$269_Y, Q = \w01, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$325 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:39$4_Y, Q = \w01).
+Adding SRST signal on $procdff$303 ($dff) from module crossbar_mac (D = $procmux$248_Y, Q = \w02, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$329 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:40$5_Y, Q = \w02).
+Adding SRST signal on $procdff$304 ($dff) from module crossbar_mac (D = $procmux$228_Y, Q = \w03, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$333 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:41$6_Y, Q = \w03).
+Adding SRST signal on $procdff$305 ($dff) from module crossbar_mac (D = $procmux$209_Y, Q = \w10, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$337 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:42$7_Y, Q = \w10).
+Adding SRST signal on $procdff$306 ($dff) from module crossbar_mac (D = $procmux$191_Y, Q = \w11, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$341 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:43$8_Y, Q = \w11).
+Adding SRST signal on $procdff$307 ($dff) from module crossbar_mac (D = $procmux$174_Y, Q = \w12, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$345 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:44$9_Y, Q = \w12).
+Adding SRST signal on $procdff$308 ($dff) from module crossbar_mac (D = $procmux$158_Y, Q = \w13, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$349 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:45$10_Y, Q = \w13).
+Adding SRST signal on $procdff$309 ($dff) from module crossbar_mac (D = $procmux$143_Y, Q = \w20, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$353 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:46$11_Y, Q = \w20).
+Adding SRST signal on $procdff$310 ($dff) from module crossbar_mac (D = $procmux$129_Y, Q = \w21, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$357 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:47$12_Y, Q = \w21).
+Adding SRST signal on $procdff$311 ($dff) from module crossbar_mac (D = $procmux$116_Y, Q = \w22, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$361 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:48$13_Y, Q = \w22).
+Adding SRST signal on $procdff$312 ($dff) from module crossbar_mac (D = $procmux$104_Y, Q = \w23, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$365 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:49$14_Y, Q = \w23).
+Adding SRST signal on $procdff$313 ($dff) from module crossbar_mac (D = $procmux$93_Y, Q = \w30, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$369 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:50$15_Y, Q = \w30).
+Adding SRST signal on $procdff$314 ($dff) from module crossbar_mac (D = $procmux$83_Y, Q = \w31, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$373 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:51$16_Y, Q = \w31).
+Adding SRST signal on $procdff$315 ($dff) from module crossbar_mac (D = $procmux$74_Y, Q = \w32, rval = 8'00000001).
+Adding EN signal on $auto$ff.cc:337:slice$377 ($sdff) from module crossbar_mac (D = $ternary$codefest/cf07/hdl/synth_top.sv:52$17_Y, Q = \w32).
+Adding SRST signal on $procdff$296 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:64$27_Y, Q = \out0, rval = 0).
+Adding SRST signal on $procdff$297 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:65$34_Y, Q = \out1, rval = 0).
+Adding SRST signal on $procdff$298 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:66$41_Y, Q = \out2, rval = 0).
+Adding SRST signal on $procdff$299 ($dff) from module crossbar_mac (D = $add$codefest/cf07/hdl/synth_top.sv:67$48_Y, Q = \out3, rval = 0).
+
+5.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+Removed 53 unused cells and 127 unused wires.
+<suppressed ~54 debug messages>
+
+5.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+5.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+5.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+5.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+5.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+5.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+5.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+5.16. Finished fast OPT passes. (There is nothing left to do.)
+
+6. Executing SYNTH pass.
+
+6.1. Executing HIERARCHY pass (managing design hierarchy).
+
+6.1.1. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+
+6.1.2. Analyzing design hierarchy..
+Top module:  \crossbar_mac
+Removed 0 unused modules.
+
+6.2. Executing PROC pass (convert processes to netlists).
+
+6.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+6.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+6.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+6.2.4. Executing PROC_INIT pass (extract init attributes).
+
+6.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+6.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+6.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+6.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+6.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+6.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+6.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+6.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.5. Executing CHECK pass (checking for obvious problems).
+Checking module crossbar_mac...
+Found and reported 0 problems.
+
+6.6. Executing OPT pass (performing simple optimizations).
+
+6.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.6.9. Finished fast OPT passes. (There is nothing left to do.)
+
+6.7. Executing FSM pass (extract and optimize FSM).
+
+6.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+
+6.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+6.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+6.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+6.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+6.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+6.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+6.8. Executing OPT pass (performing simple optimizations).
+
+6.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 83 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.8.9. Finished fast OPT passes. (There is nothing left to do.)
+
+6.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add) from unsigned to signed.
+Removed top 16 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+Removed top 15 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add) from unsigned to signed.
+Removed top 15 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+Removed top 14 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+Removed top 16 bits (of 32) from port Y of cell crossbar_mac.$mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul).
+Converting cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add) from unsigned to signed.
+Removed top 14 bits (of 32) from port A of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+Removed top 16 bits (of 32) from port B of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+Removed top 13 bits (of 32) from port Y of cell crossbar_mac.$add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$157_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$173_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$190_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell crossbar_mac.$procmux$208_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell crossbar_mac.$procmux$227_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell crossbar_mac.$procmux$247_CMP0 ($eq).
+Removed top 3 bits (of 4) from port B of cell crossbar_mac.$procmux$268_CMP0 ($eq).
+
+6.10. Executing PEEPOPT pass (run peephole optimizers).
+
+6.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module crossbar_mac:
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$48 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$41 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$34 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$27 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul).
+  creating $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul).
+  creating $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul).
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$21 into $add$codefest/cf07/hdl/synth_top.sv:64$23.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$22 into $add$codefest/cf07/hdl/synth_top.sv:64$23.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$23 into $add$codefest/cf07/hdl/synth_top.sv:64$25.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$24 into $add$codefest/cf07/hdl/synth_top.sv:64$25.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:64$25 into $add$codefest/cf07/hdl/synth_top.sv:64$27.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:64$26 into $add$codefest/cf07/hdl/synth_top.sv:64$27.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$28 into $add$codefest/cf07/hdl/synth_top.sv:65$30.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$29 into $add$codefest/cf07/hdl/synth_top.sv:65$30.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$30 into $add$codefest/cf07/hdl/synth_top.sv:65$32.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$31 into $add$codefest/cf07/hdl/synth_top.sv:65$32.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:65$32 into $add$codefest/cf07/hdl/synth_top.sv:65$34.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:65$33 into $add$codefest/cf07/hdl/synth_top.sv:65$34.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$35 into $add$codefest/cf07/hdl/synth_top.sv:66$37.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$36 into $add$codefest/cf07/hdl/synth_top.sv:66$37.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$37 into $add$codefest/cf07/hdl/synth_top.sv:66$39.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$38 into $add$codefest/cf07/hdl/synth_top.sv:66$39.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:66$39 into $add$codefest/cf07/hdl/synth_top.sv:66$41.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:66$40 into $add$codefest/cf07/hdl/synth_top.sv:66$41.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$42 into $add$codefest/cf07/hdl/synth_top.sv:67$44.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$43 into $add$codefest/cf07/hdl/synth_top.sv:67$44.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$44 into $add$codefest/cf07/hdl/synth_top.sv:67$46.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$45 into $add$codefest/cf07/hdl/synth_top.sv:67$46.
+  merging $macc model for $add$codefest/cf07/hdl/synth_top.sv:67$46 into $add$codefest/cf07/hdl/synth_top.sv:67$48.
+  merging $macc model for $mul$codefest/cf07/hdl/synth_top.sv:67$47 into $add$codefest/cf07/hdl/synth_top.sv:67$48.
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:65$34: $auto$alumacc.cc:382:replace_macc$385
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:64$27: $auto$alumacc.cc:382:replace_macc$386
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:66$41: $auto$alumacc.cc:382:replace_macc$387
+  creating $macc cell for $add$codefest/cf07/hdl/synth_top.sv:67$48: $auto$alumacc.cc:382:replace_macc$388
+  created 0 $alu and 4 $macc cells.
+
+6.13. Executing SHARE pass (SAT-based resource sharing).
+Found 16 cells in module crossbar_mac that may be considered for resource sharing.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:64$25
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:64$23
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$21
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$22
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$24
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:64$26
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:65$32
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:65$30
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$28
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$29
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$31
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:65$33
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:66$39
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:66$37
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$35
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$36
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$38
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:66$40
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul):
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:67$46
+    Found cell that is never activated: $add$codefest/cf07/hdl/synth_top.sv:67$44
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$42
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$43
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$45
+    Cell is never active. Sharing is pointless, we simply remove it.
+  Analyzing resource sharing options for $mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul):
+    Found cell that is never activated: $mul$codefest/cf07/hdl/synth_top.sv:67$47
+    Cell is never active. Sharing is pointless, we simply remove it.
+Removing 24 cells in module crossbar_mac:
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$47 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$45 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$43 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:67$42 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:67$44 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:67$46 ($add).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$40 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$38 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$36 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:66$35 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:66$37 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:66$39 ($add).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$33 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$31 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$29 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:65$28 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:65$30 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:65$32 ($add).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$26 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$24 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$22 ($mul).
+  Removing cell $mul$codefest/cf07/hdl/synth_top.sv:64$21 ($mul).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:64$23 ($add).
+  Removing cell $add$codefest/cf07/hdl/synth_top.sv:64$25 ($add).
+
+6.14. Executing OPT pass (performing simple optimizations).
+
+6.14.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.14.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 59 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.14.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.14.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.14.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 59 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.14.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.14.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+Removed 0 unused cells and 24 unused wires.
+<suppressed ~1 debug messages>
+
+6.14.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.14.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+6.14.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+6.14.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 0 changes.
+
+6.14.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 59 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.14.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.14.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.14.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.14.16. Finished fast OPT passes. (There is nothing left to do.)
+
+6.15. Executing MEMORY pass.
+
+6.15.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+6.15.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+6.15.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+6.15.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+6.15.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+6.15.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.15.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+6.15.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+6.15.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.15.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+6.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.17. Executing OPT pass (performing simple optimizations).
+
+6.17.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+<suppressed ~1 debug messages>
+
+6.17.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.17.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.17.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+6.17.5. Finished fast OPT passes.
+
+6.18. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+6.19. Executing OPT pass (performing simple optimizations).
+
+6.19.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module crossbar_mac.
+
+6.19.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.19.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \crossbar_mac..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~2 debug messages>
+
+6.19.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \crossbar_mac.
+    Consolidated identical input bits for $mux cell $ternary$codefest/cf07/hdl/synth_top.sv:53$18:
+      Old ports: A=8'11111111, B=8'00000001, Y=$ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y
+      New ports: A=1'1, B=1'0, Y=$ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1]
+      New connections: { $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [7:2] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [0] } = { $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] $ternary$codefest/cf07/hdl/synth_top.sv:38$3_Y [1] 1'1 }
+  Optimizing cells in module \crossbar_mac.
+Performed a total of 1 changes.
+
+6.19.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\crossbar_mac'.
+Computing hashes of 58 cells of `\crossbar_mac'.
+Finding duplicate cells in `\crossbar_mac'.
+Removed a total of 0 cells.
+
+6.19.6. Executing OPT_SHARE pass.
+
+6.19.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+6.19.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \crossbar_mac..
+
+6.19.9. Executing OPT_EXPR pass (perform const folding).
