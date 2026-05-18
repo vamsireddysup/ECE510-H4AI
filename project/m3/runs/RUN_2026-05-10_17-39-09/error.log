@@ -1,5 +1,0 @@
-Failed to pre-process input models for linting with Yosys: Command '['/home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/hw4ai-env/bin/yosys', '-p', '\n                    verilog_defines -DUSE_POWER_PINS;\nread_verilog -sv -lib /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/project/m3/runs/RUN_2026-05-10_17-39-09/tmp/98732b5eb3f549ad87cd1a9cbad22bb6.bb.v;\n\n                    blackbox;\n                    write_verilog -noattr -noexpr -nohex -nodec -defparam -blackboxes /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/project/m3/runs/RUN_2026-05-10_17-39-09/tmp/98732b5eb3f549ad87cd1a9cbad22bb6.bb.v;\n                    ']' returned non-zero exit status 1.
-ERROR: Can't open input file `/home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/project/m3/runs/RUN_2026-05-10_17-39-09/tmp/98732b5eb3f549ad87cd1a9cbad22bb6.bb.v' for reading: No such file or directory
-
-Will attempt to load models into linter as-is.
-1 Lint errors found.

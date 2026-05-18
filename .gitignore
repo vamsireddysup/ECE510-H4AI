@@ -28,3 +28,6 @@ project/upgrade_archive/tb/obj_*/
 project/upgrade_archive/tb/*.vcd
 project/m2/tb/obj_*/
 project/m2/tb/*.vcd
+project/m3/runs/RUN_*/
+project/m3/runs/*.log
+project/m3/runs/synth_out.v

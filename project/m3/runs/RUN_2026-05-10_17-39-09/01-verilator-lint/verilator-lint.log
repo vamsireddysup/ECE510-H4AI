@@ -1,5 +1,0 @@
-%Error: /home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/project/m3/runs/RUN_2026-05-10_17-39-09/tmp/98732b5eb3f549ad87cd1a9cbad22bb6.bb.v:1528:40: Can't resolve module reference: 'sky130_fd_sc_hd__udp_pwrgood_pp$PG'
- 1528 |     sky130_fd_sc_hd__udp_pwrgood_pp$PG pwrgood_pp0 (pwrgood_pp0_out_X, or0_out_X, VPWR, VGND);
-      |                                        ^~~~~~~~~~~
-        ... See the manual at https://verilator.org/verilator_doc.html?v=5.041 for more assistance.
-%Error: Exiting due to 1 error(s)
