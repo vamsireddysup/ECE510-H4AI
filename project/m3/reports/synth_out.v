@@ -4,7 +4,7 @@
 (* dynports =  1  *)
 (* top =  1  *)
 (* src = "src/systolic_array_flat.sv:4.1-103.10" *)
-module \$paramod$1a92308967ce04801cf7f8164e09c5a11a8fd0e3\systolic_array_flat (clk, rst_n, a_in_flat, b_in_flat, valid_in, result_flat, result_valid);
+module systolic_array_synth (clk, rst_n, a_in_flat, b_in_flat, valid_in, result_flat, result_valid);
   wire [1:0] _00000_;
   wire [1:0] _00001_;
   wire [1:0] _00002_;
