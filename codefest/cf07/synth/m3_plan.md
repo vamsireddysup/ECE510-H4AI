@@ -1,24 +1,22 @@
 # M3 Synthesis Plan
 
-## What was learned from CF07 fallback (Option B)
+## What was learned from CF07 (Option B)
 
-CF07 synthesis used crossbar_mac.sv as the fallback. The generic synthesis
-produced 4318 cells dominated by XOR and AND chains. Technology mapping to
-sky130 HD was not completed in CF07 because yowasp-yosys lacks ABC.
+CF07 used crossbar_mac.sv as the fallback target. Key findings:
 
-## M3 outcome
+- Generic synthesis: 4318 cells, 34-stage critical path in the carry chain
+- Technology mapping failed because yowasp-yosys lacks ABC
+- No timing slack obtainable without sky130-mapped cells
 
-M3 synthesis was completed successfully using Yosys 0.44 + ABC with sky130 HD
-(tt_025C_1v80). The actual systolic array (SIZE=4, D_HEAD=4) produced:
+This confirmed that a native yosys build with ABC is required for M3.
 
-- Mapped cells: 25,378
-- Chip area: 188,961 µm²
-- WNS (setup): -17.26 ns at 250 MHz target
-- Hold: MET (+0.31 ns)
-- Critical path: 21.13 ns -- FP32 accumulator chain dominates
+## M3 plan
 
-The 17.26 ns setup violation means timing closure at 250 MHz requires
-pipelining the FP32 accumulator. The maximum achievable frequency with
-current RTL is approximately 46 MHz (1/21.5 ns). For M4 the plan is to
-pipeline `fp32_add.sv` into 3 stages, which should enable 250 MHz operation.
-The hold timing is clean at all frequencies so no hold fixing is needed.
+Target: `systolic_array.sv` with SIZE=4, D_HEAD=4, sky130 HD at 250 MHz.
+
+Expected differences from the CF07 fallback: the systolic array contains 16
+PEs each with a 256-entry FP4 LUT multiplier and a 32-bit FP32 accumulator,
+so cell count will be 50-100× larger than crossbar_mac. The critical path
+will be inside the FP32 accumulator chain rather than the binary adder tree.
+
+Target date for systolic array synthesis: before M3 deadline (May 24, 2026).
