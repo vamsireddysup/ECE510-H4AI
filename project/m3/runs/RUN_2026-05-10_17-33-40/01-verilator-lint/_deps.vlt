@@ -1,0 +1,5 @@
+`verilator_config
+lint_off -rule DECLFILENAME
+lint_off -rule EOFNEWLINE
+lint_off -rule UNDRIVEN -file "/home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/project/m3/runs/RUN_2026-05-10_17-33-40/tmp/57c6d22ba71a40eab7c23c43bec3b49c.bb.v"
+lint_off -rule UNUSEDSIGNAL -file "/home/vamsidhar-reddy-eraganeni/Desktop/ECE510-H4AI/project/m3/runs/RUN_2026-05-10_17-33-40/tmp/57c6d22ba71a40eab7c23c43bec3b49c.bb.v"

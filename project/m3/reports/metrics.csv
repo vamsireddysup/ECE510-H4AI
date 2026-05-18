@@ -1,0 +1,2 @@
+design,tool,cells_premapped,cells_mapped,chip_area_um2,sequential_area_um2,sequential_pct,clock_period_ns,liberty,cpu_time_s
+systolic_array_flat,yosys-0.44-sky130hd,32904,25378,188961.23,59697.25,31.59,4.0,sky130_fd_sc_hd__tt_025C_1v80,25.75

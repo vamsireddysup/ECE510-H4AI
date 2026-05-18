@@ -1,0 +1,8 @@
+read_verilog -sv src/fp4_mul_lut.sv src/fp4_mul.sv src/fp32_add.sv src/pe.sv src/systolic_array_flat.sv
+chparam -set SIZE 4 -set D_HEAD 4 -set WIDTH 4 -set ACC_W 32 systolic_array_flat
+synth -top systolic_array_flat -flatten
+dfflibmap -liberty /home/vamsidhar-reddy-eraganeni/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+abc -liberty /home/vamsidhar-reddy-eraganeni/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+clean
+stat -liberty /home/vamsidhar-reddy-eraganeni/.volare/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib
+write_verilog runs/synth_out.v

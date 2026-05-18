@@ -1,0 +1,23 @@
+{
+    "DESIGN_NAME": "systolic_array",
+    "VERILOG_FILES": [
+        "dir::src/fp4_mul_lut.sv",
+        "dir::src/fp4_mul.sv",
+        "dir::src/fp32_add.sv",
+        "dir::src/pe.sv",
+        "dir::src/systolic_array.sv"
+    ],
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 4.0,
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "DIE_AREA": "0 0 2000 2000",
+    "FP_CORE_UTIL": 40,
+    "PL_TARGET_DENSITY": 0.4,
+    "synth_parameters": {
+        "SIZE": 4,
+        "D_HEAD": 4,
+        "WIDTH": 4,
+        "ACC_W": 32
+    }
+}
