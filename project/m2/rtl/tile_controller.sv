@@ -166,6 +166,7 @@ module tile_controller #(
     logic [31:0] tile_start_cycle; // cycle when current tile started
     logic        deq_phase;    // 0 = multiply by S_Q, 1 = multiply by S_K
     logic [31:0] deq_intermediate; // result after S_Q multiply
+    logic [1:0]  deq_wait;         // wait counter for 3-cycle fp32_mul
 
     // -----------------------------------------------------------------------
     // Profiling counters
@@ -185,8 +186,14 @@ module tile_controller #(
                          tile_row[$clog2(T_MAX)-1:0] * TILE_SIZE[$clog2(T_MAX)-1:0];
     assign sk_rd_addr  = deq_col[$clog2(T_MAX)-1:0] +
                          tile_col[$clog2(T_MAX)-1:0] * TILE_SIZE[$clog2(T_MAX)-1:0];
-    assign out_rd_row  = deq_row[$clog2(TILE_SIZE)-1:0];
-    assign out_rd_col  = deq_col[$clog2(TILE_SIZE)-1:0];
+    // During STREAM_OUT use send_count to address out_buf directly
+    // During DEQUANTIZE use deq_row/col
+    assign out_rd_row  = (state == STREAM_OUT) ?
+                         send_count[$clog2(TILE_SIZE)+$clog2(TILE_SIZE)-1:$clog2(TILE_SIZE)] :
+                         deq_row[$clog2(TILE_SIZE)-1:0];
+    assign out_rd_col  = (state == STREAM_OUT) ?
+                         send_count[$clog2(TILE_SIZE)-1:0] :
+                         deq_col[$clog2(TILE_SIZE)-1:0];
 
     // Q and K read for feeding array
     always_comb begin
@@ -224,6 +231,7 @@ module tile_controller #(
             tile_start_cycle <= 32'h0;
             deq_phase       <= 1'b0;
             deq_intermediate <= 32'h0;
+            deq_wait        <= 2'h0;
             arr_valid_in    <= 1'b0;
             s_tready        <= 1'b0;
             m_tvalid        <= 1'b0;
@@ -381,13 +389,18 @@ module tile_controller #(
                 // Wait for systolic array to finish
                 // ------------------------------------------------------------
                 WAIT_RESULT: begin
+                    `ifdef DEBUG_CTRL
+                    $display("[CTRL] WAIT result[0][0]=0x%08h valid=%0b t=%0t",
+                             arr_result[0][0], arr_result_valid, $time);
+                    `endif
                     if (arr_result_valid) begin
                         state   <= CAPTURE;
                         cap_row <= 32'h0;
                         cap_col <= 32'h0;
 
                         `ifdef DEBUG_CTRL
-                        $display("[CTRL] Array done at t=%0t", $time);
+                        $display("[CTRL] Array done result[0][0]=0x%08h at t=%0t",
+                                 arr_result[0][0], $time);
                         `endif
                     end
                 end
@@ -401,6 +414,13 @@ module tile_controller #(
                     out_wr_col  <= cap_col[$clog2(TILE_SIZE)-1:0];
                     out_wr_data <= arr_result[cap_row[$clog2(TILE_SIZE)-1:0]]
                                              [cap_col[$clog2(TILE_SIZE)-1:0]];
+                    `ifdef DEBUG_CTRL
+                    $display("[CTRL] CAPTURE[%0d][%0d]=0x%08h at t=%0t",
+                             cap_row, cap_col,
+                             arr_result[cap_row[$clog2(TILE_SIZE)-1:0]]
+                                       [cap_col[$clog2(TILE_SIZE)-1:0]],
+                             $time);
+                    `endif
 
                     if (cap_col == 32'(TILE_SIZE - 1)) begin
                         cap_col <= 32'h0;
@@ -425,22 +445,28 @@ module tile_controller #(
                 // ------------------------------------------------------------
                 DEQUANTIZE: begin
                     if (!deq_phase) begin
-                        // Phase 0: multiply by S_Q
+                        // Phase 0: multiply by S_Q (3-cycle fp32_mul latency)
                         deq_a     <= out_rd_data;  // raw FP32 from out_buf
                         deq_b     <= sq_rd_data;   // S_Q[tile_row*TILE+i]
                         deq_valid <= 1'b1;
 
-                        if (deq_result_valid) begin
+                        if (deq_wait < 2'h2) begin
+                            deq_wait <= deq_wait + 2'h1;
+                        end else if (deq_result_valid) begin
+                            deq_wait         <= 2'h0;
                             deq_intermediate <= deq_result;
                             deq_phase        <= 1'b1;
                         end
                     end else begin
-                        // Phase 1: multiply by S_K
+                        // Phase 1: multiply by S_K (3-cycle fp32_mul latency)
                         deq_a     <= deq_intermediate;
                         deq_b     <= sk_rd_data;   // S_K[tile_col*TILE+j]
                         deq_valid <= 1'b1;
 
-                        if (deq_result_valid) begin
+                        if (deq_wait < 2'h2) begin
+                            deq_wait <= deq_wait + 2'h1;
+                        end else if (deq_result_valid) begin
+                            deq_wait <= 2'h0;
                             // Write dequantized result back to out_buf
                             out_wr_en   <= 1'b1;
                             out_wr_row  <= deq_row[$clog2(TILE_SIZE)-1:0];
