@@ -8,17 +8,19 @@
 
 Custom co-processor chiplet accelerating the QK^T attention score computation
 using FP4 E2M1 multiply and FP32 accumulate on a systolic array, targeting
-Sky130 HD at 250 MHz.
+Sky130 HD at 250 MHz. The chiplet uses AXI4-Lite for control and AXI4-Stream
+for data streaming.
 
 ## M4 Final Submission
 
 The complete M4 deliverable package is in **[project/m4/](project/m4/README.md)**.
 
-Key results:
+Key results (fresh M4 OpenLane run, project/m4/synth/):
 - 16×16 FP4 systolic array, AXI4-Lite + AXI4-Stream interfaces
-- Co-simulation: 16/16 PASS end-to-end
-- Synthesis: 328,554 µm² (SIZE=4), 60.2 mW, WNS=-2.30 ns
-- Speedup vs CPU: **2.19× at 158 MHz** (achievable), 3.45× projected at 250 MHz
+- Co-simulation: 16/16 PASS end-to-end (project/m4/sim/final_run.log)
+- Synthesis: 329,148 µm² (SIZE=4), 60.2 mW, WNS=-2.54 ns
+- Achievable frequency: 152.6 MHz, speedup **2.11×** vs CPU
+- Projected at 250 MHz: speedup **3.45×**
 - Design justification report: [project/m4/report/design_justification.pdf](project/m4/report/design_justification.pdf)
 
 ## Milestone structure
