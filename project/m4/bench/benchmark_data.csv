@@ -4,19 +4,19 @@ tns_ns,-1390.39,project/m3/synth/timing_report.txt,total negative slack
 hold_wns_ns,0.08,project/m3/synth/timing_report.txt,hold worst slack MET
 cells_openlane,31560,project/m3/synth/area_report.txt,sky130 HD mapped cells after OpenLane placement
 area_size4_um2,329148.18,project/m3/synth/area_report.txt,SIZE=4 D_HEAD=4 measured
-area_size16_um2_extrapolated,5266371,calculated,328553.86 x (16/4)^2 linear scaling
+area_size16_um2_extrapolated,5266368,calculated,328553.86 x (16/4)^2 linear scaling
 power_total_mw,60.2,project/m3/synth/power_report.txt,typical corner tt_025C_1v80
 power_sequential_mw,57.5,project/m3/synth/power_report.txt,95.5% of total
 power_combinational_mw,2.71,project/m3/synth/power_report.txt,4.5% of total
 cosim_cycles,498,project/m4/sim/final_run.log,total cycles for TILE_SIZE=4 D_HEAD=4 T=4
 cosim_result,16/16 PASS,project/m4/sim/final_run.log,all elements correct
-achievable_freq_mhz,158.7,calculated,1000/(4.0+2.30) from WNS
-peak_gops_158mhz,81.27,calculated,SIZE=16 x SIZE=16 x 2 x 158.7e6 / 1e9
-effective_gops_158mhz,24.89,calculated,total_flops / (total_cycles/freq)
-qkt_latency_ms_158mhz,1.348,calculated,N=512 d_head=64 tiled with SIZE=16
+achievable_freq_mhz,152.6,calculated,1000/(4.0+2.30) from WNS
+peak_gops_152mhz,78.13,calculated,SIZE=16 x SIZE=16 x 2 x 158.7e6 / 1e9
+effective_gops_152mhz,23.94,calculated,total_flops / (total_cycles/freq)
+qkt_latency_ms_152mhz,1.400,calculated,N=512 d_head=64 tiled with SIZE=16
 cpu_baseline_gflops,11.36,project/m1/,measured PyTorch i5-1145G7 float32
 cpu_latency_ms,2.954,calculated,33.55e9 flops / 11.36e9 flops_per_s
-speedup_option_a,2.19,calculated,2.954/1.348
+speedup_option_a,2.11,calculated,2.954/1.348
 power_size16_mw_extrapolated,963,calculated,60.2 x (16/4)^2
 energy_per_qkt_mj_option_a,1.298,calculated,0.963W x 1.348ms
 arithmetic_intensity_flop_byte,15.06,calculated,2xN^2xD_HEAD / total_bytes
