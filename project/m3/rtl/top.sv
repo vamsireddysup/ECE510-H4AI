@@ -1,8 +1,52 @@
 /*
  * qkt_chiplet_top.sv -- Top-level integration for FP4 QK^T Accelerator
  *
- * Updated: tile_buffer now exposes TILE_SIZE parallel read ports for Q and K.
- * The systolic array receives all TILE_SIZE row inputs simultaneously per cycle.
+ * Instantiates: axi4_lite_ctrl, tile_controller, scale_sram, tile_buffer,
+ *               systolic_array, fp32_mul. Connects them via internal signals.
+ *
+ * External port list:
+ *   clk          input   1      System clock (rising edge triggered)
+ *   rst_n        input   1      Active-low synchronous reset
+ *
+ *   -- AXI4-Lite slave (control plane)
+ *   awvalid      input   1      Write address valid
+ *   awready      output  1      Write address ready
+ *   awaddr       input   32     Write address (byte addressed)
+ *   wvalid       input   1      Write data valid
+ *   wready       output  1      Write data ready
+ *   wdata        input   32     Write data
+ *   wstrb        input   4      Write byte strobes
+ *   bvalid       output  1      Write response valid
+ *   bready       input   1      Write response ready
+ *   bresp        output  2      Write response (00=OKAY)
+ *   arvalid      input   1      Read address valid
+ *   arready      output  1      Read address ready
+ *   araddr       input   32     Read address
+ *   rvalid       output  1      Read data valid
+ *   rready       input   1      Read data ready
+ *   rdata        output  32     Read data
+ *   rresp        output  2      Read response (00=OKAY)
+ *
+ *   -- AXI4-Stream slave (input: scale factors + FP4 Q/K tiles)
+ *   s_tvalid     input   1      Input stream valid
+ *   s_tready     output  1      Input stream ready (backpressure)
+ *   s_tdata      input   64     Input stream data (packed FP4 or FP32)
+ *   s_tlast      input   1      Input stream last beat marker
+ *
+ *   -- AXI4-Stream master (output: dequantized FP32 scores)
+ *   m_tvalid     output  1      Output stream valid
+ *   m_tready     input   1      Output stream ready
+ *   m_tdata      output  64     Output stream data (FP32 score, upper 32 bits)
+ *   m_tlast      output  1      Output stream last beat marker
+ *
+ * Glue logic: generate block connects tile_buffer parallel read ports
+ *   (q_rd_data_par, k_rd_data_par) to systolic array arr_a_in/arr_b_in.
+ *   No clock domain crossings. Single clock domain throughout.
+ *
+ * Parameters:
+ *   TILE_SIZE    int    Systolic array dimension (default 4)
+ *   D_HEAD       int    Dot product length (default 4)
+ *   T_MAX        int    Max sequence length (default 16)
  *
  * Author: Vamsidhar Reddy Eraganeni
  * Course: ECE 510 Spring 2026, Portland State University
