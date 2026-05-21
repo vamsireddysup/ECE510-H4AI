@@ -7,7 +7,7 @@ All synthesis numbers come from OpenLane 1.1.1 running inside Docker
 Source files: project/m3/synth/*.
 
 Accelerator throughput is derived from:
-1. Achievable frequency from post-synthesis STA (WNS=-2.30 ns at 4.0 ns
+1. Achievable frequency from post-synthesis STA (WNS=-2.54 ns at 4.0 ns
    clock → max frequency = 1000/(4.0+2.30) = 158.7 MHz)
 2. Cycle count from Verilator co-simulation (CYCLE_COUNT=498 for
    TILE_SIZE=4, D_HEAD=4, T=4 per project/m4/sim/final_run.log)
@@ -22,8 +22,8 @@ All raw numbers are in project/m4/bench/benchmark_data.csv.
 
 | Metric | Value | Source |
 |---|---|---|
-| Total cells (OpenLane) | 31,502 | synth/area_report.txt |
-| Chip area | 328,554 µm² | synth/area_report.txt |
+| Total cells (OpenLane) | 31,560 | synth/area_report.txt |
+| Chip area | 329,148 µm² | synth/area_report.txt |
 | WNS (setup) | -2.30 ns | synth/timing_report.txt |
 | TNS | -1,429.82 ns | synth/timing_report.txt |
 | Hold WNS | +0.08 ns (MET) | synth/timing_report.txt |

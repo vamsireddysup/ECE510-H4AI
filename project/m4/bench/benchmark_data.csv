@@ -1,10 +1,10 @@
 metric,value,source_file,notes
-wns_ns,-2.30,project/m3/synth/timing_report.txt,setup worst negative slack post OpenLane synthesis
-tns_ns,-1429.82,project/m3/synth/timing_report.txt,total negative slack
+wns_ns,-2.54,project/m3/synth/timing_report.txt,setup worst negative slack post OpenLane synthesis
+tns_ns,-1390.39,project/m3/synth/timing_report.txt,total negative slack
 hold_wns_ns,0.08,project/m3/synth/timing_report.txt,hold worst slack MET
-cells_openlane,31502,project/m3/synth/area_report.txt,sky130 HD mapped cells after OpenLane placement
-area_size4_um2,328553.86,project/m3/synth/area_report.txt,SIZE=4 D_HEAD=4 measured
-area_size16_um2_extrapolated,5256861,calculated,328553.86 x (16/4)^2 linear scaling
+cells_openlane,31560,project/m3/synth/area_report.txt,sky130 HD mapped cells after OpenLane placement
+area_size4_um2,329148.18,project/m3/synth/area_report.txt,SIZE=4 D_HEAD=4 measured
+area_size16_um2_extrapolated,5266371,calculated,328553.86 x (16/4)^2 linear scaling
 power_total_mw,60.2,project/m3/synth/power_report.txt,typical corner tt_025C_1v80
 power_sequential_mw,57.5,project/m3/synth/power_report.txt,95.5% of total
 power_combinational_mw,2.71,project/m3/synth/power_report.txt,4.5% of total
