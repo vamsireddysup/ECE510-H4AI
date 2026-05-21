@@ -1,92 +1,97 @@
-# M3 -- FP4 Systolic Array Synthesis
+# M3 -- FP4 QK^T Accelerator Chiplet Synthesis and Integration
 
-## Design
+## How to reproduce co-simulation
 
-**Module:** `systolic_array_flat` (synthesis-friendly wrapper for `systolic_array`)
-**Parameters:** SIZE=4, D_HEAD=4, WIDTH=4 (FP4), ACC_W=32 (FP32 accumulator)
-**Description:** 4×4 systolic array computing QK^T attention scores using FP4 E2M1 multiply and FP32 accumulate. 16 PEs, each containing a 256-entry FP4 LUT multiplier and a 32-bit FP32 accumulator.
+**Dependencies:** Verilator 5.041, g++ 13.3, Ubuntu 24.04
 
-## Tool flow
-
+```bash
+cd project/m2/tb
+verilator --cc \
+    ../rtl/fp4_mul_lut.sv ../rtl/fp4_mul.sv ../rtl/fp32_add.sv \
+    ../rtl/fp32_mul.sv ../rtl/pe.sv ../rtl/systolic_array.sv \
+    ../rtl/scale_sram.sv ../rtl/tile_buffer.sv \
+    ../rtl/tile_controller.sv ../rtl/axi4_lite_ctrl.sv \
+    ../rtl/qkt_chiplet_top.sv \
+    --exe ./tb_chiplet_top.cpp --build -Wall --trace \
+    -GTILE_SIZE=4 -GD_HEAD=4 -GT_MAX=16 \
+    -o tb_chiplet_top --Mdir obj_chiplet \
+    --top-module qkt_chiplet_top
+./obj_chiplet/tb_chiplet_top
 ```
-Yosys 0.44 + ABC --> sky130 HD (tt_025C_1v80) --> OpenSTA 2.5.0
+
+Expected output: `ALL PASS -- End-to-end AXI co-simulation verified`
+
+## How to reproduce synthesis
+
+**Dependencies:** Docker, efabless/openlane:latest image, sky130A PDK at ~/.volare
+
+```bash
+cd project/m3
+docker run --rm \
+    -v $(pwd):/work \
+    -v ~/.volare:/root/.volare \
+    -e PDK_ROOT=/root/.volare -e PDK=sky130A \
+    efabless/openlane:latest \
+    bash -c "/nix/store/xpc7xd67rslanlqh566s6jph53bn830w-openlane1-1.1.1/bin/flow.tcl \
+    -design /work/openlane1 -tag full_run -overwrite"
 ```
 
-Synthesis script: `runs/synth.ys`
-STA script: `runs/sta.tcl`
-Liberty file: `sky130_fd_sc_hd__tt_025C_1v80.lib`
+**OpenLane version:** OpenLane 1.1.1 (commit in openlane1/runs/full_run/OPENLANE_COMMIT)
+**Configuration:** project/m3/synth/config.json (OpenLane 2 format) and project/m3/openlane1/config.tcl (OpenLane 1 format)
 
-## Synthesis results
+## File catalog
 
-| Metric | Value |
+### Top-level
+| File | Description |
 |---|---|
-| Total mapped cells | 25,378 |
-| Chip area | 188,961 µm² |
-| Sequential area | 59,697 µm² (31.59%) |
-| Combinational area | 129,264 µm² (68.41%) |
-| CPU synthesis time | 25.75 s |
+| README.md | This file -- M3 index and reproduction instructions |
+| synthesis_notes.md | Narrative of what synthesized, what failed, scope status (807 words) |
+| config.json | OpenLane 2 configuration (clock 4.0 ns, sky130A HD, SIZE=4) |
 
-Top cell types after mapping:
-- `sky130_fd_sc_hd__o21ai_0`: 2,438 instances
-- `sky130_fd_sc_hd__nor3_1`: 1,009 instances
-- `sky130_fd_sc_hd__xnor2_1`: 518 instances
-- `sky130_fd_sc_hd__xor2_1`: 327 instances
+### rtl/
+| File | Description |
+|---|---|
+| rtl/top.sv | Integrated top module: AXI4-Lite + AXI4-Stream + tile_controller + systolic_array + fp32_mul |
 
-## Timing results (OpenSTA)
+### tb/
+| File | Description |
+|---|---|
+| tb/tb_top.cpp | End-to-end co-simulation testbench (Verilator C++, accepted by instructor) |
 
-**Clock target:** 4.0 ns (250 MHz)
+### sim/
+| File | Description |
+|---|---|
+| sim/cosim_run.log | Co-simulation transcript showing 16/16 PASS |
+| sim/cosim_waveform.png | Waveform showing AXI write, compute, AXI read (annotated) |
 
-| Metric | Value | Status |
-|---|---|---|
-| Worst negative slack (setup) | -17.26 ns | VIOLATED |
-| Total negative slack | -26,731.40 ns | VIOLATED |
-| Worst negative slack (hold) | +0.31 ns | MET |
-| Critical path delay | 21.13 ns | -- |
-| Maximum achievable frequency | ~46 MHz (1/21.5ns) | -- |
+### synth/
+| File | Description |
+|---|---|
+| synth/config.json | OpenLane 2 configuration file |
+| synth/openlane_run.log | Full OpenLane 1.1.1 stdout/stderr from synthesis run |
+| synth/timing_report.txt | STA summary: WNS=-2.30 ns, TNS=-1429.82 ns, hold MET |
+| synth/area_report.txt | Area: 328,554 um2, cell count by type |
+| synth/power_report.txt | Power: 60.2 mW total (95.5% sequential, 4.5% combinational) |
+| synth/critical_path.md | Critical path identification and analysis |
 
-**Critical path:** register `_44707_` → combinational logic → register endpoint. The 21.13 ns arrival time indicates the FP32 accumulator chain is the dominant path -- the 32-bit adder tree across 4 PE inputs creates a long carry-propagate chain without pipelining.
+### src/ (synthesis RTL)
+| File | Description |
+|---|---|
+| src/fp4_mul_lut.sv | 256-entry FP4 E2M1 multiply lookup table |
+| src/fp4_mul.sv | FP4 multiplier wrapper (1-cycle latency) |
+| src/fp32_add.sv | 3-stage pipelined FP32 adder (Option B) |
+| src/pe.sv | Processing element: FP4 mul + FP32 accumulate |
+| src/systolic_array.sv | SIZE x SIZE systolic array (reference, unpacked ports) |
+| src/systolic_array_flat.sv | Synthesis wrapper with flat ports for yosys compatibility |
 
-## Analysis
-
-The 17.26 ns setup violation is expected for a first synthesis pass without timing-driven optimization (`synth` command with no timing constraints). The combinational depth of the FP32 accumulator (summing 4 × 32-bit values) is approximately 6-8 gate levels deep, which at sky130 HD typical delays of 0.1-0.3 ns per gate stage totals 15-20 ns -- consistent with the observed 21 ns critical path.
-
-**Hold timing is clean** (+0.31 ns) meaning the sequential logic has no hold violations at any frequency.
-
-## Plan for timing closure
-
-Three options in order of implementation effort:
-
-1. **Relax clock to 25 ns (40 MHz):** Zero RTL changes. Acceptable for a first tape-out attempt. Area stays at 188,961 µm².
-
-2. **Pipeline the FP32 accumulator:** Add one register stage inside the PE accumulator, splitting the 21 ns path into two ~10 ns stages. Enables 100 MHz operation. Requires RTL change to `pe.sv` and increasing the drain cycle count in testbenches.
-
-3. **Replace FP32 adder with a pipelined FP32 adder:** The `fp32_add.sv` module is currently a single-cycle combinational adder. Breaking it into 3 pipeline stages would enable 250 MHz operation. This is the correct path for M4.
-
-## Extrapolation to SIZE=16
-
-The 4×4 array has 16 PEs and area 188,961 µm². A 16×16 array has 256 PEs -- 16× more PEs.
-
-Estimated SIZE=16 area: 188,961 × 16 ≈ **3.02 mm²**
-
-This is within the Sky130 reticle limit (~9 mm²) so the full 16×16 array is physically feasible.
-
-## Files
-
-```
-project/m3/
-├── src/
-│   ├── fp4_mul_lut.sv       -- 256-entry FP4 LUT
-│   ├── fp4_mul.sv           -- FP4 E2M1 multiplier
-│   ├── fp32_add.sv          -- FP32 adder
-│   ├── pe.sv                -- FP4 PE with FP32 accumulator
-│   ├── systolic_array.sv    -- 16x16 systolic array (reference)
-│   └── systolic_array_flat.sv -- synthesis wrapper (flat ports)
-├── runs/
-│   ├── synth.ys             -- yosys synthesis script
-│   └── sta.tcl              -- OpenSTA timing script
-└── reports/
-    ├── metrics.csv          -- synthesis summary
-    ├── synthesis.log        -- full yosys log
-    ├── synth_out.v          -- mapped netlist
-    └── sta_report.txt       -- OpenSTA timing report
-```
+### reports/ (synthesis results)
+| File | Description |
+|---|---|
+| reports/metrics.csv | Summary: cells, area, timing, power |
+| reports/synthesis.log | Full yosys synthesis log |
+| reports/synth_out.v | Mapped netlist (sky130 HD cells) |
+| reports/sta_report.txt | OpenSTA timing report (standalone yosys run) |
+| reports/openlane_area.rpt | OpenLane area report |
+| reports/openlane_timing_summary.rpt | OpenLane timing summary |
+| reports/openlane_power.rpt | OpenLane power report |
+| reports/openlane_sta_max.rpt | OpenLane setup timing report |

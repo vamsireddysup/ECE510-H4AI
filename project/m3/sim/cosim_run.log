@@ -1,0 +1,51 @@
+============================================
+QK^T Chiplet End-to-End Co-Simulation
+TILE_SIZE=4 D_HEAD=4 T=4
+============================================
+
+Step 1: AXI4-Lite MATRIX_SIZE=4
+        Read back=0x00000004 (OK)
+Step 3: Stream scale factors
+        Done
+Step 4: Stream Q tile
+        Done
+Step 5: Stream K tile
+        Done
+Step 6: Waiting for output scores...
+Expected QK^T:
+  [  2.0,   0.0,   1.0,   1.0]
+  [  0.0,   2.0,   1.0,   1.0]
+  [  1.0,   1.0,   2.0,   0.0]
+  [  1.0,   1.0,   0.0,   2.0]
+        m_tvalid high after 140 cycles
+  [TB] recv[0] m_tdata=0x4000000000000000 hi=2.00 lo=0.00
+  [TB] recv[1] m_tdata=0x0000000000000000 hi=0.00 lo=0.00
+  [TB] recv[2] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[3] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[4] m_tdata=0x0000000000000000 hi=0.00 lo=0.00
+  [TB] recv[5] m_tdata=0x4000000000000000 hi=2.00 lo=0.00
+  [TB] recv[6] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[7] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[8] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[9] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[10] m_tdata=0x4000000000000000 hi=2.00 lo=0.00
+  [TB] recv[11] m_tdata=0x0000000000000000 hi=0.00 lo=0.00
+  [TB] recv[12] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[13] m_tdata=0x3F80000000000000 hi=1.00 lo=0.00
+  [TB] recv[14] m_tdata=0x0000000000000000 hi=0.00 lo=0.00
+  [TB] recv[15] m_tdata=0x4000000000000000 hi=2.00 lo=0.00
+
+Received QK^T:
+  [  2.0,   0.0,   1.0,   1.0]
+  [  0.0,   2.0,   1.0,   1.0]
+  [  1.0,   1.0,   2.0,   0.0]
+  [  1.0,   1.0,   0.0,   2.0]
+
+Step 7: Poll STATUS
+        STATUS=0x00000000 DONE=NO
+        TILE_COUNT=1 CYCLE_COUNT=498
+
+============================================
+Results: 16/16 elements correct
+ALL PASS -- End-to-end AXI co-simulation verified
+============================================
