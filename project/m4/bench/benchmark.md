@@ -7,8 +7,8 @@ All synthesis numbers come from OpenLane 1.1.1 running inside Docker
 run from project/m4/. Source files: project/m4/synth/*.
 
 Accelerator throughput is derived from:
-1. Achievable frequency from post-synthesis STA: WNS=-2.54 ns at 4.0 ns
-   clock period → max frequency = 1000/(4.0+2.54) = 152.6 MHz
+1. Achievable frequency from post-synthesis STA: WNS (post-synthesis)=-2.54 ns, WNS (post-route SPEF)=-8.49 ns at 4.0 ns
+   clock period → max frequency = 1000/(4.0+2.54) = 80.06 MHz
 2. Cycle count from Verilator co-simulation: CYCLE_COUNT=498 for
    TILE_SIZE=4, D_HEAD=4, T=4 (project/m4/sim/final_run.log)
 3. QK^T latency extrapolated to full design: N=512, d_head=64, SIZE=16
@@ -36,19 +36,19 @@ All raw numbers traceable to source files in project/m4/bench/benchmark_data.csv
 Area extrapolation: 329,148 × (16/4)² = 5,266,368 µm² = 5.27 mm²
 Power extrapolation: 60.2 × (16/4)² = 963 mW
 
-### Option A -- Achievable frequency (152.6 MHz)
+### Option A -- Achievable frequency (80.06 MHz)
 
-From WNS=-2.54 ns: max_freq = 1000/(4.0+2.54) = 152.6 MHz
+From WNS (post-synthesis)=-2.54 ns, WNS (post-route SPEF)=-8.49 ns: max_freq = 1000/(4.0+2.54) = 80.06 MHz
 
 | Metric | Value |
 |---|---|
-| Frequency | 152.6 MHz |
-| Peak GOPS (SIZE=16) | 78.13 |
-| Effective GOPS | 23.94 |
-| QK^T latency (N=512, d=64) | 1.400 ms |
-| Speedup vs CPU | **2.11×** |
-| Power (SIZE=16, extrapolated) | 963 mW |
-| Energy per QK^T | 1.348 mJ |
+| Frequency | 80.06 MHz |
+| Peak GOPS (SIZE=16) | 41.05 |
+| Effective GOPS | 12.58 |
+| QK^T latency (N=512, d=64) | 2.665 ms |
+| Speedup vs CPU | **1.11×** |
+| Power (SIZE=16, with CTS) | 1,696 mW |
+| Energy per QK^T | 4.518 mJ |
 | Area efficiency | 4.55 GOPS/mm² |
 | Power efficiency | 24.86 GOPS/W |
 
