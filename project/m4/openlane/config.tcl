@@ -30,3 +30,12 @@ set ::env(SYNTH_MAX_FANOUT) 10
 # Enable hold buffer insertion during CTS resizer
 set ::env(PL_RESIZER_HOLD_BUFFER_PERCENT) 50
 set ::env(GLB_RESIZER_TIMING_OPTIMIZATIONS) 1
+
+# Use custom SDC with max_fanout constraint
+set ::env(BASE_SDC_FILE) "/work/openlane/constraints.sdc"
+set ::env(PNR_SDC_FILE) "/work/openlane/constraints.sdc"
+set ::env(SIGNOFF_SDC_FILE) "/work/openlane/constraints.sdc"
+
+# Increase resizer repair iterations for fanout
+set ::env(PL_RESIZER_MAX_WIRE_LENGTH) 0
+set ::env(GLB_RESIZER_MAX_WIRE_LENGTH) 0
