@@ -9,11 +9,11 @@ Total Magic DRC violations is 0
 
 LVS Summary:
 Source: /work/openlane/runs/full_run/logs/signoff/41-systolic_array_flat.lef.lvs.log
-Number of nets: 40900                      |Number of nets: 40900                      
+Number of nets: 43158                      |Number of nets: 43158                      
 Design is LVS clean.
 ----------------------------------------
 
 Antenna Summary:
 Source: /work/openlane/runs/full_run/logs/signoff/44-arc.log
-Pin violations: 30
-Net violations: 29
+Pin violations: 27
+Net violations: 23
