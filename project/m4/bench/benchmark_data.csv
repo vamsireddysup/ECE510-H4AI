@@ -1,25 +1,40 @@
-metric,value,source_file,notes
-wns_ns,-2.54,project/m3/synth/timing_report.txt,setup worst negative slack post OpenLane synthesis
-tns_ns,-1390.39,project/m3/synth/timing_report.txt,total negative slack
-hold_wns_ns,0.08,project/m3/synth/timing_report.txt,hold worst slack MET
-cells_openlane,31560,project/m3/synth/area_report.txt,sky130 HD mapped cells after OpenLane placement
-area_size4_um2,329148.18,project/m3/synth/area_report.txt,SIZE=4 D_HEAD=4 measured
-area_size16_um2_extrapolated,5266368,calculated,328553.86 x (16/4)^2 linear scaling
-power_total_mw,60.2,project/m3/synth/power_report.txt,typical corner tt_025C_1v80
-power_sequential_mw,57.5,project/m3/synth/power_report.txt,95.5% of total
-power_combinational_mw,2.71,project/m3/synth/power_report.txt,4.5% of total
-cosim_cycles,498,project/m4/sim/final_run.log,total cycles for TILE_SIZE=4 D_HEAD=4 T=4
-cosim_result,16/16 PASS,project/m4/sim/final_run.log,all elements correct
-achievable_freq_mhz,152.6,calculated,1000/(4.0+2.30) from WNS
-peak_gops_152mhz,78.13,calculated,SIZE=16 x SIZE=16 x 2 x 158.7e6 / 1e9
-effective_gops_152mhz,23.94,calculated,total_flops / (total_cycles/freq)
-qkt_latency_ms_152mhz,1.400,calculated,N=512 d_head=64 tiled with SIZE=16
-cpu_baseline_gflops,11.36,project/m1/,measured PyTorch i5-1145G7 float32
-cpu_latency_ms,2.954,calculated,33.55e9 flops / 11.36e9 flops_per_s
-speedup_option_a,2.11,calculated,2.954/1.348
-power_size16_mw_extrapolated,963,calculated,60.2 x (16/4)^2
-energy_per_qkt_mj_option_a,1.298,calculated,0.963W x 1.348ms
-arithmetic_intensity_flop_byte,15.06,calculated,2xN^2xD_HEAD / total_bytes
-projected_freq_mhz,250,target,requires full timing closure with CTS
-projected_effective_gops,39.20,calculated,at 250 MHz
-projected_speedup,3.45,calculated,2.954/0.856
+metric,value,unit,source_file,notes
+cpu_peak_throughput,11.36,GFLOP/s,project/m1,M1 PyTorch float32 single thread
+cpu_qkt_latency,2.954,ms,project/m1,N=512 d_head=64
+cpu_memory_bandwidth,51.2,GB/s,project/m1,measured
+cpu_tdp,15,W,intel_spec,i5-1145G7 nominal TDP
+chiplet_size,4,PE_per_dim,synth/config.json,SIZE=4 synthesized
+chiplet_clock_period,15.0,ns,synth/metrics.csv,closed period
+chiplet_suggested_freq,61.996,MHz,synth/metrics.csv,suggested_clock_frequency
+chiplet_critical_path,6.19,ns,synth/metrics.csv,critical_path_ns logic only
+chiplet_spef_wns_setup,-1.13,ns,synth/timing_report.txt,nominal corner residual
+chiplet_spef_wns_hold,-0.12,ns,synth/timing_report.txt,nominal corner residual
+chiplet_cells_synth,30689,count,synth/area_report.txt,synthesis cell count
+chiplet_area_synth,324752.71,um^2,synth/area_report.txt,synthesis area
+chiplet_cells_postroute,81750,count,synth/metrics.csv,TotalCells
+chiplet_corearea_postroute,589240.13,um^2,synth/metrics.csv,CoreArea_um^2
+chiplet_power_total,28.1,mW,synth/power_report.txt,typical corner
+chiplet_power_sequential,15.2,mW,synth/power_report.txt,54.2pct
+chiplet_power_clock,11.4,mW,synth/power_report.txt,40.5pct
+chiplet_power_combinational,1.49,mW,synth/power_report.txt,5.3pct
+qkt_total_flops,33554432,FLOP,calculated,2*512*512*64
+chiplet_peak_gops_size4,1.984,GOPS,calculated,freq*4*4*2
+chiplet_latency_ideal,16.914,ms,calculated,flops/peak
+chiplet_latency_cycle,2105.7,ms,calculated,262144 tiles * 498 cyc / freq
+cosim_cycles_per_tile,498,cycles,sim/final_run.log,TILE_SIZE=4 D_HEAD=4
+cosim_result,16/16 PASS,status,sim/final_run.log,end-to-end verified
+speedup_peak,0.175,ratio,calculated,cpu/chiplet ideal
+speedup_cycle,0.0014,ratio,calculated,cpu/chiplet cycle-based
+energy_cpu,44.31,mJ,calculated,15W * 2.954ms
+energy_chiplet_ideal,0.475,mJ,calculated,28.1mW * 16.914ms
+energy_ratio,93,ratio,calculated,cpu/chiplet ideal latency
+area_efficiency_peak,6.11,GOPS/mm^2,calculated,peak/area
+power_efficiency_peak,70.60,GOPS/W,calculated,peak/power
+ai_lower_bound,1.88,FLOP/byte,codefest/cf09,no reuse 17MB
+ai_upper_bound,31.03,FLOP/byte,codefest/cf09,full reuse 1.03MB
+cpu_ridge_point,0.22,FLOP/byte,calculated,11.36/51.2
+chiplet_ridge_point,2.0,FLOP/byte,calculated,peak/streaming BW
+projected_size16_62mhz_gops,31.74,GOPS,calculated,PROJECTED scaled
+projected_size16_62mhz_speedup,2.79,ratio,calculated,PROJECTED
+projected_size16_250mhz_gops,128.0,GOPS,calculated,PROJECTED scaled
+projected_size16_250mhz_speedup,11.27,ratio,calculated,PROJECTED
