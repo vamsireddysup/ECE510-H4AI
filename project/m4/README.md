@@ -78,7 +78,10 @@ discussion.
 | File | Description | Checklist |
 |---|---|---|
 | report/design_justification.pdf | 9-section design justification report | Section 5 |
-| report/figures/roofline_final.png | Roofline figure referenced in the report | Section 5 |
+| report/figures/roofline_final.png | Roofline figure referenced in the report (Fig 1) | Section 5 |
+| report/figures/block_diagram.png | Top-level block diagram of qkt_chiplet_top (Fig 2) | Section 5 |
+| report/figures/dataflow_diagram.png | Output-stationary dataflow diagram (Fig 3) | Section 5 |
+| report/figures/final_waveform.png | Annotated end-to-end co-simulation waveform (Fig 4) | Section 5 |
 
 ## How to reproduce co-simulation
 

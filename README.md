@@ -23,7 +23,7 @@ Key results (final M4 OpenLane run, project/m4/synth/):
 - 4x4 FP4 systolic array, AXI4-Lite + AXI4-Stream interfaces
 - Co-simulation: 16/16 PASS end-to-end (project/m4/sim/final_run.log)
 - Full 44-step OpenLane signoff: SUCCESS, DRC=0, LVS clean, XOR clean
-- Synthesis area: 329,148 um^2 (SIZE=4), 31,560 cells
+- Synthesis area: 324,753 um^2 (SIZE=4), 30,689 cells
 - Clock period closed at: 15.0 ns; suggested operating frequency ~62 MHz
 - Speedup vs CPU: see project/m4/bench/benchmark.md (honest projected numbers)
 - Design justification report: [project/m4/report/design_justification.pdf](project/m4/report/design_justification.pdf)
