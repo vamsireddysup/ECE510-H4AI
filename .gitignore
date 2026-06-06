@@ -37,3 +37,4 @@ project/m3/openlane1/runs/
 project/m3/runs/*.log
 project/m3/runs/*.v
 project/m4/openlane/runs/
+chiplet_top_wave.vcd

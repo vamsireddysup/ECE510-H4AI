@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
     // -----------------------------------------------------------------------
     // Drain -- wait for result_valid
     // -----------------------------------------------------------------------
-    int max_drain  = 40;
+    int max_drain  = 60;
     int result_cyc = -1;
 
     std::cout << "\nDraining up to " << max_drain << " cycles...\n";

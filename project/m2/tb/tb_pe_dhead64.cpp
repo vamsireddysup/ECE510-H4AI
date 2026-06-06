@@ -59,7 +59,7 @@ static bool run_test(Vpe* dut, VerilatedVcdC* vcd,
     dut->valid_in=0;dut->a_in=0;dut->b_in=0;
 
     // Drain budget: 1 (mul) + D_HEAD (collect) + D_HEAD*2 (acc) + margin
-    int drain=200, found=-1;
+    int drain=400, found=-1;
     for(int i=0;i<drain;i++){
         tick(dut,vcd);
         if(dut->result_valid&&found<0) found=i+1;

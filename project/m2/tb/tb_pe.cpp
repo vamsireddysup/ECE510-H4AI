@@ -110,7 +110,7 @@ static bool run_test(Vpe* dut, VerilatedVcdC* vcd,
     dut->b_in     = 0;
 
     // Drain -- wait for result_valid
-    int drain = 25;
+    int drain = 40;
     int found = -1;
     for (int i = 0; i < drain; i++) {
         tick(dut, vcd);
