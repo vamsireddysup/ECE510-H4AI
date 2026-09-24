@@ -101,7 +101,11 @@ module axi4_lite_ctrl (
     // Profiling inputs from tiling controller
     input  logic [31:0] tile_count,
     input  logic [31:0] cycle_count,
-    input  logic [31:0] tile_cycles
+    input  logic [31:0] tile_cycles,
+    input  logic [3:0] error_code,
+    input  logic [31:0] input_beats, output_beats,
+    input  logic [31:0] input_stalls, output_stalls,
+    input  logic [31:0] compute_cycles, scale_cycles
 );
 
     // -----------------------------------------------------------------------
@@ -112,7 +116,7 @@ module axi4_lite_ctrl (
     logic [31:0] matrix_size_reg;  // 0x08 -- configurable T
     logic [31:0] scale_factor_reg; // 0x18 -- future microscaling
 
-    assign status_reg  = {31'h0, done};
+    assign status_reg  = {24'h0, error_code, 3'h0, done};
     assign start       = ctrl_reg[0];
     assign matrix_size = matrix_size_reg;
 
@@ -266,6 +270,13 @@ module axi4_lite_ctrl (
                         32'h10: rdata <= cycle_count;
                         32'h14: rdata <= tile_cycles;
                         32'h18: rdata <= scale_factor_reg;
+                        32'h1C: rdata <= 32'd1; // stream contract version
+                        32'h20: rdata <= input_beats;
+                        32'h24: rdata <= output_beats;
+                        32'h28: rdata <= input_stalls;
+                        32'h2C: rdata <= output_stalls;
+                        32'h30: rdata <= compute_cycles;
+                        32'h34: rdata <= scale_cycles;
                         default: rdata <= 32'hDEADBEEF;
                     endcase
                     `ifdef DEBUG_AXI
