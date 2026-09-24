@@ -1,6 +1,6 @@
 # Active RTL
 
-`qkt_chiplet_top.sv` is the active QK^T accelerator. It accepts packed FP4
+[`top/qkt_chiplet_top.sv`](top/qkt_chiplet_top.sv) is the active QK^T accelerator. It accepts packed FP4
 E2M1 Q/K tiles and FP32 row scales, computes exact integer dot products in
 quarter units, applies two pipelined FP32 scale multipliers, and emits packed
 FP32 scores. See the [version 1 stream contract](../docs/stream-protocol.md).
