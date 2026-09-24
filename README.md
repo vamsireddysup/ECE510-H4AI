@@ -74,9 +74,14 @@ and what it is authoritative for. The short path:
 - [Active RTL](rtl/README.md), [testbenches](tb/README.md), [reference model](model/README.md), [scripts](scripts/README.md)
 - [Course archive](archive/README.md) and [superseded RTL](archive/superseded-rtl/README.md)
 
-The next design step is to map the K scratchpad to practical banks and overlap
-Q loading, computation, scaling, and output. Full-chip Sky130 timing, routing,
-and power checks will decide whether 8x8 or 16x16 arrays are useful.
+The next design step is accuracy, not speed: the measured synthetic relative
+Frobenius error is 14.90%, under one FP32 scale per row across all 64 reduction
+elements, so block scaling is evaluated in software before the interface changes.
+After that, overlapping the load, compute, scale, and output phases is worth 1.74x
+at 4x4 by the [cycle model](docs/architecture.md), and the K scratchpad needs
+banked storage rather than registers. Full-chip Sky130 timing, routing, and power
+will decide whether 8x8 or 16x16 arrays are useful. The stage order and exit
+conditions are in [the P0 plan](docs/problem-statements/p0-dense-fp4-matmul.md).
 
 ## Related
 
