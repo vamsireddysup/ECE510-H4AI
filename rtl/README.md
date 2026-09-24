@@ -10,10 +10,12 @@ FP32 scores. See the [version 1 stream contract](../docs/STREAM_PROTOCOL.md).
 Sky130 timing or power evidence. The [design-space record](../docs/results/design-space.md)
 compares them.
 
-`rtl/filelist.f` lists the active top and its two dependencies. The older
-`systolic_array`, `pe`, `tile_controller`, and tile/scale buffer modules remain
-under `rtl/` as comparison references but are not instantiated by the current
-top. The historical M1-M4 submissions remain untouched in `archive/`.
+`rtl/filelist.f` lists the active top and its two dependencies, and `rtl/`
+contains nothing else that is synthesizable. The superseded `systolic_array`,
+`pe`, `tile_controller`, FP4 multiplier, FP32 adder, and tile/scale buffer
+modules moved to [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md);
+they are kept for comparison and are not on any build path. The historical M1-M4
+submissions remain untouched in `archive/`.
 
 The active top is parameterized by `TILE_SIZE`, `D_HEAD`, and `T_MAX`.
 `T_MAX=512` is accepted without truncating the software-written dimension.

@@ -17,9 +17,11 @@ An optional `K_REUSE=1` build changes the packet order to version 2 and keeps
 K in an RTL scratchpad for the whole command. Its physical storage choice is
 still open.
 
-The active module list is `rtl/filelist.f`. `rtl/core/pe.sv`,
-`rtl/core/systolic_array.sv`, `rtl/control/tile_controller.sv`, and the older
-buffers remain as comparison RTL, but the active top does not instantiate them.
+The active module list is `rtl/filelist.f`, and `rtl/` holds only those
+modules. The superseded PE, systolic array, tile controller, FP4 multiplier,
+FP32 adder, and buffers moved to
+[`archive/superseded-rtl/`](../archive/superseded-rtl/README.md) as comparison
+RTL; the active top does not instantiate them.
 The FP32 multiplier is a custom unit without complete IEEE rounding and
 subnormal handling; numerical qualification beyond binary-power scales is
 still needed.

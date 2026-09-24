@@ -8,7 +8,7 @@ import pytest
 from model.qkt_model import fp4_decode, fp4_encode, fp4_product_bits, qkt
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-LUT_PATH = REPO_ROOT / "rtl/core/fp4_mul_lut.sv"
+LUT_PATH = REPO_ROOT / "archive/superseded-rtl/fp4_mul_lut.sv"
 
 
 def read_rtl_lut() -> dict[int, int]:
