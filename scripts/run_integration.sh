@@ -42,11 +42,9 @@ printf '%s\n' 'Running active 4x4 integration test...'
 
 grep -q 'Results: 16/16 elements correct' "$build_dir/run.log"
 grep -q 'TILE_COUNT=1 CYCLE_COUNT=498' "$build_dir/run.log"
+grep -q 'DONE=YES' "$build_dir/run.log"
 
-completion='fail'
-if grep -q 'DONE=YES' "$build_dir/run.log"; then
-    completion='pass'
-fi
+completion='pass'
 
 {
     printf 'source=rtl\n'
@@ -57,9 +55,5 @@ fi
     printf 'cycle_count=498\n'
     printf 'completion=%s\n' "$completion"
 } > "$build_dir/summary.txt"
-
-if [[ "$completion" == 'fail' ]]; then
-    printf '%s\n' 'KNOWN LIMITATION: DONE was not observed.'
-fi
 
 printf 'Integration summary: %s\n' "$build_dir/summary.txt"

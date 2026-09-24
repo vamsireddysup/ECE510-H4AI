@@ -532,6 +532,7 @@ module tile_controller #(
                         tile_col <= '0;
                         if (tile_row == n_tiles - 1) begin
                             state <= DONE_ST;
+                            done  <= 1'b1;
                         end else begin
                             tile_row   <= tile_row + 1'b1;
                             state      <= LOAD_Q;

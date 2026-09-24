@@ -242,15 +242,19 @@ int main(int argc, char **argv) {
     printf("        STATUS=0x%08X DONE=%s\n", status, (status&1)?"YES":"NO");
     printf("        TILE_COUNT=%d CYCLE_COUNT=%d\n", tile_cnt, cycle_cnt);
 
+    bool status_pass = (status & 1) && tile_cnt == 1;
+
     printf("\n============================================\n");
     printf("Results: %d/%d elements correct\n", pass_count, TILE_SIZE*TILE_SIZE);
-    if (pass_count == TILE_SIZE*TILE_SIZE)
+    if (pass_count == TILE_SIZE*TILE_SIZE && status_pass)
         printf("ALL PASS -- End-to-end AXI co-simulation verified\n");
+    else if (!status_pass)
+        printf("FAIL -- completion status or tile count is wrong\n");
     else
         printf("FAIL -- check chiplet_top_wave.vcd\n");
     printf("============================================\n");
 
     vcd->close();
     delete dut; delete vcd;
-    return (pass_count == TILE_SIZE*TILE_SIZE) ? 0 : 1;
+    return (pass_count == TILE_SIZE*TILE_SIZE && status_pass) ? 0 : 1;
 }

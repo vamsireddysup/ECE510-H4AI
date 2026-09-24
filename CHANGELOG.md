@@ -5,6 +5,7 @@
 - Started moving the course project into a single active RTL and test tree.
 - Added reproducible baseline, tool-check, lint, and integration commands.
 - Recorded the known completion-status and multi-tile limitations.
+- Asserted completion before the final status read and made it a required test.
 
 ## M4 course submission
 
