@@ -1,7 +1,8 @@
 # Packed engine verification and measurement
 
 The cycle table was measured on `master` at revision `08a307d` with Verilator
-5.041 after P0.3 overlapped load, compute, scale, and output. Synthesis figures
+5.041 after P0.3 overlapped load, compute, scale, and output. The compact
+[machine-readable summary](p0-3-simulation.csv) preserves every verified run. Synthesis figures
 later in this record come from pre-overlap revisions and do not measure the
 added banks or scheduler.
 
