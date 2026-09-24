@@ -77,6 +77,12 @@ def test_legacy_evaluation_point_is_reproducible() -> None:
 
 
 def test_t512_sweep_matches_committed_json() -> None:
+    """Catch result drift while allowing physical reduction-order variation.
+
+    NumPy and SIMD implementations can change float64 reductions below the
+    ninth significant digit. A 1e-6 relative tolerance admits that numerical
+    noise while still rejecting table errors at the observed 1e-3 scale.
+    """
     committed = json.loads(PRECISION_JSON.read_text())
     generator = np.random.default_rng(committed["seed"])
     q = k = None
@@ -94,7 +100,7 @@ def test_t512_sweep_matches_committed_json() -> None:
         assert actual.keys() == recorded.keys()
         for key in actual:
             if isinstance(actual[key], float):
-                assert actual[key] == pytest.approx(recorded[key], rel=1e-12, abs=1e-12)
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)
             else:
                 assert actual[key] == recorded[key]
     assert render_t512_table(expected) in PRECISION_MARKDOWN.read_text()

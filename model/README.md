@@ -4,8 +4,9 @@ This is the Python reference for the FP4 numerics. It is authoritative for what 
 score should be; the RTL is checked against it, not the other way round. Read it
 before changing either the FP4 encoding or the scale rule.
 
-It has no third-party dependencies. `scripts/eval_precision.py` and
-`scripts/bench_cpu.py` need NumPy, but the model itself does not.
+The reference package has no third-party runtime dependency. The required test
+extra includes pinned NumPy 1.26.4 because the precision provenance regression
+imports it; `make test-model` must not silently skip that required gate.
 
 ## What it owns
 
