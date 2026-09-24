@@ -8,7 +8,7 @@ Sky130 cell areas belong to the earlier design-space revision.
 
 | Command | Result |
 | --- | --- |
-| `make test` | Markdown, RTL lint, 19 model tests, and small integration pass |
+| `make test` | Markdown, five RTL parameter-set lints, 19 model tests, and small integration pass |
 | `make test-integration-large` | T=64/128/512, `D_HEAD=64`, all scores pass |
 | `make test-integration-reuse` and `make test-integration-reuse-large` | Version 2 K reuse, all scores pass |
 | `make test-array8` and `make test-array16` | Both sizes pass small edge and packet tests |

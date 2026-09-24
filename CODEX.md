@@ -52,7 +52,8 @@ repository-wide changes.
 ## Verification expectations
 
 Use `make test` for the active design and `make test-integration-large` for the
-T=64/128/512 run. The historical compatibility point is:
+T=64/128/512 run. `make lint` checks the default, K-reuse, 8x8, and 16x16
+parameter sets. The historical compatibility point is:
 
 - `TILE_SIZE=4`
 - `D_HEAD=4`
@@ -62,7 +63,7 @@ T=64/128/512 run. The historical compatibility point is:
 
 That 498-cycle result belongs to the pre-upgrade, one-tile controller. The
 active packed-stream v1 top runs the same numerical pattern in 49 simulated
-cycles with injected host stalls; see `docs/results/packed-engine.md`.
+cycles with injected host stalls; see `docs/results/latest-verification.md`.
 The current active source list is `rtl/filelist.f`. The older PE, array,
 controller, and buffers are retained for comparison but are not active.
 

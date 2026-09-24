@@ -45,7 +45,7 @@ module axi4_lite_ctrl (
         for (int byte_index = 0; byte_index < 4; byte_index++)
             if (strobes[byte_index])
                 merged[byte_index*8 +: 8] = new_value[byte_index*8 +: 8];
-        return merged;
+        merge_bytes = merged;
     endfunction
 
     always_ff @(posedge clk) begin

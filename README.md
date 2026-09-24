@@ -52,6 +52,8 @@ python3 scripts/eval_precision.py > build/synthetic-precision.json
 
 The CPU benchmark needs NumPy. Sky130 synthesis needs Yosys and the Sky130 HD
 Liberty file; set `SKY130_LIB` if it is not in the local Volare installation.
+`make lint` checks five parameter sets, including both stream versions at
+`T_MAX=512` and the 8x8/16x16 variants.
 Generated logs and binaries stay under ignored `build/`.
 
 ## Project map
