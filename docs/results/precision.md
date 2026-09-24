@@ -6,7 +6,7 @@ on transformer activations.
 
 ## Method
 
-These are **measured software-model results** from commit `93e7292`, regenerated
+These are **measured software-model results** from commit `9b87e50`, regenerated
 after the stable-top-k change with Python 3.12.3 and pinned record version NumPy
 1.26.4. `scripts/eval_precision.py` used seed 510,
 `D_HEAD=64`, and the same generator sequence and T values 4, 16, 64, 128, and 512

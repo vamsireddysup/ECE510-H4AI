@@ -21,9 +21,12 @@ At T=512 and `D_HEAD=64` with a 4x4 tile:
 | Array active | 57.58% | 67.17% |
 | Mapped cell area at `T_MAX=512` | 1,596,280 um² | 6,672,971 um² |
 
-Version 2 is better on every runtime measure: 14.3% fewer cycles, 57.4x fewer
-input beats, 2.9x less host traffic. It costs 4.18x the mapped standard-cell area
-at full capacity.
+These runtime figures describe the serial scheduler at the decision revision.
+P0.3 later changed both cycle counts: version 1 now takes 1,049,150 cycles and
+version 2 takes 1,051,182. Version 2 remains 57.4x lower in input beats and 2.9x
+lower in host traffic, but its up-front cache fill is 2,032 cycles slower once
+version 1 K loads are hidden behind compute. The 4.18x mapped-area comparison is
+also pre-P0.3; current RTL has not been remapped.
 
 ## Why version 1 wins for now
 

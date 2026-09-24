@@ -7,8 +7,8 @@ not include masking, softmax, or the multiplication by V. M1-M4 course work in
 
 ## Active implementation
 
-The active `qkt_chiplet_top` accepts packed 64-bit input packets, holds one Q
-and one K tile, and computes all scores of a 4x4 output tile from exact
+The active `qkt_chiplet_top` accepts packed 64-bit input packets, holds two banks each for Q tiles, K tiles, exact accumulators, and FP32 scores,
+and computes all scores of a 4x4 output tile from exact
 quarter-unit integer dot products. Two pipelined FP32 multipliers apply row
 scales. It emits two FP32 scores per 64-bit beat, with a zero-padded upper half
 on odd final beats. See [stream protocol version 1](stream-protocol.md) for
@@ -30,7 +30,7 @@ still needed.
 
 The 4x4 top passes T=1/4/7/8/16 at `D_HEAD=4/64` and T=64/128/512 at
 `D_HEAD=64`, including edge tiles and repeated commands. The 512 run contains
-16,384 output tiles and completes 262,144 scores in 1,821,184 simulated core
+16,384 output tiles and completes 262,144 scores in 1,049,150 simulated core
 cycles with a continuously ready host. Full counters, host traffic, CPU timing,
 and Sky130 synthesis scope are in [the reviewed result](results/packed-engine.md).
 No routed active-top clock, power, or silicon latency is available yet.
@@ -56,9 +56,9 @@ state corrections in active records.
 
 ## Remaining engineering work
 
-The default host stream reloads K for each output tile. Physical K banking,
-double buffering, exact scale arithmetic qualification, real activation error,
-and routed full-chip Sky130 timing and power remain open.
+The default host stream reloads K for each output tile. Physical K banking, the selected 1x32 scale implementation, exact scale
+arithmetic qualification, real activation error, and routed full-chip Sky130
+timing and power remain open.
 The [development plan](roadmap.md) gives the order and acceptance
 evidence for those steps.
 

@@ -1,42 +1,44 @@
 # Latest verification
 
-I ran the required checks on September 24, 2026, on `master` at revision
-`93e7292`. This run covers the P0.2 software model, precision sweep, and scale-format
-decision. No SystemVerilog changed in P0.2, and this run adds no synthesis or
-physical evidence, so the Sky130 areas below are carried from the earlier
-revisions that produced them.
+I ran the complete P0.3 verification matrix on September 24, 2026, on `master`
+at revision `08a307d`. P0.3 changes scheduling and storage banks while holding
+every score equal to the existing exact integer-dot reference. It adds no new
+synthesis or physical evidence.
 
 ## Commands and results
 
 | Command | Result |
 | --- | --- |
-| `make check-docs` | 30 active documents pass: one H1 each, every relative link and anchor resolves, every document has a `## Related` block, none more than two hops from `README.md` |
-| `make lint` | All five parameter sets pass under `-Wall`: 4x4 at `D_HEAD=4`; 4x4 at `D_HEAD=64`, `T_MAX=512` for both protocols; 8x8; 16x16 |
-| `make test-model` | 27 passed, including NumPy scale matrices, three E8M0 rounding rules, the 14.90% compatibility point, and all 256 FP4 product pairs |
-| `make test-integration` | `D_HEAD=4` and `64`, T=1/4/7/8/16, with host stalls injected. All scores pass |
-| `python3 scripts/eval_precision.py` | 120 combinations complete: T=4/16/64/128/512, Bs=64/32/16/8/4/2, and four scale types |
+| `make check-docs` | 30 active documents pass all structure, link, orphan, and two-hop reachability checks |
+| `make lint` | All five parameter sets pass under `-Wall` |
+| `make test-model` | 28 passed, including the committed precision-JSON and Markdown-table regeneration check |
+| `make test-integration`, `make test-integration-large` | Version 1 passes D=4/64, T=1/4/7/8/16/64/128/512, stalls, malformed packets, reset, and repeated commands |
+| `make test-integration-reuse`, `make test-integration-reuse-large` | Version 2 passes the same small cases and T=64/128/512 |
+| `make test-array8`, `make test-array16` | Both larger arrays pass edge, stall, and packet tests |
+| `make test-array8-large`, `make test-array16-large` | Both pass T=64/128/512 with continuously ready streams |
+| `python3 scripts/cycle_model.py` | All six measured cycle and input-beat configurations reproduced exactly |
+| `make report-sim` | Regenerated `build/integration/summary.csv` from the verified logs |
 
-The aggregate `make test` target passed. The larger integration, K-reuse, and
-8x8/16x16 simulation results below were not rerun because P0.2 changed only
-Python and Markdown; their last verified run remains revision `b48c209`.
+The 4x4 T=512 test contains an explicit regression ceiling of 1,049,150 core
+cycles.
 
 ## Measured core cycles
 
-Continuously ready host at `D_HEAD=64`, unless the row says stalls were injected.
+Continuously ready streams at `D_HEAD=64`:
 
-| Configuration | Core cycles | Input beats | Output beats |
-| --- | ---: | ---: | ---: |
-| 4x4 v1, T=64 | 28,736 | 4,416 | 2,048 |
-| 4x4 v1, T=128 | 114,304 | 17,024 | 8,192 |
-| 4x4 v1, T=512 | 1,821,184 | 264,704 | 131,072 |
-| 4x4 v2, T=512 | 1,561,088 | 4,608 | 131,072 |
-| 4x4 v1, T=16, stalls injected | 2,431 | 336 | 128 |
-| 4x4 v1, T=4, `D_HEAD=4`, stalls injected | 49 | 6 | 8 |
+| Configuration | Core cycles | Input beats | Output beats | Array active |
+| --- | ---: | ---: | ---: | ---: |
+| 4x4 v1, T=64 | 16,510 | 4,416 | 2,048 | 99.24% |
+| 4x4 v1, T=128 | 65,726 | 17,024 | 8,192 | 99.71% |
+| 4x4 v1, T=512 | 1,049,150 | 264,704 | 131,072 | 99.945% |
+| 4x4 v2, T=512 | 1,051,182 | 4,608 | 131,072 | 99.75% |
+| 8x8 v1, T=512 | 287,392 | 133,632 | 131,072 | 91.21% |
+| 16x16 v1, T=512 | 269,120 | 68,096 | 131,072 | 24.35% |
 
-Every value is identical under Verilator 5.020 and 5.042, so these counts do not
-depend on the simulator version. The packed-engine cycle table was corrected in
-P0.1 at revision `2b95e3d`; its core-cycle column had been one higher than register
-`0x10` returns on all nine rows.
+The previous serial 4x4 v1 run took 1,821,184 cycles, so P0.3 measures 1.736x
+speedup. `CALC` binds at 4x4; the one-lane `SCALING` stage binds at 8x8 and
+16x16. The exact fill, drain, and steady-state derivation is in
+[architecture](../architecture.md).
 
 ## Tools
 
@@ -59,10 +61,9 @@ revisions named there.
 
 ## Scope and limits
 
-This run proves the software block-scale behavior, reproducibility of the old
-1x64 precision point, documentation integrity, unchanged RTL lint, and the required
-integration cases. It does not prove the selected 1x32 format in RTL because P0.4
-has not implemented it. It does not prove routed timing, power, frequency, or
+This run proves score equivalence, protocol behavior, stage overlap, cycle counts,
+and the closed-form model for the listed configurations. It does not prove the
+selected 1x32 format in RTL because P0.4 has not implemented it. It does not prove routed timing, power, frequency, or
 latency in seconds, because no configuration of this top has been routed. It does
 not measure error on real transformer activations; the P0.2 precision evidence is
 synthetic. See [the verification plan](../verification-plan.md) for the full list

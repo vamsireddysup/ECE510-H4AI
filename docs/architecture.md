@@ -11,7 +11,7 @@ multiplication by V stay on the host.
 
 ## Blocks
 
-The active design is one module plus two submodules. Everything else in the
+The active design is one top plus three submodules. Everything else in the
 original datapath is in
 [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md).
 
@@ -19,7 +19,8 @@ original datapath is in
 | --- | --- | --- |
 | `qkt_chiplet_top` | [`rtl/top/qkt_chiplet_top.sv`](../rtl/top/qkt_chiplet_top.sv) | Stream sequencing, tile storage, the integer dot-product array, and the output packer |
 | `axi4_lite_ctrl` | [`rtl/interfaces/axi4_lite_ctrl.sv`](../rtl/interfaces/axi4_lite_ctrl.sv) | Control and profiling registers |
-| `fp32_mul` | [`rtl/core/fp32_mul.sv`](../rtl/core/fp32_mul.sv) | Three-stage FP32 multiplier, instantiated twice for the two row scales |
+| `score_scaler` | [`rtl/core/score_scaler.sv`](../rtl/core/score_scaler.sv) | Parameterized score-scaling lanes and their six-cycle metadata pipeline |
+| `fp32_mul` | [`rtl/core/fp32_mul.sv`](../rtl/core/fp32_mul.sv) | Three-stage FP32 multiplier, instantiated twice per scaler lane |
 
 ## Dataflow
 
@@ -60,100 +61,95 @@ qualified.
 
 ## Tile schedule
 
-The FSM walks output tiles in Q-row-major order. For each Q tile row it loads
-one Q tile, then for each K tile column it loads a K tile, computes, scales, and
-emits one output tile. Phases do not overlap: the FSM is in exactly one of
-`SCALES`, `LOAD_Q`, `LOAD_K`, `CALC`, `SCALING`, `OUTPUT`, or `ADVANCE`.
+Four independent sequencers move output tiles through load, compute, scale, and
+output. Two Q banks let the input stream fill the next tile row while the current
+row computes. Two K banks, two exact-accumulator banks, and two FP32 score banks
+form ready/valid boundaries between the stages. A bank changes owner only after
+its consumer finishes, so input and output backpressure cannot overwrite live
+data.
 
-Protocol version 2 (`K_REUSE=1`) loads every K tile once per command into an
-on-chip scratchpad, then streams Q, removing `LOAD_K` from the per-tile loop.
+The loader still observes Q-row-major packet order. Version 1 can accept the next
+K packet while `CALC` reads the other K bank, and it can accept the next Q packet
+once the last calculation using the old Q bank finishes. Version 2 loads the K
+cache before Q and bypasses K ping-pong. Both versions preserve output tile order.
+
+`score_scaler` owns the exact-quarter-unit conversion and the two chained FP32
+multipliers. `LANES=1` is active. This boundary is where P0.4 will add block-scale
+combination and where P0.6 can widen scaling without changing the scheduler.
 
 ## Cycle cost model
 
-The model below is derived from the FSM and reproduces every measured
-configuration exactly. Run
-[`scripts/cycle_model.py`](../scripts/cycle_model.py) to check it; a mismatch
-means the FSM changed or this document is stale.
+[`scripts/cycle_model.py`](../scripts/cycle_model.py) derives the no-stall command
+count and reproduces all six measured configurations exactly. For tile size `B`
+and depth `D`, concurrent stage service times are:
 
-Per output tile, with tile size `B` and reduction depth `D`:
+| Stage | Cycles per tile | Why |
+| --- | ---: | --- |
+| `LOAD_K`, version 1 | `ceil(B*D/16)` | 16 FP4 codes per accepted input beat |
+| `CALC` | `D` | the first products initialize the accumulator bank, followed by `D-1` updates |
+| `SCALING` | `B^2 + 6` | one score launch per cycle plus chained-multiplier drain |
+| `OUTPUT` | `ceil(B^2/2)` | two FP32 scores per accepted output beat |
 
-| Phase | Cycles | Why |
-| --- | --- | --- |
-| `LOAD_K` | `ceil(B*D/16)` | 16 FP4 codes per 64-bit beat |
-| `CALC` | `D` | one reduction step per cycle, all `B^2` products in parallel |
-| `SCALING` | `B^2 + 6` | one score launched per cycle, plus six cycles of chained multiplier latency |
-| `OUTPUT` | `ceil(B^2/2)` | two FP32 scores per 64-bit beat |
-| `ADVANCE` | 1 | |
-
-For a command of sequence length `T` that is a multiple of `B`, with
-`rows = T/B`:
+For `N=(T/B)^2` complete tiles, `Qbeats=ceil(B*D/16)`, and continuously ready
+streams, the exact model is:
 
 ```text
-version 1: T + rows*ceil(B*D/16) + rows^2 * (per-tile total)
-version 2: T + 2*rows*ceil(B*D/16) + rows^2 * (per-tile total minus LOAD_K)
+pipeline = sum(stage costs) + (N-1) * max(stage costs)
+version 1 = T + Qbeats + pipeline
+version 2 = T + (T/B)*Qbeats + Qbeats + pipeline_without_LOAD_K
 ```
 
-The leading `T` is the scale packet, which carries two FP32 values per beat for
-`2T` values.
+The leading `T` loads the scale packet. Version 1 then fills the first Q bank;
+`LOAD_K` is already part of its tile pipeline. Version 2 fills the complete K
+cache and the first Q bank before its tile pipeline. Later Q loads fit behind the
+binding stage for these measured configurations.
 
 ### Model against measurement
 
-Continuously ready host, `D_HEAD=64`, Verilator 5.020 and 5.042 agreeing.
+Measured at revision `08a307d` with Verilator 5.041 and continuously ready
+streams, `D_HEAD=64`:
 
-| Configuration | Model | Measured |
-| --- | ---: | ---: |
-| v1 4x4, T=64 | 28,736 | 28,736 |
-| v1 4x4, T=128 | 114,304 | 114,304 |
-| v1 4x4, T=512 | 1,821,184 | 1,821,184 |
-| v2 4x4, T=512 | 1,561,088 | 1,561,088 |
-| v1 8x8, T=512 | 817,664 | 817,664 |
-| v1 16x16, T=512 | 534,016 | 534,016 |
+| Configuration | Model | Measured | Previous serial RTL | Speedup |
+| --- | ---: | ---: | ---: | ---: |
+| v1 4x4, T=64 | 16,510 | 16,510 | 28,736 | 1.740x |
+| v1 4x4, T=128 | 65,726 | 65,726 | 114,304 | 1.739x |
+| v1 4x4, T=512 | 1,049,150 | 1,049,150 | 1,821,184 | 1.736x |
+| v2 4x4, T=512 | 1,051,182 | 1,051,182 | 1,561,088 | 1.485x |
+| v1 8x8, T=512 | 287,392 | 287,392 | 817,664 | 2.845x |
+| v1 16x16, T=512 | 269,120 | 269,120 | 534,016 | 1.984x |
 
-Input beats match exactly too: 264,704 for v1 4x4 at T=512, and 4,608 for v2,
-which is the 57.4x reduction in input traffic that command-level K reuse buys.
+Input traffic is unchanged: 264,704 beats for version 1 4x4 at T=512 and 4,608
+for version 2. Version 2 is now 2,032 cycles slower than version 1 because its
+2,048-cycle full-K-cache fill is command startup, while version 1 hides repeated
+16-cycle K loads behind 64-cycle calculation. K reuse still removes 2,080,768
+host bytes; P0.5 must decide whether that traffic reduction justifies physical
+storage.
 
-## Where the cycles go, and what binds next
+## Binding stages after overlap
 
-Because the phases are serial, the per-tile cost is their sum. If they were
-overlapped, the cost would be their maximum. At `D_HEAD=64`:
+| Tile | `LOAD_K` | `CALC` | `SCALING` | `OUTPUT` | Binding stage | Steady tiles | Fill/drain | Measured T=512 |
+| ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
+| 4x4 | 16 | 64 | 22 | 8 | `CALC`, 64 | 1,048,576 | 574 | 1,049,150 |
+| 8x8 | 32 | 64 | 70 | 32 | `SCALING`, 70 | 286,720 | 672 | 287,392 |
+| 16x16 | 64 | 64 | 262 | 128 | `SCALING`, 262 | 268,288 | 832 | 269,120 |
 
-| Tile | `LOAD_K` | `CALC` | `SCALING` | `OUTPUT` | Serial sum | Binding stage under overlap | T=512 if overlapped |
-| ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
-| 4x4 | 16 | 64 | 22 | 8 | 111 | `CALC`, 64 | 1,048,576 |
-| 8x8 | 32 | 64 | 70 | 32 | 199 | `SCALING`, 70 | 286,720 |
-| 16x16 | 64 | 64 | 262 | 128 | 519 | `SCALING`, 262 | 268,288 |
+At 4x4 the dot array runs for 1,048,576 of 1,049,150 command cycles, so measured
+array-active is 99.945%. The 574 remaining cycles are exactly scale loading,
+first Q/K fill, scale-pipeline drain, and final output drain. They are command
+latency rather than a sustained bubble. The measured 1.736x gain is slightly
+below the 1.74x steady-state estimate for that reason.
 
-Three conclusions follow, and the third corrects an assumption in
-[the roadmap](roadmap.md).
-
-At 4x4, overlapping the phases is worth `1,821,184 / 1,048,576 = 1.74x`, and the
-array then runs at its arithmetic ceiling of `B^2 = 16` products per cycle. This
-is why array-active is 57.58% today: `64/111 = 0.577`.
-
-Growing the array without overlapping first buys idle silicon. Array-active falls
-to 32.06% at 8x8 and 12.27% at 16x16, because `CALC` stays at `D` while the
-serial phases grow with `B^2`.
-
-At 8x8 and 16x16 the stage that binds under overlap is `SCALING`, not the output
-port. The roadmap expects the 64-bit output cap of two scores per cycle to become
-the limit. It does not, because `SCALING` launches one score per cycle and so
-costs `B^2 + 6` against the output's `ceil(B^2/2)`, which is roughly twice as
-long for any `B`. The output port only binds once `SCALING` is parallelized: with
-`SCALING` removed as a constraint, 16x16 at T=512 would take `1024 * 128 =
-131,072` cycles, which equals `262,144 / 2`, exactly the output-port floor.
-
-That makes the scale pipeline the first thing to widen, and it is cheap to widen
-if the scales become powers of two, because a power-of-two scale is an exponent
-addition rather than a multiplication. Row scaling is currently FP32 and 1x`D`
-wide, which is also the accuracy problem recorded in
-[the precision result](results/precision.md).
+Scaling binds both larger arrays. Their one-lane scaler sustains one score per
+cycle, while output can carry two. P0.6 should therefore evaluate scaler lanes
+before changing output width. With scaling removed as a constraint, 16x16 output
+would impose the 131,072-cycle steady-state floor, plus command fill and drain.
 
 ## Known limits
 
-The scale granularity is one FP32 value per Q row and per K row across the whole
-reduction, so a 1x64 block at `D_HEAD=64`. That is not OCP MXFP4, which specifies
-32-value blocks with E8M0 scales. The measured synthetic relative Frobenius error
-is 14.90% at T=512.
+The active RTL scale granularity remains one FP32 value per Q row and K row across
+the whole reduction, so a 1x64 block at `D_HEAD=64`. ADR 0003 selects 1x32 FP32
+for P0.4, with block size kept parameterized. That selected format is not OCP
+MXFP4, which uses 32-value blocks with E8M0 scales.
 
 The version 2 K scratchpad is a register array with parallel row reads. At full
 capacity it maps to 6,672,971 um² against 1,596,280 um² for version 1, so it is

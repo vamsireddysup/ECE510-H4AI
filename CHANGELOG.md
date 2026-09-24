@@ -26,20 +26,21 @@ naming rules these entries follow, see
 - Added `TILE_SIZE=8` and `16` builds, verified in simulation.
 - Narrowed `K_REUSE` to a one-bit value at its five test sites, so
   `-GK_REUSE=1` lints clean under `-Wall` across Verilator versions.
+- Replaced the serial tile FSM with concurrent input, compute, scaling, and output
+  sequencers connected by two-bank Q, K, accumulator, and score storage. Extracted
+  the parameterized score scaler into `rtl/core/score_scaler.sv`.
 
 ### Measurements
 
-- At T=512 and `D_HEAD=64` the default 4x4 build produces 262,144 correct scores
-  in 1,821,184 simulated cycles, transferring 3,166,208 bytes for 10.60
-  FLOP/byte at the AXI4-Stream boundary.
-- Protocol version 2 cuts host traffic to 1,085,440 bytes and cycles to
-  1,561,088, and raises array-active from 57.58% to 67.17%. At full capacity its
-  register scratchpad grows mapped cell area from 1,596,280 to 6,672,971 um², so
-  version 1 remains the default. See
-  [`docs/results/design-space.md`](docs/results/design-space.md).
-- Simulated 8x8 and 16x16 builds complete T=512 in 817,664 and 534,016 cycles,
-  with array-active falling to 32.06% and 12.27%. The 64-bit output port caps at
-  two FP32 scores per cycle and 16x16 sustains 0.491.
+- At T=512 and `D_HEAD=64` the overlapped default 4x4 build produces 262,144
+  correct scores in 1,049,150 simulated cycles, a 1.736x gain, while transferring
+  3,166,208 bytes for 10.60 FLOP/byte. Array activity is 99.945%.
+- Protocol version 2 cuts host traffic to 1,085,440 bytes and takes 1,051,182
+  cycles after overlap. Its pre-P0.3 full-capacity register-scratchpad mapping was
+  6,672,971 um² against 1,596,280 um² for version 1, so version 1 remains default.
+- Simulated 8x8 and 16x16 builds complete T=512 in 287,392 and 269,120 cycles.
+  Their one-lane scaler binds at 70 and 262 cycles per tile; measured array
+  activity is 91.21% and 24.35%.
 - Yosys maps the complete top, not an array-only wrapper, to Sky130 HD typical
   cells. These are synthesis areas with no routed timing or power.
 - Recorded a fixed-seed synthetic FP4 score error of 14.90% relative Frobenius

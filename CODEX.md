@@ -64,8 +64,10 @@ parameter sets. The historical compatibility point is:
 That 498-cycle result belongs to the pre-upgrade, one-tile controller. The
 active packed-stream v1 top runs the same numerical pattern in 49 simulated
 cycles with injected host stalls; see `docs/results/latest-verification.md`.
-The current active source list is `rtl/filelist.f`. The older PE, array,
-controller, and buffers are retained for comparison but are not active.
+The current active source list is `rtl/filelist.f`. Independent input, compute,
+scaling, and output sequencers exchange two-bank Q, K, accumulator, and score
+storage. `score_scaler.sv` owns the parameterized scaling lanes. The older PE,
+array, controller, and buffers are retained for comparison but are not active.
 
 Numerical correctness alone is insufficient. New regressions must also check
 completion status, counters, AXI handshakes, timeouts, and backpressure.

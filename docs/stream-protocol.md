@@ -19,14 +19,14 @@ In version 1, the host sends one scale packet, then tile packets in this order:
    `TILE_SIZE * D_HEAD` FP4 values in row-major order. A beat carries 16
    values; the earliest value is in bits 3:0.
 3. For each K tile column in increasing row order, one K packet in the same
-   format. The engine emits the corresponding output tile before accepting
-   the next K packet. After the last K packet for a Q tile, the next Q packet
-   begins.
+   format. The engine may accept the next K packet while computing the previous
+   tile. After the last K packet for a Q tile, the next Q packet begins; input
+   and output packets may be active concurrently.
 
 In version 2, the host sends all K tile packets immediately after scales, in
 increasing K row order. It then sends one Q tile packet for each Q tile row.
 After each Q packet, the engine emits every output tile for that Q row from
-its K scratchpad. No K packet is repeated. The Q/K tile format and output
+its K scratchpad and may accept the next Q packet concurrently. No K packet is repeated. The Q/K tile format and output
 ordering are otherwise identical. The scratchpad is currently an RTL register
 array with parallel row reads; a Sky130 SRAM macro is not substituted automatically.
 

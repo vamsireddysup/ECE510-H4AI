@@ -22,9 +22,11 @@ reset mid-command, repeated commands without reset, AXI4-Lite write-data-first
 and same-cycle writes, byte strobes, and stable read data under backpressure.
 
 The original M4 numerical pattern is one of the cases, so the historical 16/16
-result stays covered. The small suite injects host stalls on both streams; the
-large suite runs with a continuously ready host so its cycle counts are
-comparable across configurations.
+result stays covered. The small suite injects host stalls on both streams. Its input producer and
+output consumer run concurrently, which exercises overlapping stages and stable
+backpressure behavior. The large suite keeps both streams continuously ready so
+its cycle counts are comparable. The 4x4 T=512 test fails above 1,049,150 core
+cycles to prevent silent loss of the P0.3 gain.
 
 ## Running it
 

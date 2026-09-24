@@ -20,7 +20,7 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | Larger arrays | `make test-array8`, `make test-array16`, and their `-large` forms | 8x8 and 16x16 produce correct scores and counters | Routed timing or power at those sizes |
 | Simulation summary | `make report-sim` | Cycles, array utilization, useful and wire bytes, and arithmetic intensity, derived from accepted-beat logs | Anything not in a `build/integration/*/run.log` |
 | Archived baseline | `make baseline`, `make baseline-strict` | The untouched M4 sources still reproduce their recorded numeric result | Anything about the active top |
-| Synthetic precision | `python3 scripts/eval_precision.py` | FP4 score error against FP32 `QK^T` under one explicit row-scale quantizer, fixed seed | Error on real transformer activations; see [precision](results/precision.md) |
+| Synthetic precision | `python3 scripts/eval_precision.py` and `make test-model` | The 120-point block-scale sweep, committed JSON, and rendered T=512 table reproduce at the pinned NumPy version | Error on real transformer activations; see [precision](results/precision.md) |
 | CPU baseline | `python3 scripts/bench_cpu.py` | Observed one-thread NumPy throughput on fixed inputs | A CPU peak, and therefore not a Roofline ceiling |
 | Mapped area | `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE]` | Sky130 HD standard-cell area for the complete top at the typical corner | Timing, routing, congestion, or power |
 | Physical run | `./scripts/run_physical.sh` | An OpenLane flow attempt for the complete top | Nothing yet; no routed result exists |
@@ -37,8 +37,8 @@ random FP4 code patterns across three seeds; worst-case integer sums; varied exa
 scales; and the original M4 numerical pattern, so the historical 16/16 case stays
 covered.
 
-Protocol: per-packet `TLAST` position, output payload and `TLAST` stability while
-`TREADY` is low, zero padding in the upper half of an odd final beat, accepted
+Protocol: concurrent input and output traffic, per-packet `TLAST` position,
+output payload and `TLAST` stability while `TREADY` is low, zero padding in the upper half of an odd final beat, accepted
 input and output beat counts against a closed-form expression, completed tile
 counts, and dot-product and scale cycle counts.
 

@@ -17,14 +17,14 @@ edge tiles, input and output stalls, error status, and repeated commands.
 | Verified configuration | Result |
 | --- | --- |
 | 4x4, `D_HEAD=4`, T=4 | Original 16/16 numerical case; 49 simulated core cycles with stalls |
-| 4x4, `D_HEAD=64`, T=512 | 262,144/262,144 scores; 1,821,184 simulated cycles with ready host |
+| 4x4, `D_HEAD=64`, T=512 | 262,144/262,144 scores; 1,049,150 simulated cycles with ready host |
 | Host traffic at T=512 | 3,166,208 transferred bytes; 10.60 FLOP/byte |
-| Sky130 mapped synthesis area, 4x4, `D_HEAD=64`, `T_MAX=16` | 304,468 um², complete top; no routed timing or power result |
+| Historical Sky130 mapped area before P0.3, 4x4, `D_HEAD=64`, `T_MAX=16` | 304,468 um²; current banked scheduler not yet remapped |
 
 An optional version 2 build caches K for a whole command. At T=512 it lowers
-traffic to 1,085,440 bytes and core cycles to 1,561,088. Simulated 8x8 and
-16x16 default builds complete the same workload in 817,664 and 534,016 core
-cycles. Their mapped cell areas at `T_MAX=16` are 571,637 and 1,446,323 um².
+traffic to 1,085,440 bytes and completes in 1,051,182 cycles. Simulated 8x8 and
+16x16 default builds complete the same workload in 287,392 and 269,120 core
+cycles. Their pre-P0.3 mapped cell areas at `T_MAX=16` are 571,637 and 1,446,323 um².
 At `T_MAX=512`, the mapped 4x4 standard-cell areas are 1,596,280 um² for
 the default design and 6,672,971 um² for register-based K reuse.
 These variants have not closed full-chip timing or power. The
@@ -74,12 +74,10 @@ and what it is authoritative for. The short path:
 - [Active RTL](rtl/README.md), [testbenches](tb/README.md), [reference model](model/README.md), [scripts](scripts/README.md)
 - [Course archive](archive/README.md) and [superseded RTL](archive/superseded-rtl/README.md)
 
-The next design step is accuracy, not speed: the measured synthetic relative
-Frobenius error is 14.90%, under one FP32 scale per row across all 64 reduction
-elements, so block scaling is evaluated in software before the interface changes.
-After that, overlapping the load, compute, scale, and output phases is worth 1.74x
-at 4x4 by the [cycle model](docs/architecture.md), and the K scratchpad needs
-banked storage rather than registers. Full-chip Sky130 timing, routing, and power
+P0.2 selects 1x32 FP32 block scales for the next interface version. P0.3 now
+overlaps load, compute, scale, and output, measuring 1.736x speedup and 99.945%
+array activity at 4x4. The next RTL stage implements that scale format, and the K
+scratchpad still needs banked storage rather than registers. Full-chip Sky130 timing, routing, and power
 will decide whether 8x8 or 16x16 arrays are useful. The stage order and exit
 conditions are in [the P0 plan](docs/problem-statements/p0-dense-fp4-matmul.md).
 

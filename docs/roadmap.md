@@ -25,6 +25,10 @@ stay unchanged in [`archive/`](../archive/README.md).
 - A closed-form cycle model reproduces all six benchmarked configurations exactly,
   including both protocols and all three tile sizes. See
   [architecture](architecture.md) and `scripts/cycle_model.py`.
+- P0.3 overlaps input, exact dot products, scaling, and output through two Q, K,
+  accumulator, and score banks. The 4x4 T=512 run falls from 1,821,184 to
+  1,049,150 cycles and reaches 99.945% array activity. The extracted scaler binds
+  at 8x8 and 16x16.
 - Optional stream version 2 loads K once per command, cutting host traffic 2.9x
   and input beats 57.4x. Its register scratchpad grows mapped area 4.18x at full
   capacity, so version 1 stays default. See
@@ -34,7 +38,7 @@ stay unchanged in [`archive/`](../archive/README.md).
   [the design-space record](results/design-space.md).
 - A fixed-input one-thread NumPy benchmark is the local software baseline. It is
   observed throughput, not a peak, so it is not a Roofline ceiling.
-- P0.2 selected 1x32 FP32 block scales after a 60-point fixed-seed sweep. At
+- P0.2 selected 1x32 FP32 block scales after a 120-point fixed-seed sweep. At
   T=512 it measures mean KL 0.01025, mean total variation 0.05665, top-1
   agreement 75.78%, and top-5 overlap 82.27%. See
   [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md).
@@ -52,10 +56,10 @@ Stages and their exit conditions are in
    [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32:
    one cross-block FP32 add is a better P0 point than the three required by
    1x16, while all three measured E8M0 rules lose to the FP32 baseline.
-3. **P0.3, overlap the phases.** Double-buffer Q, K, and output so load, compute,
-   scale, and output run concurrently. Format-independent, so it does not wait on
-   P0.2. Worth 1.74x at 4x4 by the cycle model. Done when measured array-active
-   exceeds 90% at 4x4, or a record names the stage that now binds.
+3. **P0.3, overlap the phases.** Complete. Two-bank Q, K, accumulator, and score
+   storage lets independent sequencers run concurrently. Measured 4x4 array
+   activity is 99.945% and speedup is 1.736x at T=512. Scaling binds at 8x8 and
+   16x16; [the architecture record](architecture.md) gives the exact model.
 4. **P0.4, implement the chosen format in RTL.** Done when RTL error matches the
    model and integration passes at every tested T and `D_HEAD`.
 5. **P0.5, give the K scratchpad banked storage.** The installed 2 KiB Sky130

@@ -9,21 +9,24 @@ configuration. No variant has routed timing or power evidence yet.
 The mapped areas were produced from revision `4ce83ab` plus the default-depth
 change committed as `bd28084`. The AXI4-Lite handshake fix made after that
 measurement changes cell counts, so the area column is a prior RTL revision;
-the cycle column below is from the corrected control slave.
+the cycle column below is from revision `08a307d` after P0.3 overlap. The area
+column predates the extra banks and is not an area measurement of the current RTL.
 
 | Tile | Contract | T=512 tiles | Core cycles | Host bytes | FLOP/byte | Scores/cycle | Array active | Sky130 mapped cell area, T_MAX=16 |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 4x4 | v1, K reload | 16,384 | 1,821,184 | 3,166,208 | 10.60 | 0.144 | 57.58% | 304,468 um² |
-| 4x4 | v2, K reuse | 16,384 | 1,561,088 | 1,085,440 | 30.91 | 0.168 | 67.17% | 417,158 um² |
-| 8x8 | v1, K reload | 4,096 | 817,664 | 2,117,632 | 15.85 | 0.321 | 32.06% | 571,637 um² |
-| 16x16 | v1, K reload | 1,024 | 534,016 | 1,593,344 | 21.06 | 0.491 | 12.27% | 1,446,323 um² |
+| 4x4 | v1, K reload | 16,384 | 1,049,150 | 3,166,208 | 10.60 | 0.250 | 99.95% | 304,468 um² |
+| 4x4 | v2, K reuse | 16,384 | 1,051,182 | 1,085,440 | 30.91 | 0.249 | 99.75% | 417,158 um² |
+| 8x8 | v1, K reload | 4,096 | 287,392 | 2,117,632 | 15.85 | 0.912 | 91.21% | 571,637 um² |
+| 16x16 | v1, K reload | 1,024 | 269,120 | 1,593,344 | 21.06 | 0.974 | 24.35% | 1,446,323 um² |
 
-The version 2 K scratchpad saves 2,080,768 transferred bytes and 260,096
-simulated cycles at T=512 compared with 4x4 version 1. At `T_MAX=16`, it adds
-112,689 um², or 37.0%, to the mapped top. At T=512 it stores 16 KiB of K FP4
-codes. Its implemented register array has parallel row reads and has not been
-mapped to a physical memory macro. Thus the cell-area comparison is a small
-capacity experiment, not the physical cost of the T=512 scratchpad.
+The version 2 K scratchpad saves 2,080,768 transferred bytes at T=512. After
+overlap it takes 2,032 more cycles than version 1 because its complete K-cache
+fill is startup, while version 1 hides each 16-cycle K load behind 64-cycle
+calculation. At `T_MAX=16`, the historical pre-overlap mapping adds 112,689 um²,
+or 37.0%, to the top. At T=512 the scratchpad stores 16 KiB of K FP4 codes. Its
+register array has parallel row reads and has not been mapped to a physical
+memory macro. The cell-area comparison is a small-capacity, earlier-revision
+experiment, not the physical cost of the current scheduler.
 
 I also mapped both complete 4x4 variants at `T_MAX=512` with the corrected
 AXI4-Lite slave, Yosys 0.44, and the same Sky130 HD typical Liberty file.
@@ -44,14 +47,13 @@ by 397.5 um; sixteen blocks would occupy 3,051,401 um². These are candidate
 capacity and footprint estimates from the locally installed PDK revision
 `0fe599b2afb6708d281543108caf8310912f54af`, not an SRAM-integrated top.
 
-Array active is useful FLOPs divided by core cycles times the array's two
-FLOPs per PE per cycle ceiling. Larger arrays reduce simulated cycles but increase mapped area. The 16x16
-variant is 3.41 times faster in core cycles than 4x4 version 1 for T=512, but
-its mapped area is 4.75 times as large at T_MAX=16. The output interface has a
-hard two-score-per-cycle ceiling. Current 16x16 sustained output is 0.491
-scores/cycle, so scale, input, and serial tile phases still dominate. Tile
-size and K reuse cannot be selected from these figures alone; full-chip
-routing, timing, power, and realistic storage mapping remain required.
+Array active is useful FLOPs divided by core cycles times the array's two-FLOP
+per-PE ceiling. The 4x4 version reaches 99.95%; 8x8 reaches 91.21% because scaling
+binds at 70 cycles against 64 for calculation. The 16x16 version reaches 24.35%
+because one-lane scaling takes 262 cycles. It is 3.90x faster in cycles than 4x4,
+but its historical mapped area is 4.75x as large at `T_MAX=16`. P0.6 should widen
+the extracted scaler before the two-score-per-cycle output interface, since output
+is not the measured binding stage.
 
 Commands: `make test-integration-large`, `make test-integration-reuse-large`,
 `make test-array8-large`, `make test-array16-large`, and
