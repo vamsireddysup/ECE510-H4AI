@@ -14,7 +14,7 @@ ACTIVE_FILES = [
     REPO_ROOT / "CHANGELOG.md",
     REPO_ROOT / "rtl/README.md",
     REPO_ROOT / "tb/README.md",
-    *sorted((REPO_ROOT / "docs").glob("*.md")),
+    *sorted((REPO_ROOT / "docs").rglob("*.md")),
 ]
 LINK_PATTERN = re.compile(r"\[[^]]+\]\(([^)]+)\)")
 

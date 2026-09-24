@@ -1,91 +1,121 @@
 # FP4 QK^T Accelerator Chiplet
 
-**Student:** Vamsidhar Reddy Eraganeni
-**Course:** ECE 510, Portland State University, Spring 2026
+[![CI](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml)
 
-## Project
+I started this project in ECE 510 at Portland State University and now use it
+as my main hardware-AI development repository. The accelerator computes the
+`Q * K^T` part of transformer attention with FP4 E2M1 inputs, FP32 accumulation,
+and per-row microscaling.
 
-Custom co-processor chiplet accelerating the QK^T attention score computation
-using FP4 E2M1 multiply and FP32 accumulate on a systolic array, implemented on
-the Sky130 HD process. The chiplet uses AXI4-Lite for control and AXI4-Stream
-for data streaming.
+## Current status
 
-The synthesized and verified design is a **4x4 systolic array (SIZE=4)**. A
-16x16 array (SIZE=16) is the longer-term design target; all SIZE=16 figures in
-this repository are explicitly labeled as projected, not measured.
+| Item | Current result |
+| --- | --- |
+| Active design | 4x4 systolic array, `D_HEAD=4` |
+| End-to-end simulation | 16/16 outputs correct |
+| Control status | `DONE=YES`, `TILE_COUNT=1` |
+| Compatibility timing | 498 simulation cycles |
+| RTL checks | Verilator lint passes |
+| Reference model | 19 tests pass; all 256 FP4 products match RTL |
+| Physical design record | Sky130 HD, DRC=0, LVS clean, XOR clean |
+| Measured clock target | 15 ns constraint, about 62 MHz recommended |
+| Larger design | 16x16 is still a target, not a measured result |
 
-## M4 Final Submission
+The active design has moved beyond the original M4 controller behavior: the
+integration test now requires completion status as well as correct numerical
+output. I have not yet verified multi-tile execution.
 
-The complete M4 deliverable package is in **[project/m4/](project/m4/README.md)**.
+## How it works
 
-Key results (final M4 OpenLane run, project/m4/synth/):
-- 4x4 FP4 systolic array, AXI4-Lite + AXI4-Stream interfaces
-- Co-simulation: 16/16 PASS end-to-end (project/m4/sim/final_run.log)
-- Full 44-step OpenLane signoff: SUCCESS, DRC=0, LVS clean, XOR clean
-- Synthesis area: 324,753 um^2 (SIZE=4), 30,689 cells
-- Clock period closed at: 15.0 ns; suggested operating frequency ~62 MHz
-- Speedup vs CPU: see project/m4/bench/benchmark.md (honest projected numbers)
-- Design justification report: [project/m4/report/design_justification.pdf](project/m4/report/design_justification.pdf)
+```mermaid
+flowchart LR
+    Host[Host software] -->|AXI4-Lite control| Ctrl[Control registers]
+    Host -->|AXI4-Stream FP4 data| Buffer[Q and K tile buffers]
+    Ctrl --> FSM[Tile controller]
+    FSM --> Buffer
+    Buffer --> Array[FP4 systolic array]
+    Array --> Acc[FP32 accumulation]
+    Acc --> Scale[Microscale multiply]
+    Scale -->|AXI4-Stream FP32 scores| Host
+```
 
-### Why 62 MHz, not the 250 MHz design target
+The host loads Q and K tiles and their scale factors. The controller feeds one
+head-dimension column per cycle into the array. Each PE converts its FP4 product
+to FP32 and accumulates the dot product. The output path applies the Q and K
+scale factors before returning the score matrix.
 
-The M1 proposal targeted 250 MHz. The synthesized design closes timing at a
-longer clock period for two reasons, both documented in the design
-justification report and benchmark:
+## Run it
 
-1. The FP32 accumulate path (fp32_add) is the critical path at ~6.2 ns of logic
-   plus clock-tree skew/uncertainty. At an aggressive 4.0 ns clock the post-route
-   setup slack was negative (WNS down to -8.49 ns), so the period was relaxed
-   until the flow closed cleanly.
-2. Clock-tree skew on a single-clock flat netlist adds margin that pushes the
-   required period above the raw logic delay.
-
-Planned improvements to reach higher frequency (future work):
-- Pipeline the FP32 adder mantissa path into additional stages to cut the ~6.2 ns
-  critical path below 4 ns, enabling timing closure at a shorter period.
-- Add an explicit reset buffer tree to reduce high-fanout reset distribution.
-- Floorplan tuning (aspect ratio, macro placement) to reduce clock-tree skew.
-- Explore retiming during synthesis to balance the accumulate pipeline.
-
-## Milestone structure
-
-| Milestone | Location | Status |
-|---|---|---|
-| M1 | project/m1/ | Done |
-| M2 | project/m2/ | Done |
-| M3 | project/m3/ | Done |
-| M4 | project/m4/ | Done |
-
-## Repository
-
-GitHub: https://github.com/vamsireddysup/ECE510-H4AI
-
-## Continuing development
-
-I am keeping the M1-M4 directories as snapshots of my course submissions. For
-new work, I will start from the verified M4 baseline and move the active design
-into one source tree instead of editing several copies of the same RTL.
-
-Start with the [documentation index](docs/README.md) for the current engineering
-context, professional reorganization plan, development roadmap, and repository
-working conventions.
-
-## Developer quick start
-
-From the repository root:
+The local baseline requires Verilator, `g++`, GNU Make, and Python 3.10 or newer.
 
 ```bash
 make doctor
-make baseline
-make lint
-make test-integration
+make test
 ```
 
-`make baseline` reproduces my 4x4 M4 numerical result and writes its output to
-the ignored `build/` directory. `make baseline-strict` also checks completion
-status. It currently fails because the old test does not observe `DONE`; I am
-keeping that failure visible until I fix and test the control path.
+Useful individual commands:
 
-The active RTL is under [`rtl/`](rtl/README.md), and the active testbenches are
-under [`tb/`](tb/README.md). These files currently match the M4 implementation;
-I have not started changing the design logic yet.
+```bash
+make check-docs       # Check active Markdown structure and links
+make lint             # Lint the active RTL
+make test-model       # Test FP4 and QK^T reference behavior
+make test-integration # Build and run the active 4x4 design
+make baseline         # Re-run the untouched M4 numerical baseline
+make clean            # Remove repository-local generated output
+```
+
+Generated binaries, logs, and waveforms stay under the ignored `build/`
+directory. The latest reviewed test record is in
+[docs/results/latest-verification.md](docs/results/latest-verification.md).
+
+## Repository map
+
+```text
+rtl/        active SystemVerilog design
+tb/         active unit and integration testbenches
+model/      Python FP4 and QK^T reference model
+scripts/    lint, test, cleanup, and tool-check commands
+config/     synthesis and physical-design configuration as it is added
+docs/       architecture notes, plans, decisions, and reviewed results
+project/    original M1-M4 coursework snapshots
+codefest/   separate weekly course exercises
+```
+
+I make new design changes only under `rtl/`, `tb/`, and `model/`. I keep the M1
+through M4 folders unchanged so the submitted work and its results remain easy
+to trace.
+
+## Measured M4 physical results
+
+The final course run synthesized the flat 4x4 array wrapper, not the complete
+chiplet top.
+
+| Metric | Recorded value |
+| --- | ---: |
+| Standard cells | 30,689 |
+| Synthesis area | 324,753 um^2 |
+| Typical power | 28.1 mW |
+| Clock period | 15.0 ns |
+| Signoff | DRC=0, LVS clean, XOR clean |
+
+The original 250 MHz goal did not close after routing. The FP32 accumulation
+path and clock-tree margin required a longer period. I discuss the measured and
+projected numbers in [the M4 benchmark](project/m4/bench/benchmark.md) and
+[the final design report](project/m4/report/design_justification.pdf).
+
+## Documentation
+
+- [Documentation index](docs/README.md)
+- [Project context and known limits](docs/PROJECT_CONTEXT.md)
+- [Repository reorganization plan](docs/REPOSITORY_REORGANIZATION_PLAN.md)
+- [Development roadmap](docs/DEVELOPMENT_ROADMAP.md)
+- [Contribution workflow](CONTRIBUTING.md)
+- [Original M4 package](project/m4/README.md)
+
+## Next work
+
+1. Add a multi-tile regression that fails on the current one-shot PE behavior.
+2. Reset PE and array tile-local state without resetting the whole chip.
+3. Define and test the 64-bit stream packing rules.
+4. Test `D_HEAD=64`, then 8x8 and 16x16 arrays with measured results.
+5. Synthesize the full integrated top and keep it separate from array-only data.

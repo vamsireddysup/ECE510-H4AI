@@ -23,6 +23,7 @@ documents here cover the work I am doing after that baseline.
 | [Development roadmap](DEVELOPMENT_ROADMAP.md) | Future RTL and physical-design sequence |
 | [M4 README](../project/m4/README.md) | Final coursework package and reproduction instructions |
 | [Codex instructions](../CODEX.md) | Working, commit, verification, and Markdown conventions |
+| [Latest verification](results/latest-verification.md) | Most recent reviewed local test run |
 
 ## Planned specifications
 

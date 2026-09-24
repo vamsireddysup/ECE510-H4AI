@@ -2,9 +2,8 @@
 
 ## Purpose
 
-This repository is transitioning from ECE 510 coursework milestones into a
-professional FP4 `Q * K^T` accelerator project. Preserve the verified course
-work while building one canonical, maintainable implementation.
+This is my active FP4 `Q * K^T` accelerator repository. Preserve the verified
+course work while building and testing the active implementation.
 
 Read [the documentation index](docs/README.md) before making architectural or
 repository-wide changes.
@@ -12,8 +11,8 @@ repository-wide changes.
 ## Source-of-truth policy
 
 - Treat `project/m1/` through `project/m4/` as historical submission snapshots.
-- Treat `project/m4/src/` as the temporary reference RTL until the canonical
-  `rtl/` tree is introduced and verified.
+- Treat `rtl/` as the active source of truth.
+- Treat `project/m4/src/` as the untouched course reference.
 - Do not edit duplicated milestone RTL to implement new features.
 - Keep measured results separate from projections. The verified implementation
   is 4x4; 16x16 results are projections until actual runs prove otherwise.
@@ -30,6 +29,8 @@ repository-wide changes.
 6. Confirm that tests do not leave unexpected untracked files.
 7. Update the relevant Markdown documentation with every interface,
    architecture, parameter, workflow, or measured-result change.
+8. Update `docs/results/latest-verification.md` whenever verification results or
+   tool versions change.
 
 ## Commit policy
 
@@ -43,13 +44,14 @@ repository-wide changes.
 - Avoid long multi-paragraph commit messages unless a non-obvious migration or
   compatibility decision genuinely requires explanation.
 - Never combine unrelated user changes with the current task's commit.
+- Work directly on `master`. Do not create another branch unless I ask for one.
+- Push every verified commit to `origin/master`.
 - Do not amend, rebase, force-push, or rewrite existing history unless the user
   explicitly requests it.
 
 ## Verification expectations
 
-Until the canonical build exists, use the M4 Verilator regression described in
-`project/m4/README.md`. The historical compatibility point is:
+Use `make test` for the active design. The historical compatibility point is:
 
 - `TILE_SIZE=4`
 - `D_HEAD=4`
