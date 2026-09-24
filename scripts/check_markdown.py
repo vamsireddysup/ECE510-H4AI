@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Vamsidhar Reddy Eraganeni
 """Enforce the mechanical parts of the documentation contract.
 
 The contract is in docs/repository-layout.md. This script checks what a machine

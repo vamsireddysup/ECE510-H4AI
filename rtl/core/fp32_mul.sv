@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Vamsidhar Reddy Eraganeni
 /*
  * fp32_mul.sv -- 3-stage Pipelined FP32 Multiplier
  *

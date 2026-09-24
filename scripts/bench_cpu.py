@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Vamsidhar Reddy Eraganeni
 """Reproducible one-thread NumPy FP32 QK^T timing; no peak claim."""
 from __future__ import annotations
 

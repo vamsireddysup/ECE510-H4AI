@@ -13,6 +13,7 @@ For the migration that produced this layout, see [`CHANGELOG.md`](../CHANGELOG.m
 ├── CONTRIBUTING.md        human workflow
 ├── CHANGELOG.md           engineering history
 ├── LICENSE                Apache-2.0
+├── NOTICE                 attribution required by Apache-2.0
 ├── Makefile               the stable command surface
 ├── pyproject.toml         Python model and test dependencies
 ├── uv.lock                pinned Python environment
@@ -53,6 +54,20 @@ Root-level conventional files keep their uppercase names: `README.md`,
 `CODEX.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`. Every other Markdown
 file is kebab-case, including everything under `docs/`. Directory READMEs are
 `README.md` at any depth.
+
+## License provenance
+
+The project is Apache-2.0. Every active source file under `rtl/`, `tb/`, `model/`,
+and `scripts/` carries a two-line header:
+
+```text
+SPDX-License-Identifier: Apache-2.0
+Copyright 2026 Vamsidhar Reddy Eraganeni
+```
+
+One-line SPDX tags rather than the full Apache header block, because a twenty-line
+header on a 280-line RTL file costs more than it informs. Attribution lives in
+[`NOTICE`](../NOTICE). Files under `archive/` keep their original headers.
 
 ## Documentation contract
 

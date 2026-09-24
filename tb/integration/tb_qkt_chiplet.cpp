@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Vamsidhar Reddy Eraganeni
 #include <verilated.h>
 #include "Vqkt_chiplet_top.h"
 #include <algorithm>

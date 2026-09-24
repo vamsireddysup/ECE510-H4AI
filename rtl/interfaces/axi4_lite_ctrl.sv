@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Vamsidhar Reddy Eraganeni
 // AXI4-Lite register slave for the packed QK^T engine.
 module axi4_lite_ctrl (
     input logic clk, rst_n,

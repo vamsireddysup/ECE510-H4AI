@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Vamsidhar Reddy Eraganeni
 """Summarize accepted AXI beats and simulated QK^T work from integration logs."""
 from __future__ import annotations
 

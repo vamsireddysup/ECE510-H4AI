@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Vamsidhar Reddy Eraganeni
 """Closed-form core-cycle model for qkt_chiplet_top, checked against measurements.
 
 The model comes from reading the FSM in rtl/top/qkt_chiplet_top.sv. Run this

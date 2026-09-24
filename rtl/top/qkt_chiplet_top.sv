@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Vamsidhar Reddy Eraganeni
 // Version 1 packed-stream QK^T engine. See docs/stream-protocol.md.
 module qkt_chiplet_top #(
     parameter int TILE_SIZE = 4,

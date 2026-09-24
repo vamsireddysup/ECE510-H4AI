@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Vamsidhar Reddy Eraganeni
 """Small dependency-free model matching the current FP4 data path."""
 
 from __future__ import annotations
