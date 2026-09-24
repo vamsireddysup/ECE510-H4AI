@@ -68,23 +68,19 @@ module qkt_chiplet_top #(
     logic [$clog2(T_MAX)-1:0]    sk_rd_addr;
     logic [31:0]                 sk_rd_data;
 
-    // tile_controller <-> tile_buffer (Q write + single read)
+    // tile_controller <-> tile_buffer (Q write + parallel read column)
     logic                            q_wr_en;
     logic [$clog2(TILE_SIZE)-1:0]    q_wr_row;
     logic [$clog2(D_HEAD)-1:0]       q_wr_col;
     logic [3:0]                      q_wr_data;
-    logic [$clog2(TILE_SIZE)-1:0]    q_rd_row;
     logic [$clog2(D_HEAD)-1:0]       q_rd_col;
-    logic [3:0]                      q_rd_data_single;
 
-    // tile_controller <-> tile_buffer (K write + single read)
+    // tile_controller <-> tile_buffer (K write + parallel read column)
     logic                            k_wr_en;
     logic [$clog2(TILE_SIZE)-1:0]    k_wr_row;
     logic [$clog2(D_HEAD)-1:0]       k_wr_col;
     logic [3:0]                      k_wr_data;
-    logic [$clog2(TILE_SIZE)-1:0]    k_rd_row;
     logic [$clog2(D_HEAD)-1:0]       k_rd_col;
-    logic [3:0]                      k_rd_data_single;
 
     // tile_buffer parallel read ports -> systolic array
     logic [3:0]  q_rd_data_par [0:TILE_SIZE-1];
@@ -158,17 +154,14 @@ module qkt_chiplet_top #(
         .sk_rd_addr(sk_rd_addr), .sk_rd_data(sk_rd_data),
         .q_wr_en(q_wr_en), .q_wr_row(q_wr_row),
         .q_wr_col(q_wr_col), .q_wr_data(q_wr_data),
-        .q_rd_row(q_rd_row), .q_rd_col(q_rd_col),
-        .q_rd_data(q_rd_data_single),
+        .q_rd_col(q_rd_col),
         .k_wr_en(k_wr_en), .k_wr_row(k_wr_row),
         .k_wr_col(k_wr_col), .k_wr_data(k_wr_data),
-        .k_rd_row(k_rd_row), .k_rd_col(k_rd_col),
-        .k_rd_data(k_rd_data_single),
+        .k_rd_col(k_rd_col),
         .out_wr_en(out_wr_en), .out_wr_row(out_wr_row),
         .out_wr_col(out_wr_col), .out_wr_data(out_wr_data),
         .out_rd_row(out_rd_row), .out_rd_col(out_rd_col),
         .out_rd_data(out_rd_data),
-        .arr_a_in(arr_a_in), .arr_b_in(arr_b_in),
         .arr_valid_in(arr_valid_in),
         .arr_result(arr_result), .arr_result_valid(arr_result_valid),
         .deq_a(deq_a), .deq_b(deq_b), .deq_valid(deq_valid),
@@ -190,12 +183,10 @@ module qkt_chiplet_top #(
         .q_wr_col(q_wr_col), .q_wr_data(q_wr_data),
         .q_rd_col(q_rd_col),
         .q_rd_data(q_rd_data_par),
-        .q_rd_row(q_rd_row), .q_rd_data_single(q_rd_data_single),
         .k_wr_en(k_wr_en), .k_wr_row(k_wr_row),
         .k_wr_col(k_wr_col), .k_wr_data(k_wr_data),
         .k_rd_col(k_rd_col),
         .k_rd_data(k_rd_data_par),
-        .k_rd_row(k_rd_row), .k_rd_data_single(k_rd_data_single),
         .out_wr_en(out_wr_en), .out_wr_row(out_wr_row),
         .out_wr_col(out_wr_col), .out_wr_data(out_wr_data),
         .out_rd_row(out_rd_row), .out_rd_col(out_rd_col),

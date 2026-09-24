@@ -31,10 +31,6 @@ module tile_buffer #(
     input  logic [$clog2(D_HEAD)-1:0]       q_rd_col,
     output logic [3:0]                      q_rd_data [0:TILE_SIZE-1],
 
-    // Legacy single read port (kept for tile_controller compatibility)
-    input  logic [$clog2(TILE_SIZE)-1:0]    q_rd_row,
-    output logic [3:0]                      q_rd_data_single,
-
     // K tile write port
     input  logic                            k_wr_en,
     input  logic [$clog2(TILE_SIZE)-1:0]    k_wr_row,
@@ -44,10 +40,6 @@ module tile_buffer #(
     // K tile parallel read ports
     input  logic [$clog2(D_HEAD)-1:0]       k_rd_col,
     output logic [3:0]                      k_rd_data [0:TILE_SIZE-1],
-
-    // Legacy single read port
-    input  logic [$clog2(TILE_SIZE)-1:0]    k_rd_row,
-    output logic [3:0]                      k_rd_data_single,
 
     // Output tile write port
     input  logic                            out_wr_en,
@@ -82,9 +74,6 @@ module tile_buffer #(
         end
     endgenerate
 
-    // Single read port (for tile_controller sequential access)
-    assign q_rd_data_single = q_buf[q_rd_row][q_rd_col];
-
     // K tile buffer
     logic [3:0] k_buf [0:TILE_SIZE-1][0:D_HEAD-1];
 
@@ -104,8 +93,6 @@ module tile_buffer #(
             assign k_rd_data[ki] = k_buf[ki][k_rd_col];
         end
     endgenerate
-
-    assign k_rd_data_single = k_buf[k_rd_row][k_rd_col];
 
     // Output tile buffer
     logic [31:0] out_buf [0:TILE_SIZE-1][0:TILE_SIZE-1];

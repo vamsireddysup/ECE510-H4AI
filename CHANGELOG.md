@@ -6,6 +6,8 @@
 - Added reproducible baseline, tool-check, lint, and integration commands.
 - Recorded the known completion-status and multi-tile limitations.
 - Asserted completion before the final status read and made it a required test.
+- Removed the unused single-read array path so the parallel tile buffer is the
+  only source driving systolic-array inputs.
 
 ## M4 course submission
 

@@ -79,10 +79,8 @@ module tile_controller #(
     output logic [$clog2(D_HEAD)-1:0]   q_wr_col,
     output logic [3:0]                  q_wr_data,
 
-    // Tile buffer Q read port (to systolic array)
-    output logic [$clog2(TILE_SIZE)-1:0] q_rd_row,
+    // Shared Q read column for the tile buffer parallel ports
     output logic [$clog2(D_HEAD)-1:0]   q_rd_col,
-    input  logic [3:0]                  q_rd_data,
 
     // Tile buffer K write port
     output logic                        k_wr_en,
@@ -90,10 +88,8 @@ module tile_controller #(
     output logic [$clog2(D_HEAD)-1:0]   k_wr_col,
     output logic [3:0]                  k_wr_data,
 
-    // Tile buffer K read port (to systolic array)
-    output logic [$clog2(TILE_SIZE)-1:0] k_rd_row,
+    // Shared K read column for the tile buffer parallel ports
     output logic [$clog2(D_HEAD)-1:0]   k_rd_col,
-    input  logic [3:0]                  k_rd_data,
 
     // Tile buffer output write port (from systolic array)
     output logic                        out_wr_en,
@@ -107,8 +103,6 @@ module tile_controller #(
     input  logic [31:0]                 out_rd_data,
 
     // Systolic array interface
-    output logic [3:0]                  arr_a_in  [TILE_SIZE],
-    output logic [3:0]                  arr_b_in  [TILE_SIZE],
     output logic                        arr_valid_in,
     input  logic [31:0]                 arr_result [TILE_SIZE][TILE_SIZE],
     input  logic                        arr_result_valid,
@@ -195,20 +189,6 @@ module tile_controller #(
                          send_count[$clog2(TILE_SIZE)-1:0] :
                          deq_col[$clog2(TILE_SIZE)-1:0];
 
-    // Q and K read for feeding array
-    always_comb begin
-        for (int i = 0; i < TILE_SIZE; i++) begin
-            arr_a_in[i] = 4'h0;
-            arr_b_in[i] = 4'h0;
-        end
-        if (state == FEED_ARRAY) begin
-            for (int i = 0; i < TILE_SIZE; i++) begin
-                arr_a_in[i] = q_rd_data; // driven by q_rd_row/col below
-                arr_b_in[i] = k_rd_data;
-            end
-        end
-    end
-
     // -----------------------------------------------------------------------
     // Main state machine
     // -----------------------------------------------------------------------
@@ -252,9 +232,7 @@ module tile_controller #(
             out_wr_row      <= '0;
             out_wr_col      <= '0;
             out_wr_data     <= 32'h0;
-            q_rd_row        <= '0;
             q_rd_col        <= '0;
-            k_rd_row        <= '0;
             k_rd_col        <= '0;
             deq_valid       <= 1'b0;
             deq_a           <= 32'h0;
@@ -369,10 +347,6 @@ module tile_controller #(
                     d_counter    <= d_counter + 32'h1;
 
                     // Drive read addresses for current d column
-                    for (int i = 0; i < TILE_SIZE; i++) begin
-                        q_rd_row <= i[$clog2(TILE_SIZE)-1:0];
-                        k_rd_row <= i[$clog2(TILE_SIZE)-1:0];
-                    end
                     q_rd_col <= d_counter[$clog2(D_HEAD)-1:0];
                     k_rd_col <= d_counter[$clog2(D_HEAD)-1:0];
 
