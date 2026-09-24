@@ -26,9 +26,10 @@ In version 1, the host sends one scale packet, then tile packets in this order:
 In version 2, the host sends all K tile packets immediately after scales, in
 increasing K row order. It then sends one Q tile packet for each Q tile row.
 After each Q packet, the engine emits every output tile for that Q row from
-its K scratchpad and may accept the next Q packet concurrently. No K packet is repeated. The Q/K tile format and output
-ordering are otherwise identical. The scratchpad is currently an RTL register
-array with parallel row reads; a Sky130 SRAM macro is not substituted automatically.
+its K scratchpad and may accept the next Q packet concurrently. No K packet is
+repeated. The Q/K tile format and output ordering are otherwise identical. The
+scratchpad is currently an RTL register array with parallel row reads; a Sky130
+SRAM macro is not substituted automatically.
 
 A tile packet has `ceil(TILE_SIZE * D_HEAD / 16)` beats. Host data for rows
 past `T-1` in an edge tile must be zero. Unused nibbles in the last beat must
@@ -71,17 +72,24 @@ register. A read response holds its data and valid flag until accepted.
 | --- | --- |
 | `0x0C` | Completed output tiles |
 | `0x10` | Core cycles from START through completion |
-| `0x14` | Cycles for the last tile, including its stream stalls |
+| `0x14` | Cycles between the two most recent tile completions; for the first tile, cycles since command start |
 | `0x1C` | Compiled protocol version, `1` or `2` |
 | `0x20` | Accepted input beats |
 | `0x24` | Accepted output beats |
 | `0x28` | Cycles ready for input while input valid is low |
 | `0x2C` | Cycles with output valid while output ready is low |
-| `0x30` | Dot-product compute cycles |
-| `0x34` | Scale-pipeline cycles |
+| `0x30` | Cycles with the dot-product sequencer active; exactly completed tiles times `D_HEAD` at command completion |
+| `0x34` | Cycles with the score-scaling sequencer active |
 
 Counters wrap at 32 bits. The command cycle count excludes idle and finished
 states. Packet padding is counted in transferred bytes, not useful bytes.
+Load, compute, scale, and output now overlap. Registers `0x30` and `0x34` may
+both increment in the same clock, so phase counters are occupancy measurements
+and their sum may exceed `cycle_count`. Likewise, `tile_cycles` is an elapsed
+inter-completion span that can contain work on neighbouring tiles; it is not an
+isolated per-tile cost. The exact compute invariant remains
+`compute_cycles = tile_count * D_HEAD` when `DONE` asserts successfully, and the
+integration test checks it on every command.
 
 ## Related
 
