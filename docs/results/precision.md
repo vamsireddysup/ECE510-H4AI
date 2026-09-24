@@ -1,35 +1,79 @@
-# Synthetic FP4 score error
+# Reduction-block FP4 precision sweep
 
-I used `scripts/eval_precision.py` with seed 510, `D_HEAD=64`, and independent
-normal FP32 Q/K matrices. Each row scale is its maximum absolute input divided
-by six (or one for a zero row). Values are rounded to the nearest E2M1
-magnitude. The FP4 path forms an exact quarter-unit integer dot product, then
-applies the two row scales in FP32. The reference is NumPy FP32 QK^T.
+This record compares scale formats for P0.2. It uses synthetic normal Q/K inputs
+to select the scale contract before RTL implementation; it does not claim accuracy
+on transformer activations.
 
-| T | Mean absolute score error | Relative Frobenius error |
-| ---: | ---: | ---: |
-| 4 | 1.198 | 20.61% |
-| 16 | 0.827 | 14.10% |
-| 64 | 0.964 | 15.00% |
-| 128 | 0.913 | 14.57% |
-| 512 | 0.945 | 14.90% |
+## Method
 
-These are synthetic quantization errors under one explicit row-scale rule. The
-script models ideal FP32 scale multiplication after the integer dot; it does
-not establish bitwise equivalence for the RTL multiplier on arbitrary scales.
-It accepts a pinned `.npz` capture with `q` and `k` arrays and records its
-SHA-256. I have not yet supplied a pretrained transformer Q/K capture, so no
-real-activation error claim is made. The 14.90% synthetic result is a reason
-to test block scaling and alternative quantizers before changing the interface.
+These are **measured software-model results** from commit `6e566b8`, produced by
+Python 3.12.3 and NumPy 1.26.4. `scripts/eval_precision.py` used seed 510,
+`D_HEAD=64`, and the same generator sequence and T values 4, 16, 64, 128, and 512
+as the previous 14.90% result. The complete 60-point JSON is reproducible under
+ignored `build/p0-2-precision.json`; the table below reports T=512, where each
+metric covers 262,144 scores.
 
-Reproduce the synthetic run from the repository root:
+Each row is divided into reduction blocks of `Bs` elements. FP32 uses
+`max(abs(block))/6`. E8M0 stores a one-byte biased exponent for a power-of-two
+dequantization scale. `E8M0-floor` applies `floor(log2(scale))` and
+`E8M0-nearest` applies `floor(log2(scale)+0.5)`. Inputs are rounded to the nearest
+E2M1 value after scaling. Each block forms an exact quarter-unit integer dot, and
+block results are scaled and summed in FP32.
+
+Softmax uses `scores/sqrt(64)`. Top-5 agreement is the mean fraction of the five
+reference indices also present in the quantized top five, rather than requiring
+an identical ordering. KL is `KL(P_ref || P_fp4)`, and total variation is half
+the L1 distance.
+
+## T=512 results
+
+| Bs | Scale | Mean KL | Mean TV | Top-1 | Top-5 overlap | Rel. Frobenius | Mean abs. error | Clipped inputs | Scale B/element | FP32 adds/score |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 64 | FP32 | 0.01129 | 0.05940 | 75.00% | 81.56% | 14.90% | 0.945 | 0.00% | 0.0625 | 0 |
+| 64 | E8M0-floor | 0.04126 | 0.11047 | 58.79% | 68.48% | 28.58% | 1.769 | 11.30% | 0.015625 | 0 |
+| 64 | E8M0-nearest | 0.01351 | 0.06492 | 71.68% | 78.87% | 16.33% | 1.035 | 1.29% | 0.015625 | 0 |
+| 32 | FP32 | 0.01025 | 0.05665 | 75.78% | 82.27% | 14.23% | 0.904 | 0.00% | 0.125 | 1 |
+| 32 | E8M0-floor | 0.04534 | 0.11651 | 58.98% | 67.89% | 30.06% | 1.872 | 12.83% | 0.03125 | 1 |
+| 32 | E8M0-nearest | 0.01499 | 0.06835 | 70.90% | 78.59% | 17.24% | 1.092 | 3.66% | 0.03125 | 1 |
+| 16 | FP32 | 0.00897 | 0.05301 | 78.12% | 83.59% | 13.29% | 0.843 | 0.00% | 0.25 | 3 |
+| 16 | E8M0-floor | 0.05336 | 0.12729 | 55.47% | 67.11% | 32.66% | 2.046 | 17.03% | 0.0625 | 3 |
+| 16 | E8M0-nearest | 0.01662 | 0.07193 | 71.29% | 79.26% | 18.22% | 1.152 | 6.25% | 0.0625 | 3 |
+| 8 | FP32 | 0.00705 | 0.04695 | 80.08% | 85.47% | 11.83% | 0.751 | 0.00% | 0.5 | 7 |
+| 8 | E8M0-floor | 0.06797 | 0.14471 | 53.71% | 64.41% | 36.93% | 2.332 | 25.42% | 0.125 | 7 |
+| 8 | E8M0-nearest | 0.01858 | 0.07599 | 71.68% | 78.67% | 19.24% | 1.216 | 9.59% | 0.125 | 7 |
+
+The old 1x64 FP32 row reproduces 14.8983%, which rounds to the recorded 14.90%.
+All storage figures are per Q element or per K element; total Q-plus-K scale
+traffic is twice the listed rate. The FP32-add count is `ceil(64/Bs)-1` and is a
+**projected RTL consequence**, not a measured hardware cost.
+
+## Interpretation
+
+The selected 1x32 FP32 format improves all four softmax metrics over 1x64 while
+requiring one cross-block FP32 add. Moving to 1x16 improves mean KL by 0.00127,
+mean TV by 0.00364, top-1 by 2.34 percentage points, and top-5 overlap by 1.33
+points, but requires three adds and doubles scale storage from 0.125 to 0.25
+bytes per element. That incremental synthetic improvement does not justify
+building a three-add reduction before real activations are available.
+
+Neither E8M0 rule is competitive in this quantizer. At 1x32, nearest raises mean
+KL 46.3% relative to FP32 and floor raises it 342.6%. The requested statement
+that floor cannot clip is false for a dequantization scale: rounding
+`max(abs(block))/6` down makes normalized magnitudes larger. The measured floor
+clip rate is 12.83% at 1x32. A clipping-safe power-of-two rule would round the
+dequantization scale upward; that is a different quantizer and can be evaluated
+later without changing the selected block layout.
+
+Reproduce from the repository root:
 
 ```bash
-python3 scripts/eval_precision.py > build/synthetic-precision.json
+mkdir -p build
+python3 scripts/eval_precision.py > build/p0-2-precision.json
 ```
 
 ## Related
 
+- [ADR 0003, which selects 1x32 FP32](../adr/0003-fp32-scales-with-32-element-blocks.md)
+- [P0 dense FP4 problem](../problem-statements/p0-dense-fp4-matmul.md)
+- [Reference model](../../model/README.md)
 - [Results index](README.md)
-- [P0, where precision is stage P0.2](../problem-statements/p0-dense-fp4-matmul.md)
-- [Stream protocol, for the scale rule](../stream-protocol.md)

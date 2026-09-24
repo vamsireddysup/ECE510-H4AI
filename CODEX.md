@@ -74,8 +74,10 @@ Version 1 is the default K-reload build; `K_REUSE=1` selects version 2 and a
 command-level K scratchpad. `make test-integration-reuse` and
 `make test-integration-reuse-large` verify that variant. The 8x8 and 16x16
 tests and their cell-area results are recorded in `docs/results/design-space.md`.
-`scripts/eval_precision.py` records synthetic score error under an explicit
-row-scale quantizer. It does not substitute for real transformer activations.
+`scripts/eval_precision.py` sweeps reduction-block FP32 and E8M0 scales and
+reports softmax agreement, raw-score error, clipping, storage, and projected
+FP32 adds. ADR 0003 selects 1x32 FP32 for P0.4. Synthetic inputs do not
+substitute for real transformer activations.
 `make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and
 array utilization from accepted-beat simulation logs.
 `scripts/run_physical.sh` runs the complete 4x4/D_HEAD=64/T_MAX=16 top in

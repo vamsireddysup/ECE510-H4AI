@@ -12,7 +12,7 @@ They are large and reproducible, so they are not committed.
 | --- | --- |
 | [Packed engine result](packed-engine.md) | Per-configuration correctness, cycles, host traffic, CPU baseline, synthesis scope |
 | [Design-space experiment](design-space.md) | K reuse, 8x8 and 16x16 sweeps, mapped areas, SRAM macro candidates |
-| [Synthetic precision](precision.md) | Row-scaled FP4 score error against FP32 |
+| [Synthetic precision](precision.md) | Block-scale sweep, softmax agreement, storage, and accumulator cost |
 | [Latest verification](latest-verification.md) | The most recent local command run and its tool versions |
 
 ## Where generated output lands

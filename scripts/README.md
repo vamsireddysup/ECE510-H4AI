@@ -16,7 +16,7 @@ All of them run from the repository root.
 | `run_m4_baseline.sh` | `make baseline`, `make baseline-strict` | Verilator, g++ | `build/m4-baseline/{build,run}.log` and `build/m4-baseline/summary.txt` |
 | `summarize_sim.py` | `make report-sim` | Python 3.10+ | `build/integration/summary.csv`, read from every `build/integration/*/run.log` |
 | `cycle_model.py` | run directly | Python 3.10+ | stdout only; exits non-zero if the model no longer matches the measured configurations |
-| `eval_precision.py` | run directly | NumPy | stdout JSON; redirect to `build/synthetic-precision.json` |
+| `eval_precision.py` | run directly | NumPy | stdout JSON with the block-scale sweep; redirect to `build/p0-2-precision.json` |
 | `bench_cpu.py` | run directly | NumPy | stdout JSON; redirect to `build/cpu-benchmark.json` |
 | `run_synthesis.sh` | run directly as `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE]` | Yosys, Sky130 HD Liberty | `build/synthesis/t<tile>-d<depth>-max<tmax>-reuse<reuse>/yosys.log` |
 | `run_physical.sh` | run directly | Docker, OpenLane, Sky130 PDK | `build/physical/<run-name>/flow.log` and `runs/full/` |

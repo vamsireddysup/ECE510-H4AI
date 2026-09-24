@@ -32,7 +32,7 @@ unchanged.
 | [Results index](results/README.md) | Which record owns which number, and where logs land |
 | [Packed engine result](results/packed-engine.md) | Per-configuration correctness, cycles, traffic, CPU baseline, synthesis scope |
 | [Design-space experiment](results/design-space.md) | K reuse, 8x8 and 16x16 sweeps, mapped areas, SRAM candidates |
-| [Synthetic precision](results/precision.md) | Row-scaled FP4 score error against FP32 |
+| [Synthetic precision](results/precision.md) | Block-scale sweep, softmax agreement, and the P0.2 evidence |
 | [Latest verification](results/latest-verification.md) | The most recent command run and its tool versions |
 
 ## Directory notes

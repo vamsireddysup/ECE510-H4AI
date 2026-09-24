@@ -44,7 +44,7 @@ latency in seconds, or energy for this top.
 | Stage | Work | Exit condition |
 | --- | --- | --- |
 | P0.1 | Repository and documentation hygiene | `make check-docs` passes with the extended checks; no reference to a path that does not exist outside `archive/` |
-| P0.2 | Decide the scale format in software: sweep 1x64, 1x32, 1x16 and FP32 against E8M0 | An error table is committed and one format is chosen in an [ADR](../adr/README.md) |
+| P0.2 | **Complete:** sweep Bs 64/32/16/8 with FP32 and two E8M0 rules | [ADR 0003](../adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32 from softmax metrics |
 | P0.3 | Overlap load, compute, scale, and output | Measured array-active above 90% at 4x4, or a record naming the stage that now binds |
 | P0.4 | Implement the chosen scale format in RTL | RTL error matches the software model; integration passes at every tested T and `D_HEAD` |
 | P0.5 | Give the K scratchpad banked storage with clocked reads | Version 2 at full capacity maps below version 1, or an ADR records why version 1 stays default |

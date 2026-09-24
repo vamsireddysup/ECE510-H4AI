@@ -34,9 +34,10 @@ stay unchanged in [`archive/`](../archive/README.md).
   [the design-space record](results/design-space.md).
 - A fixed-input one-thread NumPy benchmark is the local software baseline. It is
   observed throughput, not a peak, so it is not a Roofline ceiling.
-- A fixed-seed synthetic precision evaluation measures row-scaled FP4 score error
-  at 14.90% relative Frobenius at T=512. See
-  [the precision record](results/precision.md).
+- P0.2 selected 1x32 FP32 block scales after a 60-point fixed-seed sweep. At
+  T=512 it measures mean KL 0.01025, mean total variation 0.05665, top-1
+  agreement 75.78%, and top-5 overlap 82.27%. See
+  [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md).
 
 ## P0, active: dense FP4 matrix multiplication
 
@@ -46,11 +47,11 @@ Stages and their exit conditions are in
 1. **P0.1, repository and documentation hygiene.** Done when `make check-docs`
    passes the contract checks and no document references a path that does not
    exist.
-2. **P0.2, decide the scale format in software.** Sweep 1x64, 1x32, and 1x16
-   blocks against FP32 and E8M0 scales in the model, commit the error table, and
-   record the choice as an ADR. This comes first because 14.90% error makes every
-   other improvement moot, and it comes before the RTL stages so the interface is
-   not rebuilt twice.
+2. **P0.2, decide the scale format in software.** Complete. The sweep covered
+   Bs 64, 32, 16, and 8 with FP32 and two E8M0 rules.
+   [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32:
+   one cross-block FP32 add is a better P0 point than the three required by
+   1x16, while both measured E8M0 rules fail the softmax acceptance gate.
 3. **P0.3, overlap the phases.** Double-buffer Q, K, and output so load, compute,
    scale, and output run concurrently. Format-independent, so it does not wait on
    P0.2. Worth 1.74x at 4x4 by the cycle model. Done when measured array-active
@@ -103,9 +104,9 @@ Nothing starts without an explicit decision.
 
 ## Standing constraints
 
-Keep version 1 row-scale FP4 and dense FP32 scores as the default until P0.2 and
-P0.4 replace them. Current row scaling is not OCP MXFP4, which uses 32-value
-blocks and E8M0 scales. Softmax and V fusion stay outside this project's scope.
+Keep version 1 row-scale FP4 and dense FP32 scores as the default until P0.4
+implements the 1x32 FP32 decision. The selected format is not OCP MXFP4, which
+uses 32-value blocks and E8M0 scales. Softmax and V fusion stay outside this project's scope.
 
 Use the original [Roofline model](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/EECS-2008-134.html)
 only with an explicit memory boundary and measured bandwidth, and never treat
