@@ -18,6 +18,34 @@ BLOCK_SIZES = (64, 32, 16, 8, 4, 2)
 SCALE_TYPES = ("FP32", "E8M0-floor", "E8M0-nearest", "E8M0-ceil")
 
 
+def render_t512_table(metrics: list[dict[str, float | int | str]]) -> str:
+    """Render the reviewed T=512, Bs>=8 result table from sweep records."""
+    header = (
+        "| Bs | Scale | Mean KL | Mean TV | Top-1 | Top-5 overlap | "
+        "Rel. Frobenius | Mean abs. error | Clipped inputs | "
+        "Scale B/element | FP32 adds/score |\n"
+        "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | "
+        "---: | ---: | ---: |"
+    )
+    rows = [header]
+    for row in metrics:
+        if row["T"] != 512 or int(row["block_size"]) < 8:
+            continue
+        rows.append(
+            f"| {row['block_size']} | {row['scale_type']} | "
+            f"{float(row['mean_kl_divergence']):.5f} | "
+            f"{float(row['mean_total_variation']):.5f} | "
+            f"{100 * float(row['top1_agreement']):.2f}% | "
+            f"{100 * float(row['top5_index_agreement']):.2f}% | "
+            f"{100 * float(row['relative_frobenius_error']):.2f}% | "
+            f"{float(row['mean_abs_error']):.3f} | "
+            f"{100 * float(row['clipped_input_fraction']):.2f}% | "
+            f"{float(row['scale_bytes_per_q_or_k_element']):g} | "
+            f"{row['fp32_adds_per_score']} |"
+        )
+    return "\n".join(rows)
+
+
 def power_of_two_scale(ideal: np.ndarray, rule: str) -> np.ndarray:
     """Round positive dequantization scales to an E8M0 power of two."""
     logarithm = np.log2(ideal.astype(np.float64))
@@ -109,8 +137,10 @@ def evaluate(
     )
     top1 = np.argmax(reference_probability, axis=1) == np.argmax(fp4_probability, axis=1)
     top_k = min(5, q.shape[0])
-    reference_top = np.argpartition(reference_probability, -top_k, axis=1)[:, -top_k:]
-    fp4_top = np.argpartition(fp4_probability, -top_k, axis=1)[:, -top_k:]
+    reference_top = np.argsort(
+        reference_probability, axis=1, kind="stable"
+    )[:, -top_k:]
+    fp4_top = np.argsort(fp4_probability, axis=1, kind="stable")[:, -top_k:]
     overlap = np.array([
         len(set(reference_top[row]) & set(fp4_top[row])) / top_k
         for row in range(q.shape[0])
@@ -159,7 +189,7 @@ def main() -> None:
         for block_size in BLOCK_SIZES if block_size <= q.shape[1]
         for scale_type in SCALE_TYPES
     ]
-    print(json.dumps({**source, "metrics": metrics}, indent=2))
+    print(json.dumps({**source, "numpy_version": np.__version__, "metrics": metrics}, indent=2))
 
 
 if __name__ == "__main__":

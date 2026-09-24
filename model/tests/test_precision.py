@@ -2,11 +2,25 @@
 # Copyright 2026 Vamsidhar Reddy Eraganeni
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 
-from scripts.eval_precision import evaluate, power_of_two_scale, quantize_blocks
+from scripts.eval_precision import (
+    BLOCK_SIZES,
+    SCALE_TYPES,
+    evaluate,
+    power_of_two_scale,
+    quantize_blocks,
+    render_t512_table,
+)
 from model.qkt_model import fp4_encode, qkt
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PRECISION_JSON = REPO_ROOT / "docs/results/p0-2-precision.json"
+PRECISION_MARKDOWN = REPO_ROOT / "docs/results/precision.md"
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -60,3 +74,27 @@ def test_legacy_evaluation_point_is_reproducible() -> None:
     assert result["relative_frobenius_error"] == pytest.approx(0.1490, abs=5e-5)
     assert result["fp32_adds_per_score"] == 0
     assert result["scale_bytes_per_q_or_k_element"] == 0.0625
+
+
+def test_t512_sweep_matches_committed_json() -> None:
+    committed = json.loads(PRECISION_JSON.read_text())
+    generator = np.random.default_rng(committed["seed"])
+    q = k = None
+    for size in [4, 16, 64, 128, 512]:
+        q = generator.standard_normal((size, 64), dtype=np.float32)
+        k = generator.standard_normal((size, 64), dtype=np.float32)
+    regenerated = [
+        evaluate(q, k, block_size, scale_type)
+        for block_size in BLOCK_SIZES
+        for scale_type in SCALE_TYPES
+    ]
+    expected = [row for row in committed["metrics"] if row["T"] == 512]
+    assert len(regenerated) == len(expected)
+    for actual, recorded in zip(regenerated, expected, strict=True):
+        assert actual.keys() == recorded.keys()
+        for key in actual:
+            if isinstance(actual[key], float):
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-12, abs=1e-12)
+            else:
+                assert actual[key] == recorded[key]
+    assert render_t512_table(expected) in PRECISION_MARKDOWN.read_text()

@@ -44,7 +44,7 @@ model's compatibility mode.
 multiplication with exponent adjustment and use one quarter of the FP32 scale
 storage. Ceiling confirms the predicted clipping-safe behavior, but even 1x16
 ceiling is worse than 1x64 FP32 on every reported accuracy metric: mean KL
-0.01296, mean TV 0.06361, top-1 71.68%, top-5 overlap 79.34%, and Frobenius
+0.01296, mean TV 0.06361, top-1 71.68%, top-5 overlap 79.53%, and Frobenius
 15.97%. At 1x32, nearest has mean KL 0.01499 and floor has 0.04534.
 
 The floor premise needed correction. The stored scale is a dequantization scale
