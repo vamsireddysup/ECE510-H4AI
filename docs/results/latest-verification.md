@@ -20,6 +20,8 @@ These are RTL simulation results; no clock constraint or PDK applies.
 | `SCORE_LANES=2/4 make test-array16-large` | T=512 takes 141,632/132,361 cycles |
 | `python3 scripts/cycle_model.py` | All 16 measured cycle and input-beat configurations reproduce exactly |
 | `make report-sim` | Regenerates `build/integration/summary.csv` from accepted-beat logs |
+| Clean virtual environment, then `pip install -e ".[test]"` and `make test-model` | NumPy is absent before installation; the declared test extra installs NumPy 1.26.4 and all 28 tests pass |
+| GitHub Actions at `f9ab75d` | Passes on Ubuntu 24.04 with its packaged Verilator 5.020 after reproducing and fixing the older lint limitation |
 
 The 4x4 T=512 test has an explicit regression ceiling of 1,049,665 core cycles.
 The machine-readable reviewed subset is
@@ -65,7 +67,7 @@ Widening the output before scaling would buy no cycles, so P0.6 keeps 64 bits.
 
 | Tool | Version |
 | --- | --- |
-| Verilator | 5.041 development revision v5.040-196-g63f5f5c32 |
+| Verilator | 5.041 development revision v5.040-196-g63f5f5c32 locally; 5.020 in passing GitHub CI |
 | GCC/G++ | 13.3.0 |
 | GNU Make | 4.3 |
 | Python | 3.12.3 |
