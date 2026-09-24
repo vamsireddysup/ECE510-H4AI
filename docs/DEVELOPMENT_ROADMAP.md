@@ -1,119 +1,64 @@
-# Development roadmap
+# QK^T accelerator development plan
 
-I want the next version to be a maintainable accelerator project, not another
-milestone copy. I will fix the known control and reuse problems before scaling
-the array, and I will verify each stage before moving to the next one.
+I am developing a dense FP4 E2M1 QK^T accelerator for Sky130 with FP32 output
+scores and per-row FP32 Q/K scales. The goal is correct larger workloads and a
+measured improvement over the course RTL. CPU speedup is a result to measure,
+not a design assumption. The M1-M4 snapshots remain unchanged in `archive/`.
 
-## Phase 0: preserve and baseline
+## Completed and verified
 
-- Keep M1-M4 unchanged as submission history.
-- Record the current 4x4 build and numerical result.
-- Add a top-level developer command that builds outside source directories.
-- Make regressions fail on protocol/status errors, not only wrong numbers.
+- The active top uses [packed stream version 1](STREAM_PROTOCOL.md), explicit
+  packet-length checks, a full-width matrix dimension, partial-tile masking,
+  and stable output under stalls.
+- A 4x4 grid accumulates signed FP4 half-unit products in exact quarter-unit
+  registers. It converts once per score, then uses two pipelined FP32 scale
+  multipliers. The old serial FP32 PE and controller remain as reference RTL.
+- Integration tests cover `D_HEAD=4/64`, T=1/4/7/8/16, malformed packets,
+  reset, repeated commands, stalls, and the original numerical pattern.
+  A separate no-stall run checks T=64/128/512 at `D_HEAD=64`.
+- Counters expose accepted beats, stalls, dot cycles, scale cycles, completed
+  tiles, and command cycles. The [reviewed results](results/packed-engine.md)
+  state the host-stream byte boundary and synthesis scope.
+- A fixed-input, one-thread NumPy benchmark replaces the archived CPU timing
+  as the local software baseline. It is observed throughput, not a peak
+  ceiling for a Roofline model.
 
-I will move on when one command runs lint and the 4x4 end-to-end test, and fails
-when `DONE`, counters, handshakes, or numerical outputs are wrong.
+## Next: memory reuse and overlap
 
-## Phase 1: canonicalize the project
+1. Add a banked K scratchpad so each K tile arrives once per command. Version
+   the stream contract if packet order changes. Measure host traffic, bank
+   conflicts, cell/SRAM area, and routed timing. Check available Sky130 SRAM
+   macro port widths and physical size before selecting one.
+2. Double-buffer Q and output tiles to overlap input, compute, scale, and
+   output. Measure sustained scores per cycle, including host stalls. The
+   64-bit output cap is two FP32 scores per cycle, so test whether it becomes
+   the limiting stage before widening the interface.
+3. Compare the current exact integer array with the retained serial FP32 PE
+   using identical complete workloads and integrated-top synthesis. Report
+   numerical difference, cell area, timing, and estimated energy separately.
 
-I created the active layout from `archive/coursework/project/m4/src`:
+## Next: physical design and array size
 
-```text
-rtl/            canonical synthesizable RTL
-tb/             unit and integration testbenches
-model/          FP4/microscaling golden reference
-scripts/        reproducible lint, simulation, and synthesis entrypoints
-constraints/    clock and physical-design constraints
-docs/           architecture, protocol, decisions, and results
-build/          generated and ignored
-```
+1. Close timing and route the complete top at 4x4 with `D_HEAD=64`; record
+   PDK/tool revision, clock constraint, area, setup/hold slack, power, and
+   congestion. Current Yosys Sky130 cell area is synthesis only.
+2. Test 8x8 and 16x16 with identical workloads, then sweep buffering, K bank
+   count, scale depth, and clock constraint. Select the fastest verified design
+   that closes full-chip Sky130 checks; retain smaller Pareto alternatives.
+3. Benchmark T=4/16/64/128/512 with actual tile counts, useful and transferred
+   bytes, simulated cycles, timing-closed frequency, and full-chip PPA. Do not
+   infer the active clock from the archived array-only 15 ns run, which has
+   negative nominal setup and hold slack.
 
-I will not delete milestone copies during this work. I will add CI for lint and
-fast tests, and replace repeated source lists with one manifest.
+## Later precision experiments
 
-I will move on when the active sources reproduce the 4x4 result and the test
-leaves Git clean.
+Keep version 1 row-scale FP4 and dense FP32 scores as the default. Measure
+score error on synthetic vectors and pinned transformer activations against
+FP32 QK^T. A block-scaled format, narrower output, or structured sparsity
+needs a separate version and end-to-end traffic and accuracy evidence. Current
+row scaling is not OCP MXFP4; compliant MXFP4 uses 32-value blocks and E8M0
+scales. Softmax and V fusion remain outside this project scope.
 
-## Phase 2: make tiling correct
-
-- Add explicit `tile_start`/`clear_accumulator` semantics to the array and PE.
-- Reset product count, accumulator state, result valid, and all tile-local state
-  without resetting the entire chip.
-- Remove the second/legacy owner of array input signals.
-- Define Q reuse and K reload behavior for every `(tile_row, tile_col)` pair.
-- Use ceiling division and valid masks for sequence lengths that are not a
-  multiple of `TILE_SIZE`.
-- Define whether multiple commands may run without global reset, then test it.
-
-Required tests: two K tiles, two Q tiles, 2x2 tile grid, partial final tile,
-back-to-back commands, input stalls, and output backpressure.
-
-I will move on when randomized multi-tile outputs match the software model.
-
-## Phase 3: define and fix the host protocol
-
-I will write a versioned register map and stream packet format before changing
-the interface RTL. I will then implement the documented packing or clearly keep
-a simpler format. My preferred packed format is:
-
-- two FP32 scale values per 64-bit input beat;
-- sixteen FP4 values per 64-bit input beat;
-- two FP32 scores per 64-bit output beat;
-- explicit packet/type framing and precise `TLAST` rules;
-- stable `TVALID` and payload while `TREADY` is low;
-- sticky done/error status with software-visible clearing behavior.
-
-I will move on when protocol assertions and randomized stall tests pass.
-
-## Phase 4: improve arithmetic architecture
-
-I will first choose an accuracy target: exact accumulation for FP4 products,
-bounded error against FP32, or fuller IEEE behavior. Then I will compare:
-
-1. Keep FP32 accumulation and pipeline/retime the feedback path.
-2. Accumulate exactly in a fixed-point or Kulisch-style accumulator and convert
-   once at the output.
-3. Use a shared reduction structure if area is more important than throughput.
-
-The current PE stores every product and serially adds it. A larger array should
-avoid `SIZE^2 * D_HEAD` FP32 product storage unless measurements justify it.
-
-I will move on when the chosen arithmetic passes edge cases and randomized
-tests, with latency, initiation interval, area, and error recorded.
-
-## Phase 5: scale by evidence
-
-I will test configurations in this order:
-
-1. 4x4 array, `D_HEAD=4` (compatibility baseline)
-2. 4x4 array, `D_HEAD=64` (real reduction depth)
-3. 8x8 array, `D_HEAD=64`
-4. 16x16 array, `D_HEAD=64`
-5. tiled sequence tests up to the chosen `T_MAX` (historically 512)
-
-At every step record simulation cycles, effective utilization, compile time,
-cell area, worst slack, and power. Stop scaling when memory ports, routing,
-compile resources, or timing become the dominant constraint and address that
-constraint explicitly.
-
-I will call 16x16 results measured only after an actual run. Every physical
-design result will state which modules were included.
-
-## Phase 6: full-chip physical design
-
-- Synthesize the integrated top, not only `systolic_array_flat`.
-- Infer or instantiate practical memories instead of flip-flop-expanded arrays.
-- Pipeline the FP32/fixed-point critical path based on STA evidence.
-- Address reset fanout through reset architecture and physical synthesis, not an
-  RTL buffer tree tied to one standard-cell library unless required.
-- Add floorplan and clock constraints suited to the integrated design.
-- Archive compact signoff summaries; keep full run products outside Git.
-
-I will finish this stage when DRC, LVS, timing, and power results use the same
-integrated RTL revision and configuration as functional verification.
-
-## First implementation slice
-
-I will first create the active source tree and regression without changing
-behavior. My first functional change will start with a failing two-tile test,
-then add PE tile restart. That gives me a clean baseline for later experiments.
+I use the original [Roofline model](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/EECS-2008-134.html)
+only with an explicit memory boundary and measured bandwidth. I will not use
+measured CPU throughput as CPU peak performance.

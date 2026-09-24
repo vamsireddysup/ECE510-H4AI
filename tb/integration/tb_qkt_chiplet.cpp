@@ -15,8 +15,14 @@
 #define TEST_TMAX 16
 #endif
 static constexpr int B=4, D=TEST_D, TMAX=TEST_TMAX;
+#ifdef TEST_LARGE
+static constexpr bool STRESS_STALLS=false;
+#else
+static constexpr bool STRESS_STALLS=true;
+#endif
 static Vqkt_chiplet_top dut;
 static uint64_t cycles=0;
+static bool legacy_mode=false;
 static void step() { dut.clk=0; dut.eval(); dut.clk=1; dut.eval(); ++cycles; }
 static void check(bool ok, const char* msg) { if (!ok) throw std::runtime_error(msg); }
 static uint32_t bits(float x) { uint32_t v; std::memcpy(&v,&x,4); return v; }
@@ -53,14 +59,21 @@ static void send_beat(uint64_t data,bool last,int gap=0) {
     for(int i=0;i<100000;i++) { dut.clk=0; dut.eval(); bool accepted=dut.s_tready; step(); if(accepted) { dut.s_tvalid=0; dut.s_tlast=0; return; } }
     throw std::runtime_error("input stream timeout");
 }
-static int code(int row,int depth,int salt) { return (row*7+depth*3+salt)%16; }
+static int code(int row,int depth,int salt) {
+    if(legacy_mode) {
+        static const int pattern[4][4]={{2,0,2,0},{0,2,0,2},{2,2,0,0},{0,0,2,2}};
+        return pattern[row][depth];
+    }
+    return (row*7+depth*3+salt)%16;
+}
 static void send_scales(int t, int malformed=0) {
     for(int b=0;b<t;b++) {
         // Scale order is Q[0..T-1], then K[0..T-1].
-        auto value=[&](int idx)->uint32_t { return bits(idx<t ? (idx%2 ? 2.0f:1.0f) : ((idx-t)%2 ? 0.5f:1.0f)); };
+        auto value=[&](int idx)->uint32_t { return bits(legacy_mode ? 1.0f :
+            (idx<t ? (idx%2 ? 2.0f:1.0f) : ((idx-t)%2 ? 0.5f:1.0f))); };
         uint32_t lo=value(2*b), hi=value(2*b+1);
         send_beat((uint64_t(hi)<<32)|lo,
-                  malformed==1 ? b==0 : (malformed==2 ? false : b==t-1), b%3);
+                  malformed==1 ? b==0 : (malformed==2 ? false : b==t-1), STRESS_STALLS ? b%3 : 0);
         if(malformed==1) return;
     }
 }
@@ -69,19 +82,20 @@ static void send_tile(int start,int t,int salt) {
     for(int b=0;b<(N+15)/16;b++) {
         uint64_t beat=0;
         for(int l=0;l<16;l++) { int e=b*16+l; if(e<N && start+e/D<t) beat |= uint64_t(code(start+e/D,e%D,salt)) << (4*l); }
-        send_beat(beat,b==(N+15)/16-1,b%4);
+        send_beat(beat,b==(N+15)/16-1,STRESS_STALLS ? b%4 : 0);
     }
 }
 static float expected(int row,int col) {
     int sum=0;
     for(int d=0;d<D;d++) sum+=half(code(row,d,1))*half(code(col,d,5));
-    return (sum*0.25f)*(row%2?2.0f:1.0f)*(col%2?0.5f:1.0f);
+    return (sum*0.25f)*(legacy_mode ? 1.0f : (row%2?2.0f:1.0f)) *
+        (legacy_mode ? 1.0f : (col%2?0.5f:1.0f));
 }
 static void receive_tile(int qr,int kc,int t,int& checked) {
     int rows=std::min(B,t-qr), cols=std::min(B,t-kc), count=rows*cols, got=0;
     uint64_t held=0; bool held_last=false, stalled=false;
     for(int timeout=0;timeout<200000 && got<count;timeout++) {
-        dut.m_tready=(timeout%5>=2);
+        dut.m_tready=!STRESS_STALLS || (timeout%5>=2);
         dut.clk=0; dut.eval();
         if(stalled) check(dut.m_tvalid && dut.m_tdata==held && bool(dut.m_tlast)==held_last,"output changed under backpressure");
         bool transfer=dut.m_tvalid && dut.m_tready;
@@ -125,7 +139,7 @@ static void run_case(int t) {
             output_beats+=(std::min(B,t-qr)*std::min(B,t-kc)+1)/2;
     check(read_reg(0x24)==uint32_t(output_beats),"output beat count");
     check(read_reg(0x28)>0,"input stalls absent");
-    check(read_reg(0x2C)>0,"output stalls absent");
+    if(STRESS_STALLS) check(read_reg(0x2C)>0,"output stalls absent");
     check(read_reg(0x30)==uint32_t(tiles*D),"compute cycles");
     std::printf("T=%d D=%d scores=%d tiles=%d cycles=%u in_beats=%u out_beats=%u stalls=%u PASS\n",
         t,D,checked,tiles,read_reg(0x10),read_reg(0x20),read_reg(0x24),read_reg(0x2C));
@@ -139,6 +153,7 @@ int main(int argc,char** argv) {
         run_case(64); run_case(128); run_case(512);
 #else
         run_case(1); run_case(4); run_case(7); run_case(8); run_case(16);
+        if(D==4) { legacy_mode=true; run_case(4); legacy_mode=false; }
         write_reg(0x08,4); write_reg(0x00,1); send_scales(4,1);
         check(read_reg(0x04)==0x21,"early TLAST status");
         write_reg(0x08,4); write_reg(0x00,1); send_scales(4,2);

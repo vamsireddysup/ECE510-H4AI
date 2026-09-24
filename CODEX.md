@@ -51,7 +51,8 @@ repository-wide changes.
 
 ## Verification expectations
 
-Use `make test` for the active design. The historical compatibility point is:
+Use `make test` for the active design and `make test-integration-large` for the
+T=64/128/512 run. The historical compatibility point is:
 
 - `TILE_SIZE=4`
 - `D_HEAD=4`
@@ -59,8 +60,18 @@ Use `make test` for the active design. The historical compatibility point is:
 - 16/16 numerical outputs correct
 - recorded `CYCLE_COUNT=498`
 
+That 498-cycle result belongs to the pre-upgrade, one-tile controller. The
+active packed-stream v1 top runs the same numerical pattern in 50 simulated
+cycles with injected host stalls; see `docs/results/packed-engine.md`.
+The current active source list is `rtl/filelist.f`. The older PE, array,
+controller, and buffers are retained for comparison but are not active.
+
 Numerical correctness alone is insufficient. New regressions must also check
 completion status, counters, AXI handshakes, timeouts, and backpressure.
+Use `docs/STREAM_PROTOCOL.md` for packet ordering and status definitions.
+Treat mapped Sky130 cell area as synthesis only until full-chip timing, routing,
+and power checks finish. Do not derive active latency from the archived 15 ns
+array-only constraint.
 
 For every published benchmark or synthesis result, record:
 

@@ -1,54 +1,31 @@
 # Latest verification
 
-I ran this check on September 24, 2026, from `master` at RTL revision
-`c326d55`.
+I ran the active RTL checks on September 24, 2026, on `master` after revision
+`8abc7b9`. The subsequent test and documentation commit contains the exact
+regression source used for these results.
 
-## Commands
+## Commands and results
 
-```bash
-make doctor
-make baseline
-make test
-```
-
-## Results
-
-| Check | Result |
+| Command | Result |
 | --- | --- |
-| Active Markdown links and structure | Pass |
-| Verilator RTL lint | Pass |
-| Python reference-model tests | 19 passed |
-| FP4 LUT comparison | All 256 input pairs matched |
-| 4x4 integration output | 16/16 correct |
-| Completion status | `DONE=YES` |
-| Completed tiles | `TILE_COUNT=1` |
-| Compatibility cycle count | 498 |
-| Archived M4 numerical baseline | 16/16 correct |
-| Archived M4 completion status | Known legacy `DONE=NO` |
+| `make test` | Markdown, RTL lint, 19 model tests, and small integration pass |
+| `make test-integration-large` | T=64/128/512, `D_HEAD=64`, all scores pass |
+| `python3 scripts/bench_cpu.py` | Fixed-input, one-thread CPU timings recorded |
+| Yosys full-top Sky130 HD mapping | 204,039 um² at D=4; 303,141 um² at D=64, both `T_MAX=16` |
 
-## Tool versions
+The integration suite checks `D_HEAD=4/64`, T=1/4/7/8/16, original M4
+numerical inputs, edge masks, packet counts, output stability under stalls,
+malformed scale packets, dimension error, reset, and repeated commands. Large
+runs use a continuously ready host. At T=512, the result is 262,144 scores,
+16,384 tiles, 1,821,185 simulated cycles, 264,704 input beats, and 131,072
+output beats. See [the result record](packed-engine.md) for traffic arithmetic
+and scope.
 
-| Tool | Version |
-| --- | --- |
-| Verilator | 5.041 development build |
-| GCC/G++ | 13.3.0 |
-| GNU Make | 4.3 |
-| Python | 3.12.3 |
-| pytest | 7.4.4 |
-| Yosys | 0.44 |
-| Icarus Verilog | 12.0 |
-| Docker | 29.8.1 |
+## Tools and limits
 
-The optional `sby` command is installed but currently cannot find its Python
-modules. Formal verification is not part of this test run yet. GTKWave is
-installed, but waveform viewing needs a graphical display.
-
-## Scope
-
-This run verifies one 4x4 tile with `D_HEAD=4` and `T_MAX=16`. It does not prove
-multi-tile execution, `D_HEAD=64`, larger arrays, or the full-chip physical
-design. I will update this file when those tests are added.
-
-Full generated output is under `build/integration/` and
-`build/m4-baseline/`. See [Results and transcripts](README.md) for the file
-layout and tracking policy.
+Verilator 5.041 development build, GCC 13.3.0, Python 3.12.3, pytest 7.4.4,
+NumPy 1.26.4, and Yosys 0.44 were used. The mapped Sky130 Liberty corner was
+typical 25 C, 1.80 V. The active top has not completed routing, STA, or power
+analysis. The CPU benchmark is a measured NumPy implementation, not a CPU
+Roofline peak. Generated logs are under `build/integration/` and
+`build/synthesis/`.
