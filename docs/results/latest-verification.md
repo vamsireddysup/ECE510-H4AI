@@ -1,7 +1,7 @@
 # Latest verification
 
 I ran the required checks on September 24, 2026, on `master` at revision
-`440aeb8`. This run covers the P0.2 software model, precision sweep, and scale-format
+`93e7292`. This run covers the P0.2 software model, precision sweep, and scale-format
 decision. No SystemVerilog changed in P0.2, and this run adds no synthesis or
 physical evidence, so the Sky130 areas below are carried from the earlier
 revisions that produced them.
@@ -12,9 +12,9 @@ revisions that produced them.
 | --- | --- |
 | `make check-docs` | 30 active documents pass: one H1 each, every relative link and anchor resolves, every document has a `## Related` block, none more than two hops from `README.md` |
 | `make lint` | All five parameter sets pass under `-Wall`: 4x4 at `D_HEAD=4`; 4x4 at `D_HEAD=64`, `T_MAX=512` for both protocols; 8x8; 16x16 |
-| `make test-model` | 25 passed, including block scales, E8M0 rounding, the 14.90% compatibility point, and all 256 FP4 product pairs |
+| `make test-model` | 27 passed, including NumPy scale matrices, three E8M0 rounding rules, the 14.90% compatibility point, and all 256 FP4 product pairs |
 | `make test-integration` | `D_HEAD=4` and `64`, T=1/4/7/8/16, with host stalls injected. All scores pass |
-| `python3 scripts/eval_precision.py` | 60 combinations complete: T=4/16/64/128/512, Bs=64/32/16/8, and three scale types |
+| `python3 scripts/eval_precision.py` | 120 combinations complete: T=4/16/64/128/512, Bs=64/32/16/8/4/2, and four scale types |
 
 The aggregate `make test` target passed. The larger integration, K-reuse, and
 8x8/16x16 simulation results below were not rerun because P0.2 changed only
@@ -34,9 +34,9 @@ Continuously ready host at `D_HEAD=64`, unless the row says stalls were injected
 | 4x4 v1, T=4, `D_HEAD=4`, stalls injected | 49 | 6 | 8 |
 
 Every value is identical under Verilator 5.020 and 5.042, so these counts do not
-depend on the simulator version. This run corrected
-[the packed engine record](packed-engine.md), whose core-cycle column had been one
-higher than register `0x10` returns on all nine of its rows.
+depend on the simulator version. The packed-engine cycle table was corrected in
+P0.1 at revision `2b95e3d`; its core-cycle column had been one higher than register
+`0x10` returns on all nine rows.
 
 ## Tools
 

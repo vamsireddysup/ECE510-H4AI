@@ -48,10 +48,10 @@ Stages and their exit conditions are in
    passes the contract checks and no document references a path that does not
    exist.
 2. **P0.2, decide the scale format in software.** Complete. The sweep covered
-   Bs 64, 32, 16, and 8 with FP32 and two E8M0 rules.
+   Bs 64, 32, 16, 8, 4, and 2 with FP32 and three E8M0 rules.
    [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32:
    one cross-block FP32 add is a better P0 point than the three required by
-   1x16, while both measured E8M0 rules fail the softmax acceptance gate.
+   1x16, while all three measured E8M0 rules lose to the FP32 baseline.
 3. **P0.3, overlap the phases.** Double-buffer Q, K, and output so load, compute,
    scale, and output run concurrently. Format-independent, so it does not wait on
    P0.2. Worth 1.74x at 4x4 by the cycle model. Done when measured array-active
