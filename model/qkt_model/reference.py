@@ -77,7 +77,7 @@ def qkt(
         values = list(scales)
         if len(values) != row_count:
             raise ValueError("Scale count must match the number of matrix rows")
-        if values and isinstance(values[0], Sequence):
+        if values and hasattr(values[0], "__len__"):
             matrix = [list(row) for row in values]  # type: ignore[arg-type]
             if any(len(row) != block_count for row in matrix):
                 raise ValueError("Each scale row must match the reduction block count")

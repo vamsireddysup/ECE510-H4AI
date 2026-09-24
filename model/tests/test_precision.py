@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from scripts.eval_precision import evaluate, power_of_two_scale, quantize_blocks
+from model.qkt_model import fp4_encode, qkt
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -15,6 +16,9 @@ def test_e8m0_rounding_rules() -> None:
     )
     np.testing.assert_array_equal(
         power_of_two_scale(ideal, "E8M0-nearest"), [0.25, 0.5, 1.0]
+    )
+    np.testing.assert_array_equal(
+        power_of_two_scale(ideal, "E8M0-ceil"), [0.5, 0.5, 1.0]
     )
 
 
@@ -31,6 +35,19 @@ def test_floor_dequantization_scale_can_clip() -> None:
         np.array([[5.0, 1.0]], dtype=np.float32), 2, "E8M0-floor"
     )
     assert clips == 1
+
+
+def test_ceil_dequantization_scale_does_not_clip() -> None:
+    _, _, clips = quantize_blocks(
+        np.array([[5.0, 1.0]], dtype=np.float32), 2, "E8M0-ceil"
+    )
+    assert clips == 0
+
+
+def test_reference_accepts_numpy_block_scale_rows() -> None:
+    codes = [[fp4_encode(1.0)] * 4]
+    scales = np.array([[2.0, 3.0]], dtype=np.float32)
+    assert qkt(codes, codes, scales, scales, block_size=2) == [[26.0]]
 
 
 def test_legacy_evaluation_point_is_reproducible() -> None:

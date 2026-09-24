@@ -14,8 +14,8 @@ import numpy as np
 
 MAGNITUDES = np.array([0, .5, 1, 1.5, 2, 3, 4, 6], dtype=np.float32)
 HALF_UNITS = np.array([0, 1, 2, 3, 4, 6, 8, 12], dtype=np.int32)
-BLOCK_SIZES = (64, 32, 16, 8)
-SCALE_TYPES = ("FP32", "E8M0-floor", "E8M0-nearest")
+BLOCK_SIZES = (64, 32, 16, 8, 4, 2)
+SCALE_TYPES = ("FP32", "E8M0-floor", "E8M0-nearest", "E8M0-ceil")
 
 
 def power_of_two_scale(ideal: np.ndarray, rule: str) -> np.ndarray:
@@ -25,6 +25,8 @@ def power_of_two_scale(ideal: np.ndarray, rule: str) -> np.ndarray:
         exponent = np.floor(logarithm)
     elif rule == "E8M0-nearest":
         exponent = np.floor(logarithm + 0.5)
+    elif rule == "E8M0-ceil":
+        exponent = np.ceil(logarithm)
     else:
         raise ValueError(f"unknown E8M0 rounding rule: {rule}")
     exponent = np.clip(exponent, -127, 127).astype(np.int16)
