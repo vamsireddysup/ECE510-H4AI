@@ -1,10 +1,13 @@
 # Packed engine verification and measurement
 
-This record covers RTL revision `8abc7b9` plus the test and documentation
-updates in this commit. The active top is `qkt_chiplet_top` with a 4x4 integer
-dot-product array and two FP32 scale multipliers. All cycle figures are
-Verilator simulations. The host-stream boundary is the two 64-bit AXI4-Stream
-ports; transferred bytes are accepted input and output beats times eight.
+The cycle table below was re-measured on `master` at `e3ce10b` with Verilator
+5.020 and again with 5.042, which agree on every value. The traffic, CPU, and synthesis figures below it come from the earlier
+revision `8abc7b9` and its Verilator 5.041 runs, and are unchanged.
+
+The active top is `qkt_chiplet_top` with a 4x4 integer dot-product array and two
+FP32 scale multipliers. All cycle figures are Verilator simulations. The
+host-stream boundary is the two 64-bit AXI4-Stream ports; transferred bytes are
+accepted input and output beats times eight.
 
 ## Correctness and simulated cycles
 
@@ -13,17 +16,33 @@ with binary-power row scales. It also checks per-packet `TLAST`, output
 stability under backpressure, padding, beat counts, tile counts, error codes,
 reset, and repeated commands. The original 4x4 numerical pattern is included.
 
-| T | D_HEAD | Scores | Tiles | Core cycles | Input beats | Output beats | Host stalls |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 4 | 4 | 16 | 1 | 50 | 6 | 8 | Injected |
-| 7 | 4 | 49 | 4 | 151 | 13 | 25 | Injected |
-| 16 | 4 | 256 | 16 | 692 | 36 | 128 | Injected |
-| 4 | 64 | 16 | 1 | 188 | 36 | 8 | Injected |
-| 7 | 64 | 49 | 4 | 625 | 103 | 25 | Injected |
-| 16 | 64 | 256 | 16 | 2432 | 336 | 128 | Injected |
-| 64 | 64 | 4096 | 256 | 28,737 | 4,416 | 2,048 | None |
-| 128 | 64 | 16,384 | 1,024 | 114,305 | 17,024 | 8,192 | None |
-| 512 | 64 | 262,144 | 16,384 | 1,821,185 | 264,704 | 131,072 | None |
+| T | D_HEAD | Scores | Tiles | Core cycles | Host stalls |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 4 | 1 | 1 | 17 | Injected |
+| 4 | 4 | 16 | 1 | 49 | Injected |
+| 7 | 4 | 49 | 4 | 150 | Injected |
+| 8 | 4 | 64 | 4 | 181 | Injected |
+| 16 | 4 | 256 | 16 | 691 | Injected |
+| 1 | 64 | 1 | 1 | 155 | Injected |
+| 4 | 64 | 16 | 1 | 187 | Injected |
+| 7 | 64 | 49 | 4 | 624 | Injected |
+| 8 | 64 | 64 | 4 | 655 | Injected |
+| 16 | 64 | 256 | 16 | 2,431 | Injected |
+| 64 | 64 | 4,096 | 256 | 28,736 | None |
+| 128 | 64 | 16,384 | 1,024 | 114,304 | None |
+| 512 | 64 | 262,144 | 16,384 | 1,821,184 | None |
+
+Input and output beats at T=512 are 264,704 and 131,072. The small-suite beat
+counts vary with the injected stall pattern, so they are not tabulated here; the
+testbench asserts them exactly against a closed-form expression on every run.
+
+An earlier version of this table reported every core-cycle figure one higher than
+register `0x10` returns, and omitted the T=1 and T=8 cases the suite runs. The
+values above are re-measured from `build/integration/*/run.log` and are identical
+under Verilator 5.020 and 5.042, so the discrepancy was not a simulator
+difference. Every other column of the earlier table was correct, and
+[`README.md`](../../README.md) and [`design-space.md`](design-space.md) already
+carried the correct 49 and 1,821,184.
 
 The 512 run performs 33,554,432 useful FLOPs (multiply and add counted
 separately). It transfers 3,166,208 bytes, for 10.60 FLOP/byte at the named
