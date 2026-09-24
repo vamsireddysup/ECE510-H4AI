@@ -67,6 +67,8 @@ make clean            # Remove repository-local generated output
 Generated binaries, logs, and waveforms stay under the ignored `build/`
 directory. The latest reviewed test record is in
 [docs/results/latest-verification.md](docs/results/latest-verification.md).
+GitHub Actions also saves the integration logs as a downloadable artifact for
+30 days, without adding generated files to Git history.
 
 ## Repository map
 
@@ -112,6 +114,17 @@ projected numbers in
 - [Contribution workflow](CONTRIBUTING.md)
 - [Archive guide](archive/README.md)
 - [Original M4 package](archive/coursework/project/m4/README.md)
+
+## Output policy
+
+I do not commit routine build logs, simulator binaries, VCD/FST waveforms, or
+full OpenLane run directories. They are generated under `build/` and can be
+reproduced with the commands above. I commit reviewed Markdown summaries,
+important metrics, and selected figures that explain a result.
+
+For a major result such as a verified 16x16 design or full-chip signoff, I will
+attach the complete logs and physical-design outputs to a GitHub Release instead
+of adding them to normal Git history.
 
 ## Next work
 

@@ -10,6 +10,7 @@
   only source driving systolic-array inputs.
 - Moved coursework, codefests, and old experiments under `archive/` and kept
   only the active project at the repository root.
+- Kept generated output out of Git and added downloadable CI transcripts.
 
 ## M4 course submission
 

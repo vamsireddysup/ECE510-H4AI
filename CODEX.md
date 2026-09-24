@@ -95,6 +95,9 @@ For every published benchmark or synthesis result, record:
 - Do not commit PDKs, virtual environments, caches, generated Verilator files,
   full OpenLane run trees, or ordinary waveform output.
 - Keep only deliberately reviewed result summaries, plots, and signoff evidence.
+- Upload routine CI transcripts as temporary workflow artifacts, not commits.
+- Put complete major-release outputs in GitHub Release assets rather than Git
+  history.
 - Cleanup commands must target only known generated directories such as
   repository-local `build/`.
 - Prefer pinned, project-local, or containerized tools. Do not uninstall a

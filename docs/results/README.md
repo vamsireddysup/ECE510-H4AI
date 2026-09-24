@@ -25,3 +25,13 @@ build/m4-baseline/summary.txt
 I summarize the latest reviewed run in
 [`latest-verification.md`](latest-verification.md). I update it when the design,
 test coverage, parameters, or tool versions change.
+
+## GitHub copies
+
+The CI workflow uploads `build/integration/build.log`, `run.log`, and
+`summary.txt` as one GitHub Actions artifact. The artifact is kept for 30 days
+and does not become part of Git history.
+
+For major releases, I will attach complete simulation and physical-design
+outputs to the GitHub Release. Routine runs remain reproducible local or CI
+artifacts.

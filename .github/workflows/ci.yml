@@ -33,3 +33,15 @@ jobs:
 
       - name: Run 4x4 integration test
         run: make test-integration
+
+      - name: Save integration transcripts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-transcripts-${{ github.sha }}
+          path: |
+            build/integration/build.log
+            build/integration/run.log
+            build/integration/summary.txt
+          if-no-files-found: warn
+          retention-days: 30
