@@ -7,7 +7,7 @@ not a design assumption. The M1-M4 snapshots remain unchanged in `archive/`.
 
 ## Completed and verified
 
-- The active top uses [packed stream version 1](STREAM_PROTOCOL.md), explicit
+- The active top uses [packed stream version 1](stream-protocol.md), explicit
   packet-length checks, a full-width matrix dimension, partial-tile masking,
   and stable output under stalls.
 - A 4x4 grid accumulates signed FP4 half-unit products in exact quarter-unit

@@ -10,7 +10,7 @@ snapshots in `archive/` unchanged.
 ## Current status
 
 The default 4x4 engine uses exact quarter-unit integer dot products and two
-pipelined FP32 scale multipliers. Its [version 1 stream contract](docs/STREAM_PROTOCOL.md)
+pipelined FP32 scale multipliers. Its [version 1 stream contract](docs/stream-protocol.md)
 packs 16 FP4 values or two FP32 values per 64-bit beat. It supports partial
 edge tiles, input and output stalls, error status, and repeated commands.
 
@@ -62,9 +62,9 @@ Generated logs and binaries stay under ignored `build/`.
 ## Project map
 
 - [Documentation index](docs/README.md)
-- [Project context](docs/PROJECT_CONTEXT.md)
-- [Development plan](docs/DEVELOPMENT_ROADMAP.md)
-- [Packed stream protocol](docs/STREAM_PROTOCOL.md)
+- [Project context](docs/project-context.md)
+- [Development plan](docs/roadmap.md)
+- [Packed stream protocol](docs/stream-protocol.md)
 - [Latest verification](docs/results/latest-verification.md)
 - [Design-space experiment](docs/results/design-space.md)
 - [Synthetic precision](docs/results/precision.md)

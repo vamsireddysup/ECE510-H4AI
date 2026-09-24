@@ -1,4 +1,4 @@
-// Version 1 packed-stream QK^T engine. See docs/STREAM_PROTOCOL.md.
+// Version 1 packed-stream QK^T engine. See docs/stream-protocol.md.
 module qkt_chiplet_top #(
     parameter int TILE_SIZE = 4,
     parameter int D_HEAD = 64,

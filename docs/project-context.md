@@ -11,7 +11,7 @@ The active `qkt_chiplet_top` accepts packed 64-bit input packets, holds one Q
 and one K tile, and computes all scores of a 4x4 output tile from exact
 quarter-unit integer dot products. Two pipelined FP32 multipliers apply row
 scales. It emits two FP32 scores per 64-bit beat, with a zero-padded upper half
-on odd final beats. See [stream protocol version 1](STREAM_PROTOCOL.md) for
+on odd final beats. See [stream protocol version 1](stream-protocol.md) for
 packet order, status codes, and counters.
 An optional `K_REUSE=1` build changes the packet order to version 2 and keeps
 K in an RTL scratchpad for the whole command. Its physical storage choice is
@@ -59,5 +59,5 @@ state corrections in active records.
 The default host stream reloads K for each output tile. Physical K banking,
 double buffering, exact scale arithmetic qualification, real activation error,
 and routed full-chip Sky130 timing and power remain open.
-The [development plan](DEVELOPMENT_ROADMAP.md) gives the order and acceptance
+The [development plan](roadmap.md) gives the order and acceptance
 evidence for those steps.

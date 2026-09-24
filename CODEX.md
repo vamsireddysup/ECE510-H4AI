@@ -69,7 +69,7 @@ controller, and buffers are retained for comparison but are not active.
 
 Numerical correctness alone is insufficient. New regressions must also check
 completion status, counters, AXI handshakes, timeouts, and backpressure.
-Use `docs/STREAM_PROTOCOL.md` for packet ordering and status definitions.
+Use `docs/stream-protocol.md` for packet ordering and status definitions.
 Version 1 is the default K-reload build; `K_REUSE=1` selects version 2 and a
 command-level K scratchpad. `make test-integration-reuse` and
 `make test-integration-reuse-large` verify that variant. The 8x8 and 16x16

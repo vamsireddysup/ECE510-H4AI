@@ -5,9 +5,9 @@ M1-M4 documents under `archive/` are course snapshots and remain unchanged.
 
 | Document | Purpose |
 | --- | --- |
-| [Project context](PROJECT_CONTEXT.md) | Active design, archive baseline, and open limits |
-| [Development plan](DEVELOPMENT_ROADMAP.md) | Completed work and next measured experiments |
-| [Packed stream protocol](STREAM_PROTOCOL.md) | Version 1 packet order, packing, status, and counters |
+| [Project context](project-context.md) | Active design, archive baseline, and open limits |
+| [Development plan](roadmap.md) | Completed work and next measured experiments |
+| [Packed stream protocol](stream-protocol.md) | Version 1 packet order, packing, status, and counters |
 | [Packed engine result](results/packed-engine.md) | Correctness, cycles, traffic, CPU baseline, synthesis scope |
 | [Design-space experiment](results/design-space.md) | K reuse, array-size sweeps, and SRAM candidates |
 | [Synthetic precision](results/precision.md) | Row-scaled FP4 error against FP32 QK^T |
