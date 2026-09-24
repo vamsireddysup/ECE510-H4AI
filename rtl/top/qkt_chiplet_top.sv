@@ -1,7 +1,7 @@
 // Version 1 packed-stream QK^T engine. See docs/STREAM_PROTOCOL.md.
 module qkt_chiplet_top #(
     parameter int TILE_SIZE = 4,
-    parameter int D_HEAD = 4,
+    parameter int D_HEAD = 64,
     parameter int T_MAX = 16,
     parameter bit K_REUSE = 0
 )(
