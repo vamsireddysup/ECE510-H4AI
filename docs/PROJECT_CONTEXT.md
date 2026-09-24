@@ -13,6 +13,9 @@ quarter-unit integer dot products. Two pipelined FP32 multipliers apply row
 scales. It emits two FP32 scores per 64-bit beat, with a zero-padded upper half
 on odd final beats. See [stream protocol version 1](STREAM_PROTOCOL.md) for
 packet order, status codes, and counters.
+An optional `K_REUSE=1` build changes the packet order to version 2 and keeps
+K in an RTL scratchpad for the whole command. Its physical storage choice is
+still open.
 
 The active module list is `rtl/filelist.f`. `rtl/core/pe.sv`,
 `rtl/core/systolic_array.sv`, `rtl/control/tile_controller.sv`, and the older
@@ -29,6 +32,9 @@ The 4x4 top passes T=1/4/7/8/16 at `D_HEAD=4/64` and T=64/128/512 at
 cycles with a continuously ready host. Full counters, host traffic, CPU timing,
 and Sky130 synthesis scope are in [the reviewed result](results/packed-engine.md).
 No routed active-top clock, power, or silicon latency is available yet.
+The optional K-reuse build and 8x8/16x16 default builds also pass T=512.
+Their cycle, traffic, and synthesis comparisons are in the
+[design-space record](results/design-space.md).
 
 ## Archived course baseline
 
@@ -48,8 +54,8 @@ state corrections in active records.
 
 ## Remaining engineering work
 
-The current host stream reloads K for each output tile. A banked K scratchpad,
+The default host stream reloads K for each output tile. Physical K banking,
 double buffering, exact scale arithmetic qualification, real activation error,
-8x8/16x16 sweeps, and routed full-chip Sky130 timing and power remain open.
+and routed full-chip Sky130 timing and power remain open.
 The [development plan](DEVELOPMENT_ROADMAP.md) gives the order and acceptance
 evidence for those steps.

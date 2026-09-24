@@ -69,6 +69,10 @@ controller, and buffers are retained for comparison but are not active.
 Numerical correctness alone is insufficient. New regressions must also check
 completion status, counters, AXI handshakes, timeouts, and backpressure.
 Use `docs/STREAM_PROTOCOL.md` for packet ordering and status definitions.
+Version 1 is the default K-reload build; `K_REUSE=1` selects version 2 and a
+command-level K scratchpad. `make test-integration-reuse` and
+`make test-integration-reuse-large` verify that variant. The 8x8 and 16x16
+tests and their cell-area results are recorded in `docs/results/design-space.md`.
 Treat mapped Sky130 cell area as synthesis only until full-chip timing, routing,
 and power checks finish. Do not derive active latency from the archived 15 ns
 array-only constraint.

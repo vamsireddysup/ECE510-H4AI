@@ -22,13 +22,18 @@ not a design assumption. The M1-M4 snapshots remain unchanged in `archive/`.
 - A fixed-input, one-thread NumPy benchmark replaces the archived CPU timing
   as the local software baseline. It is observed throughput, not a peak
   ceiling for a Roofline model.
+- Optional stream version 2 loads K once into an RTL scratchpad. I verified
+  it at T=512 and measured its byte and cycle savings. I also verified 8x8
+  and 16x16 versions of the default stream and mapped all three tile sizes
+  through full-top Sky130 cell synthesis. The [design-space record](results/design-space.md)
+  keeps this evidence separate from timing closure.
 
 ## Next: memory reuse and overlap
 
-1. Add a banked K scratchpad so each K tile arrives once per command. Version
-   the stream contract if packet order changes. Measure host traffic, bank
-   conflicts, cell/SRAM area, and routed timing. Check available Sky130 SRAM
-   macro port widths and physical size before selecting one.
+1. Implement physical K scratchpad banking or choose register storage after
+   comparing full-capacity area, read latency, bank conflicts, and routed
+   timing. Version 2 proves the command-level traffic benefit; the installed
+   2 KiB Sky130 macro has a large footprint and a clocked read port.
 2. Double-buffer Q and output tiles to overlap input, compute, scale, and
    output. Measure sustained scores per cycle, including host stalls. The
    64-bit output cap is two FP32 scores per cycle, so test whether it becomes
@@ -42,9 +47,10 @@ not a design assumption. The M1-M4 snapshots remain unchanged in `archive/`.
 1. Close timing and route the complete top at 4x4 with `D_HEAD=64`; record
    PDK/tool revision, clock constraint, area, setup/hold slack, power, and
    congestion. Current Yosys Sky130 cell area is synthesis only.
-2. Test 8x8 and 16x16 with identical workloads, then sweep buffering, K bank
-   count, scale depth, and clock constraint. Select the fastest verified design
-   that closes full-chip Sky130 checks; retain smaller Pareto alternatives.
+2. Route the already simulated 8x8 and 16x16 variants with identical workloads,
+   then sweep buffering, K bank count, scale depth, and clock constraint.
+   Select the fastest verified design that closes full-chip Sky130 checks;
+   retain smaller Pareto alternatives.
 3. Benchmark T=4/16/64/128/512 with actual tile counts, useful and transferred
    bytes, simulated cycles, timing-closed frequency, and full-chip PPA. Do not
    infer the active clock from the archived array-only 15 ns run, which has

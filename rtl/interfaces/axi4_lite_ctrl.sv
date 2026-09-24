@@ -103,6 +103,7 @@ module axi4_lite_ctrl (
     input  logic [31:0] cycle_count,
     input  logic [31:0] tile_cycles,
     input  logic [3:0] error_code,
+    input  logic [31:0] protocol_version,
     input  logic [31:0] input_beats, output_beats,
     input  logic [31:0] input_stalls, output_stalls,
     input  logic [31:0] compute_cycles, scale_cycles
@@ -270,7 +271,7 @@ module axi4_lite_ctrl (
                         32'h10: rdata <= cycle_count;
                         32'h14: rdata <= tile_cycles;
                         32'h18: rdata <= scale_factor_reg;
-                        32'h1C: rdata <= 32'd1; // stream contract version
+                        32'h1C: rdata <= protocol_version;
                         32'h20: rdata <= input_beats;
                         32'h24: rdata <= output_beats;
                         32'h28: rdata <= input_stalls;

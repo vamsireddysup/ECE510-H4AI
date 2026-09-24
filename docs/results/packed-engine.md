@@ -59,9 +59,11 @@ no frequency, latency in seconds, energy, or CPU speedup is claimed. The
 archived 15 ns array-only timing report has negative nominal setup and hold
 slack and cannot close this top by inference.
 
-The current `D_HEAD=64` design uses a single Q tile and reloads K for each
-output tile. K scratchpad banking, double buffering, SRAM macro fit, and
-8x8/16x16 physical experiments remain open. FP32 quantization error against
+The default `D_HEAD=64` design uses a single Q tile and reloads K for each
+output tile. Version 2 K reuse and 8x8/16x16 simulation and mapped synthesis
+comparisons are in the [design-space record](design-space.md). Physical K
+scratchpad banking, double buffering, SRAM macro fit, and routed experiments
+remain open. FP32 quantization error against
 real transformer activations is also unmeasured. The row-scale protocol is
 not OCP MXFP4, which specifies 32-value blocks and E8M0 scales in the
 [MX specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf).

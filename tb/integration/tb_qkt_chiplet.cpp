@@ -14,15 +14,26 @@
 #ifndef TEST_TMAX
 #define TEST_TMAX 16
 #endif
-static constexpr int B=4, D=TEST_D, TMAX=TEST_TMAX;
+#ifndef TEST_B
+#define TEST_B 4
+#endif
+static constexpr int B=TEST_B, D=TEST_D, TMAX=TEST_TMAX;
 #ifdef TEST_LARGE
 static constexpr bool STRESS_STALLS=false;
 #else
 static constexpr bool STRESS_STALLS=true;
 #endif
+#ifdef TEST_K_REUSE
+static constexpr bool REUSE=true;
+#else
+static constexpr bool REUSE=false;
+#endif
 static Vqkt_chiplet_top dut;
 static uint64_t cycles=0;
 static bool legacy_mode=false;
+static uint32_t pattern_seed=0;
+static bool varied_scales=false;
+static int extreme_mode=0;
 static void step() { dut.clk=0; dut.eval(); dut.clk=1; dut.eval(); ++cycles; }
 static void check(bool ok, const char* msg) { if (!ok) throw std::runtime_error(msg); }
 static uint32_t bits(float x) { uint32_t v; std::memcpy(&v,&x,4); return v; }
@@ -64,13 +75,29 @@ static int code(int row,int depth,int salt) {
         static const int pattern[4][4]={{2,0,2,0},{0,2,0,2},{2,2,0,0},{0,0,2,2}};
         return pattern[row][depth];
     }
+    if(extreme_mode) return (salt==5 && extreme_mode==2) ? 15 : 7;
+    if(pattern_seed) {
+        uint32_t x=pattern_seed ^ uint32_t(row*0x9e3779b9u) ^
+                   uint32_t(depth*0x85ebca6bu) ^ uint32_t(salt*0xc2b2ae35u);
+        x^=x>>16; x*=0x7feb352du; x^=x>>15;
+        return int(x&15);
+    }
     return (row*7+depth*3+salt)%16;
+}
+static float qscale(int row) {
+    if(legacy_mode) return 1.0f;
+    if(varied_scales) { static const float v[]={.25f,1.25f,-1.0f,0.0f}; return v[row%4]; }
+    return row%2 ? 2.0f:1.0f;
+}
+static float kscale(int row) {
+    if(legacy_mode) return 1.0f;
+    if(varied_scales) { static const float v[]={1.5f,-.5f,2.0f,.75f}; return v[row%4]; }
+    return row%2 ? .5f:1.0f;
 }
 static void send_scales(int t, int malformed=0) {
     for(int b=0;b<t;b++) {
         // Scale order is Q[0..T-1], then K[0..T-1].
-        auto value=[&](int idx)->uint32_t { return bits(legacy_mode ? 1.0f :
-            (idx<t ? (idx%2 ? 2.0f:1.0f) : ((idx-t)%2 ? 0.5f:1.0f))); };
+        auto value=[&](int idx)->uint32_t { return bits(idx<t ? qscale(idx) : kscale(idx-t)); };
         uint32_t lo=value(2*b), hi=value(2*b+1);
         send_beat((uint64_t(hi)<<32)|lo,
                   malformed==1 ? b==0 : (malformed==2 ? false : b==t-1), STRESS_STALLS ? b%3 : 0);
@@ -85,11 +112,17 @@ static void send_tile(int start,int t,int salt) {
         send_beat(beat,b==(N+15)/16-1,STRESS_STALLS ? b%4 : 0);
     }
 }
+static void send_bad_tile(bool early) {
+    int beats=(B*D+15)/16;
+    for(int b=0;b<beats;b++) {
+        send_beat(0,early && b==0);
+        if(early) return;
+    }
+}
 static float expected(int row,int col) {
     int sum=0;
     for(int d=0;d<D;d++) sum+=half(code(row,d,1))*half(code(col,d,5));
-    return (sum*0.25f)*(legacy_mode ? 1.0f : (row%2?2.0f:1.0f)) *
-        (legacy_mode ? 1.0f : (col%2?0.5f:1.0f));
+    return (sum*0.25f)*qscale(row)*kscale(col);
 }
 static void receive_tile(int qr,int kc,int t,int& checked) {
     int rows=std::min(B,t-qr), cols=std::min(B,t-kc), count=rows*cols, got=0;
@@ -124,15 +157,21 @@ static void receive_tile(int qr,int kc,int t,int& checked) {
 static void run_case(int t) {
     write_reg(0x08,t); write_reg(0x00,1);
     send_scales(t);
+    if(REUSE) for(int kc=0;kc<t;kc+=B) send_tile(kc,t,5);
     int checked=0, tiles=0;
     for(int qr=0;qr<t;qr+=B) {
         send_tile(qr,t,1);
-        for(int kc=0;kc<t;kc+=B) { send_tile(kc,t,5); receive_tile(qr,kc,t,checked); tiles++; }
+        for(int kc=0;kc<t;kc+=B) {
+            if(!REUSE) send_tile(kc,t,5);
+            receive_tile(qr,kc,t,checked); tiles++;
+        }
     }
     for(int i=0;i<100 && !(read_reg(0x04)&1);i++) step();
     check(read_reg(0x04)==1,"completion or error status");
     check(read_reg(0x0C)==uint32_t(tiles),"tile count");
-    check(read_reg(0x20)==uint32_t(t+((t+B-1)/B)*(1+(t+B-1)/B)*((B*D+15)/16)),"input beat count");
+    int n=(t+B-1)/B;
+    int input_beats=t+(REUSE ? 2*n : n+n*n)*((B*D+15)/16);
+    check(read_reg(0x20)==uint32_t(input_beats),"input beat count");
     int output_beats=0;
     for(int qr=0;qr<t;qr+=B)
         for(int kc=0;kc<t;kc+=B)
@@ -148,16 +187,36 @@ static void run_case(int t) {
 int main(int argc,char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
-        reset(); check(read_reg(0x1C)==1,"stream version");
+        reset(); check(read_reg(0x1C)==(REUSE?2:1),"stream version");
 #ifdef TEST_LARGE
         run_case(64); run_case(128); run_case(512);
 #else
         run_case(1); run_case(4); run_case(7); run_case(8); run_case(16);
-        if(D==4) { legacy_mode=true; run_case(4); legacy_mode=false; }
+        varied_scales=true;
+        for(uint32_t seed=1;seed<=3;seed++) { pattern_seed=seed; run_case(7); }
+        pattern_seed=0; varied_scales=false;
+        if(D==64) {
+            extreme_mode=1; run_case(4);
+            extreme_mode=2; run_case(4);
+            extreme_mode=0;
+        }
+        if(D==4 && B==4) { legacy_mode=true; run_case(4); legacy_mode=false; }
         write_reg(0x08,4); write_reg(0x00,1); send_scales(4,1);
         check(read_reg(0x04)==0x21,"early TLAST status");
         write_reg(0x08,4); write_reg(0x00,1); send_scales(4,2);
         check(read_reg(0x04)==0x31,"missing TLAST status");
+        write_reg(0x08,4); write_reg(0x00,1); send_scales(4);
+        if(B*D>16) {
+            send_bad_tile(true);
+            check(read_reg(0x04)==0x21,"early tile TLAST status");
+            write_reg(0x08,4); write_reg(0x00,1); send_scales(4);
+        }
+        send_bad_tile(false);
+        check(read_reg(0x04)==0x31,"missing tile TLAST status");
+        write_reg(0x08,4); write_reg(0x00,1); send_scales(4);
+        send_tile(0,4,REUSE?5:1);
+        send_bad_tile(false);
+        check(read_reg(0x04)==0x31,"missing second tile TLAST status");
         write_reg(0x08,4); write_reg(0x00,1);
         send_beat(uint64_t(bits(1.0f)),false);
         reset(); run_case(4);
