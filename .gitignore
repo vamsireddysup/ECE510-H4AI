@@ -2,6 +2,9 @@
 hw4ai-env/
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
 
 # Generated simulation/build products
 build/
