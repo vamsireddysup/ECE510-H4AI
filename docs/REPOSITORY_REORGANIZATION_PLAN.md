@@ -2,17 +2,16 @@
 
 ## Objective
 
-Convert the course-checkpoint repository into a maintainable hardware project
-without losing submission history or changing verified behavior during the
-migration. The professionalized repository will have one canonical RTL tree,
-one reproducible build interface, automated regressions, explicit specifications,
-and separate generated artifacts from source-controlled evidence.
+I am converting this course-checkpoint repository into a maintainable hardware
+project without losing my submission history. I want one active RTL tree, one
+build interface, automated tests, clear specifications, and a clean split
+between source files and generated output.
 
-The migration is intentionally behavior-preserving. Architectural changes,
-larger arrays, new arithmetic, and protocol improvements begin only after the
-new layout reproduces the existing 4x4 reference result.
+I will keep the behavior unchanged while I reorganize the files. I will start
+larger arrays, new arithmetic, and protocol changes only after the new layout
+reproduces my existing 4x4 result.
 
-## Non-negotiable safety rules
+## Rules I will follow
 
 1. Create a migration branch before moving files.
 2. Preserve the current M1-M4 directories until the canonical baseline passes.
@@ -93,8 +92,8 @@ multi-simulator support justify the extra layer.
 
 ## Stable developer interface
 
-The root `Makefile` is the public command contract. Scripts or tools behind the
-targets may change, but these commands remain stable:
+I use the root `Makefile` as the main command interface. The scripts behind it
+can change, but I will keep these commands stable:
 
 | Command | Contract |
 | --- | --- |
@@ -128,7 +127,7 @@ As inventoried on 2026-09-24:
 - CMake, Ninja, and clang-format absent
 - the installed `sby` command errors and must be diagnosed before formal work
 
-### Reproducibility decisions
+### How I will keep runs reproducible
 
 - Record working versions in `make doctor` output and CI logs.
 - Pin Python dependencies in `pyproject.toml` and `uv.lock`.
@@ -148,7 +147,7 @@ As inventoried on 2026-09-24:
 
 Status: in progress on `refactor/professional-layout`.
 
-Actions:
+Work:
 
 1. Create `refactor/professional-layout` from the current commit.
 2. Preserve all current user changes and record their ownership.
@@ -166,7 +165,7 @@ Actions:
 5. Capture the expected current failure that numerical results pass while
    `done` is not observed. Do not silently redefine this as success.
 
-Acceptance gate:
+I will move on when:
 
 - The historical numeric result is reproducible from a clean build directory.
 - Known status/protocol failures are visible and classified.
@@ -174,7 +173,7 @@ Acceptance gate:
 
 ### Phase B: introduce the professional skeleton
 
-Actions:
+Work:
 
 1. Add root metadata, Makefile, Python project files, CI, docs, and empty
    canonical directories.
@@ -184,7 +183,7 @@ Actions:
 5. Generate all output beneath `build/`.
 6. Add license checks and file headers after a license is selected.
 
-Acceptance gate:
+I will move on when:
 
 - Canonical and M4 trees produce bit-for-bit-equivalent 4x4 outputs.
 - Verilator lint has a reviewed warning baseline; suppressions are narrow and
@@ -194,7 +193,7 @@ Acceptance gate:
 
 ### Phase C: build the verification foundation
 
-Actions:
+Work:
 
 1. Move the Python FP4 and QK^T reference logic into an importable model.
 2. Use deterministic seeds and machine-readable result files.
@@ -206,7 +205,7 @@ Actions:
    legal FSM transitions, and completion.
 6. Add coverage goals to `docs/verification-plan.md`.
 
-Acceptance gate:
+I will move on when:
 
 - `make test` is deterministic and suitable for pull-request CI.
 - Every known correctness limitation has a failing test, an issue, or an
@@ -214,7 +213,7 @@ Acceptance gate:
 
 ### Phase D: archive the coursework presentation
 
-Actions:
+Work:
 
 1. After canonical equivalence passes, move course artifacts with `git mv` into
    `archive/` so file history remains traceable.
@@ -225,7 +224,7 @@ Actions:
 4. Rewrite the root README around the product, architecture, verified status,
    quick start, results, and roadmap—not course due dates.
 
-Acceptance gate:
+I will move on when:
 
 - A new contributor can identify the canonical RTL and run the smoke test
   without reading milestone documentation.
@@ -233,7 +232,7 @@ Acceptance gate:
 
 ### Phase E: establish synthesis and result provenance
 
-Actions:
+Work:
 
 1. Add quick Yosys synthesis for each supported parameter set.
 2. Define two named synthesis targets:
@@ -245,14 +244,14 @@ Actions:
 5. Keep claims from different RTL revisions or target scopes out of the same
    comparison table.
 
-Acceptance gate:
+I will move on when:
 
 - A result summary can be traced to one commit, one source manifest, one
   parameter set, and one toolchain.
 
 ### Phase F: begin new architecture work
 
-Only after Phases A-E:
+After Phases A-E, I will:
 
 1. Write a failing two-tile test.
 2. Add PE/array tile-restart semantics and fix controller traversal.
@@ -262,13 +261,12 @@ Only after Phases A-E:
 6. Evaluate accumulator alternatives and pipeline changes.
 7. Scale in measured steps: 4x4/D64, 8x8/D64, then 16x16/D64.
 
-Every design experiment should use a short-lived branch and an architecture
-decision record describing motivation, alternatives, measured impact, and
-decision.
+For each design experiment, I will use a short-lived branch and record why I
+tried it, what alternatives I considered, what I measured, and what I decided.
 
 ## CI structure
 
-Pull-request CI should remain fast and deterministic:
+I will keep pull-request CI fast and deterministic:
 
 1. repository hygiene and documentation links;
 2. Verilator lint;
@@ -301,7 +299,7 @@ Ignored or externally archived:
 
 ## Proposed commit sequence
 
-Keep commits reviewable and bisectable:
+I will keep commits small enough to review and bisect:
 
 1. `docs: define professional repository migration`
 2. `build: add doctor and clean build-directory contract`

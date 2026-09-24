@@ -1,19 +1,19 @@
 # Project context
 
-This document is the durable engineering context for future development. The
-milestone directories remain historical submission snapshots; claims below
-distinguish measured results from intended behavior.
+I use this document to keep the main project details in one place. I am keeping
+the milestone directories as submission snapshots, and I separate results I
+measured from features I still plan to build.
 
 ## Mission
 
-Build a chiplet-style accelerator for the `Q * K^T` portion of transformer
-self-attention. Inputs are microscaled FP4 E2M1 values, dot products accumulate
-in FP32, and final scores are multiplied by per-row Q and per-row K scale
-factors. Control uses AXI4-Lite and matrix data uses AXI4-Stream. The target
-technology used for the course project is Sky130 HD.
+My goal is to build a chiplet-style accelerator for the `Q * K^T` part of
+transformer self-attention. The inputs use microscaled FP4 E2M1, dot products
+accumulate in FP32, and each final score is multiplied by its Q-row and K-row
+scale factors. I use AXI4-Lite for control and AXI4-Stream for matrix data. The
+course version targets Sky130 HD.
 
-Only `Q * K^T` is accelerated. Attention scaling, masking, softmax, and the
-subsequent multiplication by V remain host-side work.
+I currently accelerate only `Q * K^T`. Attention scaling, masking, softmax, and
+the multiplication by V remain on the host.
 
 ## Verified course baseline
 
@@ -31,10 +31,10 @@ subsequent multiplication by V remain host-side work.
 - A 16x16 implementation and its performance are projections, not measured
   results
 
-The baseline was rebuilt with Verilator 5.041 on 2026-09-24. It reproduced the
-16/16 numeric pass. The same run printed `STATUS=0x00000000 DONE=NO`; the test
-does not fail on this condition. Completion behavior is therefore not part of
-the verified baseline.
+I rebuilt the baseline with Verilator 5.041 on 2026-09-24 and reproduced the
+16/16 numeric pass. The same run printed `STATUS=0x00000000 DONE=NO`, but the old
+test does not fail on that result. I therefore do not count completion behavior
+as verified yet.
 
 ## Current data path
 
@@ -48,9 +48,9 @@ the verified baseline.
 6. The controller copies the tile result, applies `S_Q[i]` and `S_K[j]` using
    two serial FP32 multiplies, and streams results to the host.
 
-The current PE is output-stationary in intent, but it does not perform a MAC
-every cycle. It first collects all products and then performs serial FP32
-addition. Throughput and area projections must account for that implementation.
+The PE is meant to be output-stationary, but it does not perform one MAC every
+cycle. It collects the products first and then adds them in series. I need to
+account for that behavior in all throughput and area estimates.
 
 ## Module map
 
@@ -83,13 +83,13 @@ The implementation and comments disagree about stream packing:
 - Results are described as two FP32 values per beat, but one result is placed
   in bits 63:32 and the lower half is zero.
 
-Until the protocol is redesigned and tested, software must follow the actual
+Until I redesign and test the protocol, host software has to follow the actual
 one-value-per-beat behavior.
 
 ## Known correctness and scalability gaps
 
-These are engineering findings, not claims that the M4 submission failed its
-course rubric.
+These are limits I found while reviewing the design. They do not change the M4
+course result.
 
 1. **PEs are one-shot after reset.** `prod_count` stays at `D_HEAD` and the
    accumulation FSM stays in `DONE`. There is no tile-level clear, so more than
@@ -126,8 +126,8 @@ course rubric.
 - `smoke_test/`: small Verilator environment check
 
 Most modules under `project/m2/rtl`, `project/m3/src`, and `project/m4/src` are
-byte-identical copies. Future implementation should have one canonical source
-tree; milestone snapshots should remain immutable evidence.
+byte-identical. I will keep one active source tree and leave the milestone
+snapshots unchanged.
 
 ## Working rules for future changes
 

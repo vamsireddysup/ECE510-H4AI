@@ -1,9 +1,8 @@
 # Documentation
 
-This directory contains the engineering context and forward-development plan
-for the FP4 `Q * K^T` accelerator. The M1-M4 documents remain historical course
-artifacts; the documents here describe how the project evolves from that
-baseline.
+I use this directory for the engineering notes and development plans for my FP4
+`Q * K^T` accelerator. I am leaving the M1-M4 documents as course records. The
+documents here cover the work I am doing after that baseline.
 
 ## Recommended reading order
 
@@ -27,8 +26,7 @@ baseline.
 
 ## Planned specifications
 
-The professional layout will add focused documents for architecture, supported
-numeric behavior, register map, stream protocol, verification coverage,
-architecture decisions, and traceable benchmark/signoff results. Those files
-should be introduced with the canonical source tree rather than populated with
-unverified assumptions now.
+As I build the new layout, I will add separate documents for the architecture,
+numeric behavior, register map, stream protocol, verification coverage, design
+decisions, and measured results. I will write them when the matching code and
+tests exist instead of filling them with assumptions now.

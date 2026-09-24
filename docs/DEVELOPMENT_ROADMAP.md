@@ -1,8 +1,8 @@
 # Development roadmap
 
-The next version should become a maintainable accelerator project rather than
-another milestone copy. Scaling the existing parameters immediately would hide
-known control and reuse bugs, so development is staged around executable gates.
+I want the next version to be a maintainable accelerator project, not another
+milestone copy. I will fix the known control and reuse problems before scaling
+the array, and I will verify each stage before moving to the next one.
 
 ## Phase 0: preserve and baseline
 
@@ -11,12 +11,12 @@ known control and reuse bugs, so development is staged around executable gates.
 - Add a top-level developer command that builds outside source directories.
 - Make regressions fail on protocol/status errors, not only wrong numbers.
 
-Exit gate: one command performs lint plus the existing 4x4 end-to-end test and
-returns nonzero if `DONE`, counts, handshakes, or numerical outputs are wrong.
+I will move on when one command runs lint and the 4x4 end-to-end test, and fails
+when `DONE`, counters, handshakes, or numerical outputs are wrong.
 
 ## Phase 1: canonicalize the project
 
-Introduce a new canonical layout, populated initially from `project/m4/src`:
+I will create this active layout and start it from `project/m4/src`:
 
 ```text
 rtl/            canonical synthesizable RTL
@@ -28,11 +28,11 @@ docs/           architecture, protocol, decisions, and results
 build/          generated and ignored
 ```
 
-Do not delete milestone copies during this phase. Add CI for lint and fast unit
-tests. Replace repeated hand-written source lists with one manifest.
+I will not delete milestone copies during this work. I will add CI for lint and
+fast tests, and replace repeated source lists with one manifest.
 
-Exit gate: canonical sources reproduce the historical 4x4 result, and Git stays
-clean after the regression.
+I will move on when the active sources reproduce the 4x4 result and the test
+leaves Git clean.
 
 ## Phase 2: make tiling correct
 
@@ -48,13 +48,13 @@ clean after the regression.
 Required tests: two K tiles, two Q tiles, 2x2 tile grid, partial final tile,
 back-to-back commands, input stalls, and output backpressure.
 
-Exit gate: randomized multi-tile outputs match a software golden model.
+I will move on when randomized multi-tile outputs match the software model.
 
 ## Phase 3: define and fix the host protocol
 
-Write a versioned register map and stream packet format before changing RTL.
-Then either implement the advertised packing or document a deliberately simpler
-format. Recommended bandwidth-efficient format:
+I will write a versioned register map and stream packet format before changing
+the interface RTL. I will then implement the documented packing or clearly keep
+a simpler format. My preferred packed format is:
 
 - two FP32 scale values per 64-bit input beat;
 - sixteen FP4 values per 64-bit input beat;
@@ -63,13 +63,12 @@ format. Recommended bandwidth-efficient format:
 - stable `TVALID` and payload while `TREADY` is low;
 - sticky done/error status with software-visible clearing behavior.
 
-Exit gate: protocol assertions and randomized stall tests pass.
+I will move on when protocol assertions and randomized stall tests pass.
 
 ## Phase 4: improve arithmetic architecture
 
-First specify the accuracy target: exact accumulation for the representable FP4
-product domain, bounded error versus FP32, or standards-oriented IEEE behavior.
-Then compare options:
+I will first choose an accuracy target: exact accumulation for FP4 products,
+bounded error against FP32, or fuller IEEE behavior. Then I will compare:
 
 1. Keep FP32 accumulation and pipeline/retime the feedback path.
 2. Accumulate exactly in a fixed-point or Kulisch-style accumulator and convert
@@ -79,12 +78,12 @@ Then compare options:
 The current PE stores every product and serially adds it. A larger array should
 avoid `SIZE^2 * D_HEAD` FP32 product storage unless measurements justify it.
 
-Exit gate: chosen arithmetic passes directed edge cases and large randomized
-comparison tests, with documented latency, initiation interval, area, and error.
+I will move on when the chosen arithmetic passes edge cases and randomized
+tests, with latency, initiation interval, area, and error recorded.
 
 ## Phase 5: scale by evidence
 
-Validate configurations in this order:
+I will test configurations in this order:
 
 1. 4x4 array, `D_HEAD=4` (compatibility baseline)
 2. 4x4 array, `D_HEAD=64` (real reduction depth)
@@ -97,8 +96,8 @@ cell area, worst slack, and power. Stop scaling when memory ports, routing,
 compile resources, or timing become the dominant constraint and address that
 constraint explicitly.
 
-Exit gate: 16x16 claims are backed by actual simulation; any physical-design
-claim states exactly which modules were included.
+I will call 16x16 results measured only after an actual run. Every physical
+design result will state which modules were included.
 
 ## Phase 6: full-chip physical design
 
@@ -110,12 +109,11 @@ claim states exactly which modules were included.
 - Add floorplan and clock constraints suited to the integrated design.
 - Archive compact signoff summaries; keep full run products outside Git.
 
-Exit gate: DRC/LVS/timing/power results correspond to the same integrated RTL
-revision and configuration used for functional verification.
+I will finish this stage when DRC, LVS, timing, and power results use the same
+integrated RTL revision and configuration as functional verification.
 
 ## First implementation slice
 
-The safest first coding slice is Phase 0 plus Phase 1: create the canonical tree
-and regression harness without changing behavior. The first functional slice is
-then a failing two-tile test followed by PE tile-restart support. This sequence
-keeps every later optimization measurable and reversible.
+I will first create the active source tree and regression without changing
+behavior. My first functional change will start with a failing two-tile test,
+then add PE tile restart. That gives me a clean baseline for later experiments.
