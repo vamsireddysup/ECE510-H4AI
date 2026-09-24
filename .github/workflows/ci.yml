@@ -32,16 +32,14 @@ jobs:
         run: make test-model
 
       - name: Run 4x4 integration test
+        id: integration
         run: make test-integration
 
       - name: Save integration transcripts
-        if: always()
+        if: always() && steps.integration.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
           name: integration-transcripts-${{ github.sha }}
-          path: |
-            build/integration/build.log
-            build/integration/run.log
-            build/integration/summary.txt
-          if-no-files-found: warn
+          path: build/integration/
+          if-no-files-found: error
           retention-days: 30
