@@ -17,7 +17,8 @@ Scores at `D_HEAD=4` and `64`, sequence lengths T=1/4/7/8/16 in the small suite
 and T=64/128/512 in the large suite, including partial edge tiles at T=7. It also
 checks per-packet `TLAST` position, output payload stability while `TREADY` is
 low, zero padding on an odd final beat, accepted input and output beat counts,
-completed tile counts, dot-product and scale cycle counts, the three error codes,
+completed tile counts, dot-product and scale cycle counts, bit-exact block-scale
+results, the three error codes,
 reset mid-command, repeated commands without reset, AXI4-Lite write-data-first
 and same-cycle writes, byte strobes, and stable read data under backpressure.
 
@@ -25,8 +26,12 @@ The original M4 numerical pattern is one of the cases, so the historical 16/16
 result stays covered. The small suite injects host stalls on both streams. Its input producer and
 output consumer run concurrently, which exercises overlapping stages and stable
 backpressure behavior. The large suite keeps both streams continuously ready so
-its cycle counts are comparable. The 4x4 T=512 test fails above 1,049,150 core
+its cycle counts are comparable. The 4x4 T=512 test fails above 1,049,665 core
 cycles to prevent silent loss of the P0.3 gain.
+
+`make test-precision-rtl` generates the pinned seed-510 T=512 matrices used by
+the software precision sweep and compares all 262,144 RTL score bits with the
+software 1x32 FP32 model before reporting raw-score error.
 
 ## Running it
 
@@ -35,10 +40,11 @@ From the repository root:
 ```bash
 make test-integration              # small suite, D_HEAD=4 and 64
 make test-integration-large        # T=64/128/512 at D_HEAD=64
-make test-integration-reuse        # protocol version 2, K reuse
-make test-integration-reuse-large  # version 2 at T=64/128/512
+make test-integration-reuse        # protocol version 4, K reuse
+make test-integration-reuse-large  # version 4 at T=64/128/512
 make test-array8                   # 8x8
 make test-array16                  # 16x16
+make test-precision-rtl            # pinned T=512 model comparison
 ```
 
 Generated binaries and logs go to `build/integration/`, one directory per

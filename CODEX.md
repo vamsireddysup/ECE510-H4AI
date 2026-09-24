@@ -62,23 +62,26 @@ parameter sets. The historical compatibility point is:
 - recorded `CYCLE_COUNT=498`
 
 That 498-cycle result belongs to the pre-upgrade, one-tile controller. The
-active packed-stream v1 top runs the same numerical pattern in 49 simulated
+active packed-stream v3 top runs the same numerical pattern in 49 simulated
 cycles with injected host stalls; see `docs/results/latest-verification.md`.
 The current active source list is `rtl/filelist.f`. Independent input, compute,
 scaling, and output sequencers exchange two-bank Q, K, accumulator, and score
-storage. `score_scaler.sv` owns the parameterized scaling lanes. The older PE,
+storage. `score_scaler.sv` owns the parameterized scaling lanes, and
+`score_reducer.sv` combines scaled block scores. The older PE,
 array, controller, and buffers are retained for comparison but are not active.
 
 Numerical correctness alone is insufficient. New regressions must also check
 completion status, counters, AXI handshakes, timeouts, and backpressure.
 Use `docs/stream-protocol.md` for packet ordering and status definitions.
-Version 1 is the default K-reload build; `K_REUSE=1` selects version 2 and a
+Version 3 is the default block-scale K-reload build; `K_REUSE=1` selects version 4 and a
 command-level K scratchpad. `make test-integration-reuse` and
 `make test-integration-reuse-large` verify that variant. The 8x8 and 16x16
 tests and their cell-area results are recorded in `docs/results/design-space.md`.
 `scripts/eval_precision.py` sweeps reduction-block FP32 and E8M0 scales and
 reports softmax agreement, raw-score error, clipping, storage, and projected
-FP32 adds. ADR 0003 selects 1x32 FP32 for P0.4. Synthetic inputs do not
+FP32 adds. ADR 0003 selects 1x32 FP32, now implemented with parameterized block
+size and score lanes. `make test-precision-rtl` compares all T=512 scores
+bit-exactly. Synthetic inputs do not
 substitute for real transformer activations.
 `make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and
 array utilization from accepted-beat simulation logs.

@@ -6,9 +6,9 @@ Accepted, September 2026. Implemented in
 ## Decision
 
 Decode each FP4 E2M1 operand to a signed integer in half units, multiply, and
-accumulate the products as exact integers in quarter units. Convert to FP32 once
-per score, then apply the two row scales. Do not use a floating-point adder in the
-reduction.
+accumulate the products as exact integers in quarter units within each scale
+block. Convert once per block, apply its two scales, then use FP32 only to combine
+block scores. Do not use a floating-point adder inside an exact block reduction.
 
 ## Why it works for this format
 
@@ -46,15 +46,14 @@ computed independently in the testbench, and all configurations pass.
 
 ## Consequences
 
-There is no floating-point adder in the design. The only remaining floating-point
-arithmetic is the two chained `fp32_mul` instances that apply the row scales, and
-those become exponent adders if the scales become powers of two. That is the
-opening P0.2 and P0.3 both depend on; see
+P0.4 adds FP32 only across independently scaled blocks; it does not change the
+exact accumulation within a block. The floating-point arithmetic is a pair of
+`fp32_mul` instances per block and `BLOCK_COUNT-1` cross-block adds. See
 [architecture](../architecture.md).
 
 The exactness argument does not generalize. It holds because E2M1 products are
-tiny and `D_HEAD` is modest. Any claim from this record must be scoped to MXFP4
-and similar narrow formats.
+tiny and `D_HEAD` is modest. Any claim from this record must be scoped to FP4
+E2M1 and similar narrow formats.
 
 ## Related
 

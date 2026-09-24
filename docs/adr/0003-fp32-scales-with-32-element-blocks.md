@@ -1,7 +1,6 @@
 # 0003: use FP32 scales with 32-element reduction blocks
 
-Accepted, September 2026. This decision sets the P0.4 scale contract; no RTL was
-changed while making it.
+Accepted, September 2026. Implemented in P0.4 at revision `1311eb0`.
 
 ## Decision
 
@@ -68,10 +67,20 @@ the prior 14.90% relative Frobenius result.
 
 ## Consequences
 
-P0.4 must version the stream contract because each row now has two scales at
-`D_HEAD=64`. The score path needs two exact block accumulators, two block-scale
-operations, and one FP32 cross-block add. P0.3 can still overlap phases without
-waiting for that interface change.
+P0.4 versions the stream contract because each row now has two scales at
+`D_HEAD=64`. The score path has two exact block accumulators, parallel
+block-scale operations, and one FP32 cross-block add. This preserves P0.3's
+overlap and keeps 4x4 compute-bound.
+
+The implementation restores the archived three-stage custom FP32 adder and
+repairs its magnitude ordering, normalization range, and finite-normal
+round-to-nearest-even behavior. The multiplier now uses the same rounding rule.
+This keeps three-cycle arithmetic latency and gives a bounded path for later
+lane sweeps. It was lower risk than introducing a new third-party FPU during a
+format change. Both units still flush underflow rather than implementing gradual
+subnormals, and they do not implement every IEEE exception and signed-zero rule.
+The pinned synthetic workload exercises finite normal scales and matches the
+software model bit-exactly for all 262,144 scores.
 
 Scale storage rises from 0.0625 to 0.125 bytes per Q or K element. FP4 codes
 remain 0.5 bytes per element, so scales add 25% to code storage for each matrix.

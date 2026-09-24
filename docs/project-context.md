@@ -1,36 +1,38 @@
 # Project context
 
 I use this repository for a Sky130-targeted FP4 E2M1 QK^T accelerator. The
-active top computes dense FP32 scores with per-row FP32 Q and K scales. It does
+active top computes dense FP32 scores with FP32 Q and K scales per 32 reduction
+elements. It does
 not include masking, softmax, or the multiplication by V. M1-M4 course work in
 `archive/` remains a historical snapshot.
 
 ## Active implementation
 
 The active `qkt_chiplet_top` accepts packed 64-bit input packets, holds two banks each for Q tiles, K tiles, exact accumulators, and FP32 scores,
-and computes all scores of a 4x4 output tile from exact
-quarter-unit integer dot products. Two pipelined FP32 multipliers apply row
-scales. It emits two FP32 scores per 64-bit beat, with a zero-padded upper half
-on odd final beats. See [stream protocol version 1](stream-protocol.md) for
+and computes all scores of a 4x4 output tile from exact block-local
+quarter-unit integer dot products. Parallel multiplier pairs apply the block
+scales, and an FP32 adder combines the two default blocks. It emits two FP32
+scores per 64-bit beat, with a zero-padded upper half on odd final beats. See
+[stream protocol version 3](stream-protocol.md) for
 packet order, status codes, and counters.
-An optional `K_REUSE=1` build changes the packet order to version 2 and keeps
+An optional `K_REUSE=1` build changes the packet order to version 4 and keeps
 K in an RTL scratchpad for the whole command. Its physical storage choice is
 still open.
 
 The active module list is `rtl/filelist.f`, and `rtl/` holds only those
 modules. The superseded PE, systolic array, tile controller, FP4 multiplier,
-FP32 adder, and buffers moved to
+and buffers moved to
 [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md) as comparison
-RTL; the active top does not instantiate them.
-The FP32 multiplier is a custom unit without complete IEEE rounding and
-subnormal handling; numerical qualification beyond binary-power scales is
-still needed.
+RTL; the active top does not instantiate them. P0.4 restored and corrected the
+three-stage FP32 adder for cross-block reduction. The custom FP32 units round
+finite normal results to nearest even but do not implement gradual underflow or
+every IEEE exception and signed-zero rule.
 
 ## Verified active results
 
 The 4x4 top passes T=1/4/7/8/16 at `D_HEAD=4/64` and T=64/128/512 at
 `D_HEAD=64`, including edge tiles and repeated commands. The 512 run contains
-16,384 output tiles and completes 262,144 scores in 1,049,150 simulated core
+16,384 output tiles and completes 262,144 scores in 1,049,665 simulated core
 cycles with a continuously ready host. Full counters, host traffic, CPU timing,
 and Sky130 synthesis scope are in [the reviewed result](results/packed-engine.md).
 No routed active-top clock, power, or silicon latency is available yet.
@@ -56,8 +58,8 @@ state corrections in active records.
 
 ## Remaining engineering work
 
-The default host stream reloads K for each output tile. Physical K banking, the selected 1x32 scale implementation, exact scale
-arithmetic qualification, real activation error, and routed full-chip Sky130
+The default host stream reloads K for each output tile. Physical K banking,
+broader scale-arithmetic qualification, real activation error, and routed full-chip Sky130
 timing and power remain open.
 The [development plan](roadmap.md) gives the order and acceptance
 evidence for those steps.

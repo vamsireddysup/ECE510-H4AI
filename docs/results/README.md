@@ -15,18 +15,24 @@ They are large and reproducible, so they are not committed.
 | [Synthetic precision](precision.md) | Block-scale sweep, softmax agreement, storage, and accumulator cost |
 | [Latest verification](latest-verification.md) | The most recent local command run and its tool versions |
 | [P0.3 simulation CSV](p0-3-simulation.csv) | Machine-readable cycles, utilization, traffic, and stalls from the verified P0.3 runs |
+| [P0.4/P0.6 simulation CSV](p0-4-p0-6-simulation.csv) | Machine-readable block-scale cycles, lane sweep, utilization, and binding stages |
 
 ## Where generated output lands
 
 Integration runs write one directory per configuration, named for its parameters:
 
 ```text
-build/integration/b<tile>-t<tmax>-d<depth>-reuse<reuse>/build.log
-build/integration/b<tile>-t<tmax>-d<depth>-reuse<reuse>/run.log
+build/integration/b<tile>-t<tmax>-d<depth>-reuse<reuse>-sb<block>-sl<lanes>/build.log
+build/integration/b<tile>-t<tmax>-d<depth>-reuse<reuse>-sb<block>-sl<lanes>/run.log
 ```
 
 For example, the default `make test-integration` writes
-`build/integration/b4-t16-d4-reuse0/` and `b4-t16-d64-reuse0/`.
+`build/integration/b4-t16-d4-reuse0-sb32-sl1/` and
+`b4-t16-d64-reuse0-sb32-sl1/`.
+
+The pinned RTL precision comparison writes only generated data and logs under
+`build/precision-rtl/`. Its concise metrics are in
+[latest verification](latest-verification.md).
 
 `make report-sim` reads every `build/integration/*/run.log` and writes one CSV:
 

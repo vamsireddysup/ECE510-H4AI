@@ -1,8 +1,9 @@
 # Packed engine verification and measurement
 
-The cycle table was measured on `master` at revision `08a307d` with Verilator
-5.041 after P0.3 overlapped load, compute, scale, and output. The compact
-[machine-readable summary](p0-3-simulation.csv) preserves every verified run. Synthesis figures
+The current cycle table was measured on `master` at revision `1311eb0` with
+Verilator 5.041 after P0.4 added parameterized 1x32 FP32 scales. The compact
+[machine-readable summary](p0-4-p0-6-simulation.csv) preserves the reviewed
+large runs and lane sweep. Synthesis figures
 later in this record come from pre-overlap revisions and do not measure the
 added banks or scheduler.
 
@@ -13,7 +14,7 @@ accepted input and output beats times eight.
 ## Correctness and simulated cycles
 
 The integration test checks every score against the same exact integer-dot
-reference used before P0.3. It also checks packet `TLAST`, stable output under
+software 1x32 FP32 reference bit-exactly. It also checks packet `TLAST`, stable output under
 backpressure, padding, beat and tile counts, malformed packets, reset, and
 repeated commands. P0.3 changes cycle placement only; every numerical score in
 all required suites remains equal to the pre-overlap reference.
@@ -25,24 +26,25 @@ all required suites remains equal to the pre-overlap reference.
 | 7 | 4 | 49 | 4 | 99 | Injected |
 | 8 | 4 | 64 | 4 | 123 | Injected |
 | 16 | 4 | 256 | 16 | 403 | Injected |
-| 1 | 64 | 1 | 1 | 154 | Injected |
-| 4 | 64 | 16 | 1 | 188 | Injected |
-| 7 | 64 | 49 | 4 | 373 | Injected |
-| 8 | 64 | 64 | 4 | 385 | Injected |
-| 16 | 64 | 256 | 16 | 1,169 | Injected |
-| 64 | 64 | 4,096 | 256 | 16,510 | None |
-| 128 | 64 | 16,384 | 1,024 | 65,726 | None |
-| 512 | 64 | 262,144 | 16,384 | 1,049,150 | None |
+| 1 | 64 | 1 | 1 | 159 | Injected |
+| 4 | 64 | 16 | 1 | 199 | Injected |
+| 7 | 64 | 49 | 4 | 389 | Injected |
+| 8 | 64 | 64 | 4 | 404 | Injected |
+| 16 | 64 | 256 | 16 | 1,204 | Injected |
+| 64 | 64 | 4,096 | 256 | 16,577 | None |
+| 128 | 64 | 16,384 | 1,024 | 65,857 | None |
+| 512 | 64 | 262,144 | 16,384 | 1,049,665 | None |
 
-At T=512, input and output beats remain 264,704 and 131,072. The run performs
-33,554,432 useful FLOPs and transfers 3,166,208 bytes, for 10.60 FLOP/byte at
-the host-stream boundary. It sustains 0.24986 scores per cycle and 99.945% array
-activity. The previous serial controller took 1,821,184 cycles, so measured
-speedup is 1.736x. The exact model attributes the 574 cycles above the
-1,048,576-cycle compute floor to command fill and drain.
+At T=512, input and output beats are 265,216 and 131,072. The run performs
+33,554,432 useful FLOPs and transfers 3,170,304 bytes, for 10.58 FLOP/byte at
+the host-stream boundary. It sustains 0.24974 scores per cycle. The previous
+serial controller took 1,821,184 cycles, so measured
+speedup is 1.735x. The exact model attributes the 1,089 cycles above the
+1,048,576-cycle compute floor to command fill and drain. Array activity is
+99.896% after the format change.
 
-The mathematical payload is 1,085,440 bytes: 32,768 bytes of Q/K FP4, 4,096
-bytes of row scales, and 1,048,576 bytes of FP32 output. Repeated version 1 K
+The mathematical payload is 1,089,536 bytes: 32,768 bytes of Q/K FP4, 8,192
+bytes of block scales, and 1,048,576 bytes of FP32 output. Repeated version 3 K
 packets account for most excess traffic. P0.3 overlaps that traffic with compute
 but does not remove it.
 
@@ -72,12 +74,12 @@ archived 15 ns array-only timing report has negative nominal setup and hold
 slack and cannot close this top by inference.
 
 The default `D_HEAD=64` design uses two Q and K tile banks and still reloads K
-for each output tile. Version 2 K reuse and 8x8/16x16 simulation and historical
+for each output tile. Version 4 K reuse and 8x8/16x16 simulation and historical
 mapped synthesis comparisons are in the [design-space record](design-space.md).
 Physical K scratchpad banking, post-P0.3 synthesis, SRAM macro fit, and routed
 experiments remain open. FP32 quantization error against
-real transformer activations is also unmeasured. The row-scale protocol is
-not OCP MXFP4, which specifies 32-value blocks and E8M0 scales in the
+real transformer activations is also unmeasured. The block layout is
+not OCP MXFP4 because the active scales are FP32 rather than E8M0 as specified in the
 [MX specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf).
 
 ## Related

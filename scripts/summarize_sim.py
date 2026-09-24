@@ -52,7 +52,10 @@ def rows() -> list[dict[str, int | float]]:
                 "array_utilization": flops / (cycles * 2 * tile * tile),
                 "input_beats": in_beats, "output_beats": out_beats,
                 "output_stalls": stalls, "host_bytes": host_bytes,
-                "useful_bytes": t * depth + 8 * t + 4 * t * t,
+                "useful_bytes": (
+                    t * depth + 8 * t * ((depth + scale_block - 1) // scale_block)
+                    + 4 * t * t
+                ),
                 "flops": flops, "wire_flops_per_byte": flops / host_bytes,
             })
     return data

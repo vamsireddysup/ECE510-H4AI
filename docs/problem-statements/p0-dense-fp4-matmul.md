@@ -15,23 +15,19 @@ timing and power for one named configuration.
 The engine is functionally correct across a wide test surface: T=1/4/7/8/16 at
 `D_HEAD=4` and `64`, T=64/128/512 at `D_HEAD=64`, partial edge tiles, malformed
 packets, reset, repeated commands, backpressure, and AXI4-Lite handshake
-ordering. Protocol version 2 and the 8x8 and 16x16 builds also pass. A closed-form
-cycle model reproduces all six benchmarked configurations exactly; see
+ordering. Protocol version 4 and the 8x8 and 16x16 builds also pass. A closed-form
+cycle model reproduces all 16 benchmarked configurations exactly; see
 [architecture](../architecture.md).
 
-## The four open problems, in priority order
+## The remaining open problems
 
-**Accuracy blocks everything else.** The measured synthetic relative Frobenius
-error is 14.90% at T=512, under one FP32 scale per Q row and per K row across all
-64 reduction elements, a 1x64 block. OCP MXFP4 uses 1x32 blocks with E8M0 scales.
-A 15% error on attention logits propagates through softmax, so no cycle or area
-improvement makes it useful. See [precision](../results/precision.md).
+**Real-activation accuracy is still unknown.** P0.4 implements the selected
+1x32 FP32 format and measures 14.23% relative Frobenius error on the pinned
+Gaussian workload. P0.8 must test transformer activations with outliers before
+that synthetic result can support a usability claim. See
+[precision](../results/precision.md).
 
-**The scale format is selected but not implemented in RTL.** P0.2 chose 1x32
-FP32 block scales. The active interface still carries one scale per row across
-all 64 reduction elements until P0.4 versions the protocol.
-
-**K reuse works but its storage does not.** Version 2 cuts host traffic 2.9x and
+**K reuse works but its storage does not.** Version 4 cuts host traffic 2.9x and
 input beats 57.4x, and grows mapped cell area 4.18x at full capacity because the
 scratchpad is a register array. See
 [design space](../results/design-space.md).
@@ -45,10 +41,10 @@ latency in seconds, or energy for this top.
 | --- | --- | --- |
 | P0.1 | Repository and documentation hygiene | `make check-docs` passes with the extended checks; no reference to a path that does not exist outside `archive/` |
 | P0.2 | **Complete:** sweep Bs 64/32/16/8/4/2 with FP32 and three E8M0 rules | [ADR 0003](../adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32 from softmax metrics |
-| P0.3 | **Complete:** overlap load, compute, scale, and output | 99.945% measured 4x4 array activity; scaling binds at 8x8/16x16 |
-| P0.4 | Implement the chosen scale format in RTL | RTL error matches the software model; integration passes at every tested T and `D_HEAD` |
-| P0.5 | Give the K scratchpad banked storage with clocked reads | Version 2 at full capacity maps below version 1, or an ADR records why version 1 stays default |
-| P0.6 | Decide the output width from measurement | A record states the binding stage per array size with numbers |
+| P0.3 | **Complete:** overlap load, compute, scale, and output | 99.945% measured 4x4 array activity before the block-scale interface; scaling binds at 8x8/16x16 |
+| P0.4 | **Complete:** implement parameterized 1x32 FP32 scales | All T=512 RTL scores match the software path bit-exactly; 14.23% measured relative Frobenius error |
+| P0.5 | Give the K scratchpad banked storage with clocked reads | Version 4 at full capacity maps below version 3, or an ADR records why version 3 stays default |
+| P0.6 | **Complete:** decide output width from measurement | Keep 64 bits; two scaler lanes move 8x8 to CALC, four move 16x16 to OUTPUT |
 | P0.7 | Route the complete top at the selected configuration | Routed timing and power exist, so a latency in seconds exists |
 | P0.8 | Measure error on real transformer activations | A pinned capture with its SHA-256 and a real-activation error, or a statement that no capture was obtained |
 

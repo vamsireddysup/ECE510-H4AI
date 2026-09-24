@@ -5,9 +5,9 @@ Accepted, September 2026. Revisit at stage P0.5 of
 
 ## Decision
 
-Build protocol version 1, which reloads a K tile for every output tile, as the
-default. Keep protocol version 2, which loads K once per command into an on-chip
-scratchpad, behind `K_REUSE=1` as an experiment.
+Keep K reload as the default. It was protocol version 1 under row scaling and is
+version 3 under the active block-scale contract. Keep command-level K reuse
+(formerly version 2, now version 4) behind `K_REUSE=1` as an experiment.
 
 ## The tradeoff, measured
 
@@ -28,9 +28,13 @@ lower in host traffic, but its up-front cache fill is 2,032 cycles slower once
 version 1 K loads are hidden behind compute. The 4.18x mapped-area comparison is
 also pre-P0.3; current RTL has not been remapped.
 
-## Why version 1 wins for now
+P0.4 adds the same block-scale traffic to both paths. At revision `1311eb0`,
+version 3 takes 1,049,665 cycles and 265,216 input beats; version 4 takes
+1,051,697 cycles and 5,120 input beats. The storage decision is unchanged.
 
-The version 2 scratchpad is an RTL register array with parallel row reads, not a
+## Why K reload wins for now
+
+The K-reuse scratchpad is an RTL register array with parallel row reads, not a
 memory macro. At T=512 it holds 16 KiB of FP4 codes, and synthesizing that as flip
 flops is what produces the 4.18x. The area figure is therefore a property of the
 implementation, not of the idea.

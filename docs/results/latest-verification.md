@@ -1,44 +1,65 @@
 # Latest verification
 
-I ran the complete P0.3 verification matrix on September 24, 2026, on `master`
-at revision `08a307d`. P0.3 changes scheduling and storage banks while holding
-every score equal to the existing exact integer-dot reference. It adds no new
-synthesis or physical evidence.
+I ran the complete P0.4 and P0.6 verification matrix on September 24, 2026, on
+`master` at revision `1311eb0`. The target was the complete
+`qkt_chiplet_top` with `D_HEAD=64`, FP32 scales, default
+`SCALE_BLOCK_SIZE=32`, and protocol version 3 unless a row says otherwise.
+These are RTL simulation results; no clock constraint or PDK applies.
 
 ## Commands and results
 
 | Command | Result |
 | --- | --- |
-| `make check-docs` | 30 active documents pass all structure, link, orphan, and two-hop reachability checks |
-| `make lint` | All five parameter sets pass under `-Wall` |
-| `make test-model` | 28 passed, including the committed precision-JSON and Markdown-table regeneration check |
-| `make test-integration`, `make test-integration-large` | Version 1 passes D=4/64, T=1/4/7/8/16/64/128/512, stalls, malformed packets, reset, and repeated commands |
-| `make test-integration-reuse`, `make test-integration-reuse-large` | Version 2 passes the same small cases and T=64/128/512 |
-| `make test-array8`, `make test-array16` | Both larger arrays pass edge, stall, and packet tests |
-| `make test-array8-large`, `make test-array16-large` | Both pass T=64/128/512 with continuously ready streams |
-| `python3 scripts/cycle_model.py` | All six measured cycle and input-beat configurations reproduced exactly |
-| `make report-sim` | Regenerated `build/integration/summary.csv` from the verified logs |
+| `make test` | Documentation checks, eight lint configurations, 28 model tests, and the 4x4 small integration suite pass |
+| `make test-integration-large` | Version 3 passes T=64/128/512; T=512 is 1,049,665 cycles |
+| `make test-integration-reuse`, `make test-integration-reuse-large` | Version 4 passes D=4/64 and T through 512 |
+| `make test-array8`, `make test-array16`, and both `-large` forms | Both arrays pass edge, stall, packet, and T=64/128/512 checks |
+| `SCALE_BLOCK_SIZE=16 make test-integration` | The nondefault four-block configuration passes D=4/64 and all small cases |
+| `make test-precision-rtl` | All 262,144 T=512 scores match the software 1x32 FP32 model bit-exactly |
+| `SCORE_LANES=2/4 make test-array8-large` | T=512 takes 263,305/263,289 cycles |
+| `SCORE_LANES=2/4 make test-array16-large` | T=512 takes 141,632/132,361 cycles |
+| `python3 scripts/cycle_model.py` | All 16 measured cycle and input-beat configurations reproduce exactly |
+| `make report-sim` | Regenerates `build/integration/summary.csv` from accepted-beat logs |
 
-The 4x4 T=512 test contains an explicit regression ceiling of 1,049,150 core
-cycles.
+The 4x4 T=512 test has an explicit regression ceiling of 1,049,665 core cycles.
+The machine-readable reviewed subset is
+[`p0-4-p0-6-simulation.csv`](p0-4-p0-6-simulation.csv).
 
-## Measured core cycles
+## Default block-scale measurements
 
-Continuously ready streams at `D_HEAD=64`:
+Continuously ready streams at `D_HEAD=64`, Bs=32, and one score lane:
 
-| Configuration | Core cycles | Input beats | Output beats | Array active |
-| --- | ---: | ---: | ---: | ---: |
-| 4x4 v1, T=64 | 16,510 | 4,416 | 2,048 | 99.24% |
-| 4x4 v1, T=128 | 65,726 | 17,024 | 8,192 | 99.71% |
-| 4x4 v1, T=512 | 1,049,150 | 264,704 | 131,072 | 99.945% |
-| 4x4 v2, T=512 | 1,051,182 | 4,608 | 131,072 | 99.75% |
-| 8x8 v1, T=512 | 287,392 | 133,632 | 131,072 | 91.21% |
-| 16x16 v1, T=512 | 269,120 | 68,096 | 131,072 | 24.35% |
+| Configuration | Core cycles | Input beats | Output beats | Array active | Binding stage |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 4x4 v3, T=64 | 16,577 | 4,480 | 2,048 | 98.84% | CALC |
+| 4x4 v3, T=128 | 65,857 | 17,152 | 8,192 | 99.51% | CALC |
+| 4x4 v3, T=512 | 1,049,665 | 265,216 | 131,072 | 99.896% | CALC |
+| 4x4 v4, T=512 | 1,051,697 | 5,120 | 131,072 | 99.70% | CALC |
+| 8x8 v3, T=512 | 300,192 | 134,144 | 131,072 | 87.33% | SCALING |
+| 16x16 v3, T=512 | 272,704 | 68,608 | 131,072 | 24.03% | SCALING |
 
-The previous serial 4x4 v1 run took 1,821,184 cycles, so P0.3 measures 1.736x
-speedup. `CALC` binds at 4x4; the one-lane `SCALING` stage binds at 8x8 and
-16x16. The exact fill, drain, and steady-state derivation is in
-[architecture](../architecture.md).
+The extra block scales add 512 input beats over P0.3 at T=512. Parallel block
+scaling keeps 4x4 compute-bound; the three-cycle cross-block add appears only in
+pipeline drain. Relative Frobenius error against the pinned FP32 QK^T reference
+is **14.2346060%**, and mean absolute score error is **0.903700367**. These match
+the software model's 1x32 FP32 path.
+
+## P0.6 score-lane sweep
+
+| Tile | Score lanes | Scaling cycles/tile | Binding stage | T=512 cycles | Array active |
+| ---: | ---: | ---: | --- | ---: | ---: |
+| 8x8 | 1 | 73 | SCALING, 73 | 300,192 | 87.33% |
+| 8x8 | 2 | 41 | CALC, 64 | 263,305 | 99.56% |
+| 8x8 | 4 | 25 | CALC, 64 | 263,289 | 99.57% |
+| 16x16 | 1 | 265 | SCALING, 265 | 272,704 | 24.03% |
+| 16x16 | 2 | 137 | SCALING, 137 | 141,632 | 46.27% |
+| 16x16 | 4 | 73 | OUTPUT, 128 | 132,361 | 49.51% |
+
+The 8x8 crossover is two lanes and moves to CALC, because its 32-cycle output
+stage is always shorter than the 64-cycle dot product. The 16x16 crossover is
+four lanes and moves to the 64-bit output. Its 132,361 measured cycles equal the
+131,072-cycle two-score-per-cycle steady floor plus 1,289 fill and drain cycles.
+Widening the output before scaling would buy no cycles, so P0.6 keeps 64 bits.
 
 ## Tools
 
@@ -49,30 +70,21 @@ speedup. `CALC` binds at 4x4; the one-lane `SCALING` stage binds at 8x8 and
 | GNU Make | 4.3 |
 | Python | 3.12.3 |
 | pytest | 7.4.4 |
-| NumPy | 1.26.4 |
+| NumPy | 1.26.4, pinned in the `test` and `benchmark` extras |
 
-These versions satisfy `pyproject.toml`, which requires Python 3.10 or newer,
-pytest from 7.4 through 8.x, and NumPy from 1.26 through 2.x.
+Yosys was not available, so P0.4 and the lane variants have no synthesis or
+physical evidence. The mapped Sky130 areas in the older result records belong
+to their named revisions. This run proves functional correctness, protocol
+behavior, the cycle model, and synthetic precision for finite normal scales. It
+does not prove subnormal IEEE behavior, routed timing, power, frequency,
+latency in seconds, or accuracy on real transformer activations.
 
-Yosys was not available in this environment, so no synthesis ran. The mapped
-Sky130 areas in [the design-space record](design-space.md) and
-[the packed engine record](packed-engine.md) are unchanged and belong to the
-revisions named there.
-
-## Scope and limits
-
-This run proves score equivalence, protocol behavior, stage overlap, cycle counts,
-and the closed-form model for the listed configurations. It does not prove the
-selected 1x32 format in RTL because P0.4 has not implemented it. It does not prove routed timing, power, frequency, or
-latency in seconds, because no configuration of this top has been routed. It does
-not measure error on real transformer activations; the P0.2 precision evidence is
-synthetic. See [the verification plan](../verification-plan.md) for the full list
-of gaps.
-
-Generated logs are under `build/integration/`, one directory per configuration.
+Generated logs remain under ignored `build/`; the concise CSV above is the
+committed result.
 
 ## Related
 
 - [Results index](README.md)
+- [Architecture and cycle model](../architecture.md)
+- [Stream protocol](../stream-protocol.md)
 - [Verification plan](../verification-plan.md)
-- [Packed engine result](packed-engine.md)
