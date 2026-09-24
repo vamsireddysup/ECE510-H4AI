@@ -10,8 +10,8 @@ I use this workflow for changes to the project:
 6. Commit one logical change with a short message such as
    `rtl: reset PEs between tiles`.
 
-The milestone directories under `project/` are historical records. New RTL
-belongs under `rtl/`, and new tests belong under `tb/`.
+The milestone directories under `archive/coursework/project/` are historical
+records. New RTL belongs under `rtl/`, and new tests belong under `tb/`.
 
 Measured and projected results must be labeled separately. A benchmark or
 synthesis result should include the commit, parameters, tool versions, clock,

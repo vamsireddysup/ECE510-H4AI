@@ -16,7 +16,7 @@ when `DONE`, counters, handshakes, or numerical outputs are wrong.
 
 ## Phase 1: canonicalize the project
 
-I will create this active layout and start it from `project/m4/src`:
+I created the active layout from `archive/coursework/project/m4/src`:
 
 ```text
 rtl/            canonical synthesizable RTL

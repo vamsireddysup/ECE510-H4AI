@@ -1,5 +1,5 @@
 # Local environments and language caches
-hw4ai-env/
+/archive/local/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -16,19 +16,19 @@ obj_dir/
 *.swo
 
 # Local reference material
-reference/
+/archive/reference/
 
 # Codefest-generated products
-codefest/cf04/hdl/sim_A
-codefest/cf04/hdl/sim_B
-codefest/cf04/hdl/sim_correct
-codefest/cf04/cocotb_mac/sim_build/
-codefest/cf04/cocotb_mac/results.xml
+archive/coursework/codefest/cf04/hdl/sim_A
+archive/coursework/codefest/cf04/hdl/sim_B
+archive/coursework/codefest/cf04/hdl/sim_correct
+archive/coursework/codefest/cf04/cocotb_mac/sim_build/
+archive/coursework/codefest/cf04/cocotb_mac/results.xml
 
 # OpenLane/Yosys run products; curated reports remain tracked
-project/m3/runs/RUN_*/
-project/m3/runs/*.log
-project/m3/runs/synth_out.v
-project/m3/openlane1/runs/
-project/m3/runs/*.v
-project/m4/openlane/runs/
+archive/coursework/project/m3/runs/RUN_*/
+archive/coursework/project/m3/runs/*.log
+archive/coursework/project/m3/runs/synth_out.v
+archive/coursework/project/m3/openlane1/runs/
+archive/coursework/project/m3/runs/*.v
+archive/coursework/project/m4/openlane/runs/

@@ -10,9 +10,9 @@ repository-wide changes.
 
 ## Source-of-truth policy
 
-- Treat `project/m1/` through `project/m4/` as historical submission snapshots.
+- Treat `archive/coursework/project/m1/` through `m4/` as historical snapshots.
 - Treat `rtl/` as the active source of truth.
-- Treat `project/m4/src/` as the untouched course reference.
+- Treat `archive/coursework/project/m4/src/` as the untouched course reference.
 - Do not edit duplicated milestone RTL to implement new features.
 - Keep measured results separate from projections. The verified implementation
   is 4x4; 16x16 results are projections until actual runs prove otherwise.

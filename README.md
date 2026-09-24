@@ -77,12 +77,11 @@ model/      Python FP4 and QK^T reference model
 scripts/    lint, test, cleanup, and tool-check commands
 config/     synthesis and physical-design configuration as it is added
 docs/       architecture notes, plans, decisions, and reviewed results
-project/    original M1-M4 coursework snapshots
-codefest/   separate weekly course exercises
+archive/    coursework snapshots, old experiments, and local references
 ```
 
 I make new design changes only under `rtl/`, `tb/`, and `model/`. I keep the M1
-through M4 folders unchanged so the submitted work and its results remain easy
+through M4 archive unchanged so the submitted work and its results remain easy
 to trace.
 
 ## Measured M4 physical results
@@ -100,8 +99,9 @@ chiplet top.
 
 The original 250 MHz goal did not close after routing. The FP32 accumulation
 path and clock-tree margin required a longer period. I discuss the measured and
-projected numbers in [the M4 benchmark](project/m4/bench/benchmark.md) and
-[the final design report](project/m4/report/design_justification.pdf).
+projected numbers in
+[the M4 benchmark](archive/coursework/project/m4/bench/benchmark.md) and
+[the final design report](archive/coursework/project/m4/report/design_justification.pdf).
 
 ## Documentation
 
@@ -110,7 +110,8 @@ projected numbers in [the M4 benchmark](project/m4/bench/benchmark.md) and
 - [Repository reorganization plan](docs/REPOSITORY_REORGANIZATION_PLAN.md)
 - [Development roadmap](docs/DEVELOPMENT_ROADMAP.md)
 - [Contribution workflow](CONTRIBUTING.md)
-- [Original M4 package](project/m4/README.md)
+- [Archive guide](archive/README.md)
+- [Original M4 package](archive/coursework/project/m4/README.md)
 
 ## Next work
 

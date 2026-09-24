@@ -21,9 +21,10 @@ documents here cover the work I am doing after that baseline.
 | [Project context](PROJECT_CONTEXT.md) | Current architecture and verified baseline |
 | [Repository reorganization plan](REPOSITORY_REORGANIZATION_PLAN.md) | Structural migration and repository standards |
 | [Development roadmap](DEVELOPMENT_ROADMAP.md) | Future RTL and physical-design sequence |
-| [M4 README](../project/m4/README.md) | Final coursework package and reproduction instructions |
+| [M4 README](../archive/coursework/project/m4/README.md) | Final coursework package and reproduction instructions |
 | [Codex instructions](../CODEX.md) | Working, commit, verification, and Markdown conventions |
 | [Latest verification](results/latest-verification.md) | Most recent reviewed local test run |
+| [Results and transcripts](results/README.md) | Generated and tracked output locations |
 
 ## Planned specifications
 

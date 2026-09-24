@@ -17,7 +17,8 @@ reproduces my existing 4x4 result.
 2. Preserve the current M1-M4 directories until the canonical baseline passes.
 3. Copy first, verify, then archive with `git mv`; do not delete history during
    the migration.
-4. Preserve the current untracked `project/m3/run_m3_when_ready.sh` until its
+4. Preserve the current untracked
+   `archive/coursework/project/m3/run_m3_when_ready.sh` until its
    purpose and desired destination are confirmed.
 5. Do not mix behavior changes with path/build-system changes.
 6. Never label projected 8x8 or 16x16 results as measured.
@@ -151,7 +152,8 @@ Work:
 
 1. Create `refactor/professional-layout` from the current commit.
 2. Preserve all current user changes and record their ownership.
-3. Add a temporary baseline script that compiles `project/m4/src` in `build/`.
+3. Add a temporary baseline script that compiles
+   `archive/coursework/project/m4/src` in `build/`.
    Because the repository's parent path contains spaces and Verilator's GNU
    Make backend rejects such build paths, compilation uses a temporary
    space-free directory and copies logs and summaries into `build/`.

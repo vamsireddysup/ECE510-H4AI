@@ -12,5 +12,5 @@ verified M4 source without changing the logic.
 - `top/`: integration and synthesis wrappers
 - `filelist.f`: compile order for the integrated design
 
-I keep the old milestone RTL under `project/` as a record. New design changes
-belong here and must include matching tests.
+I keep the old milestone RTL under `archive/coursework/project/` as a record.
+New design changes belong here and must include matching tests.

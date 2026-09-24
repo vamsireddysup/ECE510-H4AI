@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
-rtl_dir="$repo_root/project/m4/src"
+rtl_dir="$repo_root/archive/coursework/project/m4/src"
 build_dir="$repo_root/build/m4-baseline"
 work_dir="$(mktemp -d /tmp/ece510-m4-baseline.XXXXXX)"
 strict=0
@@ -21,7 +21,7 @@ elif [[ $# -ne 0 ]]; then
 fi
 
 mkdir -p "$build_dir"
-cp "$repo_root/project/m4/tb/tb_top.cpp" "$work_dir/tb_top.cpp"
+cp "$repo_root/archive/coursework/project/m4/tb/tb_top.cpp" "$work_dir/tb_top.cpp"
 
 sources=(
     "$rtl_dir/fp4_mul_lut.sv"
@@ -73,7 +73,7 @@ else
 fi
 
 {
-    printf 'source=project/m4\n'
+    printf 'source=archive/coursework/project/m4\n'
     printf 'tile_size=4\n'
     printf 'd_head=4\n'
     printf 't_max=16\n'

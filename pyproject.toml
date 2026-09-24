@@ -14,6 +14,7 @@ test = ["pytest>=7.4,<9"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["model/tests"]
+cache_dir = "build/pytest-cache"
 
 [tool.setuptools.packages.find]
 include = ["model*"]

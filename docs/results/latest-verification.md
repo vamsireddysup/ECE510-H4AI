@@ -7,6 +7,7 @@ I ran this check on September 24, 2026, from `master` at RTL revision
 
 ```bash
 make doctor
+make baseline
 make test
 ```
 
@@ -22,6 +23,8 @@ make test
 | Completion status | `DONE=YES` |
 | Completed tiles | `TILE_COUNT=1` |
 | Compatibility cycle count | 498 |
+| Archived M4 numerical baseline | 16/16 correct |
+| Archived M4 completion status | Known legacy `DONE=NO` |
 
 ## Tool versions
 
@@ -45,3 +48,7 @@ installed, but waveform viewing needs a graphical display.
 This run verifies one 4x4 tile with `D_HEAD=4` and `T_MAX=16`. It does not prove
 multi-tile execution, `D_HEAD=64`, larger arrays, or the full-chip physical
 design. I will update this file when those tests are added.
+
+Full generated output is under `build/integration/` and
+`build/m4-baseline/`. See [Results and transcripts](README.md) for the file
+layout and tracking policy.

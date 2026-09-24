@@ -17,7 +17,7 @@ the multiplication by V remain on the host.
 
 ## Verified course baseline
 
-- Canonical course snapshot: `project/m4/`
+- Canonical course snapshot: `archive/coursework/project/m4/`
 - Array actually simulated and synthesized: 4x4
 - Simulation parameters: `TILE_SIZE=4`, `D_HEAD=4`, `T_MAX=16`
 - End-to-end numerical result: 16/16 outputs pass for one 4x4 tile
@@ -117,21 +117,20 @@ course result.
 
 ## Repository topology
 
-- `codefest/`: independent weekly course exercises and reports
-- `project/m1/`: workload, interface, and architecture proposal
-- `project/m2/`: initial RTL, golden data, and most reusable unit testbenches
-- `project/m3/`: integration and early synthesis snapshot
-- `project/m4/`: final course snapshot and the best current RTL copy
-- `project/upgrade_archive/`: abandoned/experimental upgrade snapshot
-- `smoke_test/`: small Verilator environment check
+- `archive/coursework/codefest/`: weekly course exercises and reports
+- `archive/coursework/project/m1/`: workload, interface, and architecture proposal
+- `archive/coursework/project/m2/`: initial RTL, golden data, and unit testbenches
+- `archive/coursework/project/m3/`: integration and early synthesis snapshot
+- `archive/coursework/project/m4/`: final course snapshot
+- `archive/coursework/project/upgrade_archive/`: older upgrade experiments
+- `archive/experiments/smoke_test/`: small Verilator environment check
 
-Most modules under `project/m2/rtl`, `project/m3/src`, and `project/m4/src` are
-byte-identical. I will keep one active source tree and leave the milestone
-snapshots unchanged.
+Most milestone modules are byte-identical. I keep one active source tree under
+`rtl/` and leave the archived milestone snapshots unchanged.
 
 ## Working rules for future changes
 
-- Preserve `project/m1` through `project/m4` as historical artifacts.
+- Preserve the archived M1 through M4 directories as historical artifacts.
 - Do new work in a canonical development tree after it is introduced.
 - Never report projected 16x16 results as measured.
 - Add a failing regression that demonstrates a bug before fixing it.
