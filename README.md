@@ -61,16 +61,26 @@ Generated logs and binaries stay under ignored `build/`.
 
 ## Project map
 
-- [Documentation index](docs/README.md)
-- [Project context](docs/project-context.md)
-- [Development plan](docs/roadmap.md)
-- [Packed stream protocol](docs/stream-protocol.md)
-- [Latest verification](docs/results/latest-verification.md)
-- [Design-space experiment](docs/results/design-space.md)
-- [Synthetic precision](docs/results/precision.md)
-- [Active RTL notes](rtl/README.md)
-- [Course archive](archive/README.md)
+Start at the [documentation index](docs/README.md), which lists every document
+and what it is authoritative for. The short path:
+
+- [Problem statements](docs/problem-statements/README.md): P0 active, P1 next, P2 shelved
+- [Architecture](docs/architecture.md): blocks, dataflow, and the cycle cost model
+- [Stream protocol](docs/stream-protocol.md): packet order, status codes, register map
+- [Verification plan](docs/verification-plan.md): what each check proves, and the gaps
+- [Development plan](docs/roadmap.md) and [decision records](docs/adr/README.md)
+- [Project context](docs/project-context.md) and [repository layout](docs/repository-layout.md)
+- [Latest verification](docs/results/latest-verification.md), [design space](docs/results/design-space.md), [synthetic precision](docs/results/precision.md)
+- [Active RTL](rtl/README.md), [testbenches](tb/README.md), [reference model](model/README.md), [scripts](scripts/README.md)
+- [Course archive](archive/README.md) and [superseded RTL](archive/superseded-rtl/README.md)
 
 The next design step is to map the K scratchpad to practical banks and overlap
 Q loading, computation, scaling, and output. Full-chip Sky130 timing, routing,
 and power checks will decide whether 8x8 or 16x16 arrays are useful.
+
+## Related
+
+- [Documentation index](docs/README.md)
+- [Problem statements](docs/problem-statements/README.md)
+- [Changelog](CHANGELOG.md)
+- [Contribution workflow](CONTRIBUTING.md)

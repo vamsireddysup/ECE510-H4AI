@@ -57,3 +57,9 @@ Commands: `make test-integration-large`, `make test-integration-reuse-large`,
 `make test-array8-large`, `make test-array16-large`, and
 `./scripts/run_synthesis.sh TILE_SIZE 64 16 K_REUSE`. Full generated logs are
 under ignored `build/`.
+
+## Related
+
+- [Results index](README.md)
+- [ADR 0002: K reload is the default](../adr/0002-k-reload-is-the-default.md)
+- [Architecture and the cycle model](../architecture.md)

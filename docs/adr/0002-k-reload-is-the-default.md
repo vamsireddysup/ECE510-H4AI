@@ -54,3 +54,9 @@ lint, so neither path rots.
 None of these areas include clock tree, routing, timing, or power. See
 [the design-space record](../results/design-space.md) for the measurement
 conditions.
+
+## Related
+
+- [Decision records](README.md)
+- [Design-space experiment](../results/design-space.md)
+- [Architecture](../architecture.md)

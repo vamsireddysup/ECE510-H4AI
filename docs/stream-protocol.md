@@ -82,3 +82,10 @@ register. A read response holds its data and valid flag until accepted.
 
 Counters wrap at 32 bits. The command cycle count excludes idle and finished
 states. Packet padding is counted in transferred bytes, not useful bytes.
+
+## Related
+
+- [Architecture](architecture.md)
+- [Project context](project-context.md)
+- [Verification plan](verification-plan.md)
+- [Documentation index](README.md)

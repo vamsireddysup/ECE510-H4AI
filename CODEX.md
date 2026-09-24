@@ -124,3 +124,10 @@ For every published benchmark or synthesis result, record:
   repository-local `build/`.
 - Prefer pinned, project-local, or containerized tools. Do not uninstall a
   working system tool merely to obtain a newer version.
+
+## Related
+
+- [Documentation index](docs/README.md)
+- [Repository layout and documentation contract](docs/repository-layout.md)
+- [Verification plan](docs/verification-plan.md)
+- [Contribution workflow](CONTRIBUTING.md)

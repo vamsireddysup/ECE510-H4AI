@@ -74,3 +74,10 @@ scales. Softmax and V fusion remain outside this project scope.
 I use the original [Roofline model](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/EECS-2008-134.html)
 only with an explicit memory boundary and measured bandwidth. I will not use
 measured CPU throughput as CPU peak performance.
+
+## Related
+
+- [Problem statements](problem-statements/README.md)
+- [Architecture](architecture.md)
+- [Verification plan](verification-plan.md)
+- [Documentation index](README.md)

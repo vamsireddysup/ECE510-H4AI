@@ -39,3 +39,9 @@ typical 25 C, 1.80 V. The active top has not completed routing, STA, or power
 analysis. The CPU benchmark is a measured NumPy implementation, not a CPU
 Roofline peak. Generated logs are under `build/integration/` and
 `build/synthesis/`.
+
+## Related
+
+- [Results index](README.md)
+- [Verification plan](../verification-plan.md)
+- [Packed engine result](packed-engine.md)

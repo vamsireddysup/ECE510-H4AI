@@ -55,3 +55,9 @@ opening P0.2 and P0.3 both depend on; see
 The exactness argument does not generalize. It holds because E2M1 products are
 tiny and `D_HEAD` is modest. Any claim from this record must be scoped to MXFP4
 and similar narrow formats.
+
+## Related
+
+- [Decision records](README.md)
+- [Architecture](../architecture.md)
+- [P1, which needs a wider accumulator](../problem-statements/p1-format-agile-sparsity.md)

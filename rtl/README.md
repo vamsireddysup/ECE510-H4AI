@@ -23,3 +23,10 @@ The verified integrated configurations include `TILE_SIZE=4` at `D_HEAD=4/64`
 and `TILE_SIZE=8/16` at `D_HEAD=64`. See
 [latest verification](../docs/results/latest-verification.md) for tested
 sequence lengths and measurement scope.
+
+## Related
+
+- [Architecture](../docs/architecture.md)
+- [Stream protocol](../docs/stream-protocol.md)
+- [Superseded RTL](../archive/superseded-rtl/README.md)
+- [Documentation index](../docs/README.md)

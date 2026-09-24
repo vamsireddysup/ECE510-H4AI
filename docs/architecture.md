@@ -165,6 +165,8 @@ there is no frequency, no latency in seconds, and no energy figure.
 ## Related
 
 - [Stream protocol and register map](stream-protocol.md)
+- [ADR 0001: why the accumulator is exact integer](adr/0001-exact-integer-accumulation.md)
+- [ADR 0002: why K reload is the default](adr/0002-k-reload-is-the-default.md)
 - [Project context](project-context.md)
 - [Development plan](roadmap.md)
 - [Design-space experiment](results/design-space.md)

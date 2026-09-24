@@ -86,3 +86,9 @@ remain open. FP32 quantization error against
 real transformer activations is also unmeasured. The row-scale protocol is
 not OCP MXFP4, which specifies 32-value blocks and E8M0 scales in the
 [MX specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf).
+
+## Related
+
+- [Results index](README.md)
+- [Architecture and the cycle model](../architecture.md)
+- [Design-space experiment](design-space.md)

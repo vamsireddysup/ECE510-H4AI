@@ -86,3 +86,9 @@ favour of [`docs/repository-layout.md`](docs/repository-layout.md).
 - Completed a Sky130 HD OpenLane run for the flat array wrapper, not the
   integrated chiplet: 324,753 um², 28.1 mW typical, 15 ns target, with negative
   nominal setup and hold slack.
+
+## Related
+
+- [Repository layout and naming rules](docs/repository-layout.md)
+- [Decision records](docs/adr/README.md)
+- [Documentation index](docs/README.md)

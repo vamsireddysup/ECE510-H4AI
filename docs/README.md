@@ -1,20 +1,59 @@
 # Documentation
 
-I keep active QK^T architecture, interface, and measurement records here. The
-M1-M4 documents under `archive/` are course snapshots and remain unchanged.
+Every active document is listed here, with the one thing it is authoritative for.
+If two documents seem to own the same fact, this table decides. The M1-M4
+documents under [`archive/`](../archive/README.md) are course snapshots and stay
+unchanged.
 
-| Document | Purpose |
+## Start here
+
+| Document | Authoritative for |
 | --- | --- |
-| [Project context](project-context.md) | Active design, archive baseline, and open limits |
-| [Development plan](roadmap.md) | Completed work and next measured experiments |
-| [Packed stream protocol](stream-protocol.md) | Version 1 packet order, packing, status, and counters |
-| [Packed engine result](results/packed-engine.md) | Correctness, cycles, traffic, CPU baseline, synthesis scope |
-| [Design-space experiment](results/design-space.md) | K reuse, array-size sweeps, and SRAM candidates |
-| [Synthetic precision](results/precision.md) | Row-scaled FP4 error against FP32 QK^T |
-| [Latest verification](results/latest-verification.md) | Most recent local commands and tool versions |
-| [Repository layout](repository-layout.md) | Directory layout, naming, and the documentation contract |
-| [Codex instructions](../CODEX.md) | Workflow and commit rules |
-| [M4 README](../archive/coursework/project/m4/README.md) | Historical submission and reproduction |
+| [Problem statements](problem-statements/README.md) | Which problem is active, and what each has to prove |
+| [Architecture](architecture.md) | Blocks, dataflow, and the cycle cost model |
+| [Stream protocol](stream-protocol.md) | Packet order, packing, status codes, and the AXI register map |
+| [Project context](project-context.md) | Current design, archived baseline, and open limits |
 
-Generated transcripts stay in ignored `build/`. Reviewed summaries are
-committed in `docs/results/`; large release outputs belong in GitHub releases.
+## Plans and conventions
+
+| Document | Authoritative for |
+| --- | --- |
+| [Development plan](roadmap.md) | Completed work and the next measured experiments |
+| [Verification plan](verification-plan.md) | What each check proves, and the gaps |
+| [Repository layout](repository-layout.md) | Directory layout, naming, and the documentation contract |
+| [Decision records](adr/README.md) | Decisions that are expensive to reverse |
+| [Agent rules](../CODEX.md) | Workflow, commit policy, and verification expectations |
+| [Contribution workflow](../CONTRIBUTING.md) | How a change gets made |
+
+## Measurements
+
+| Document | Authoritative for |
+| --- | --- |
+| [Results index](results/README.md) | Which record owns which number, and where logs land |
+| [Packed engine result](results/packed-engine.md) | Per-configuration correctness, cycles, traffic, CPU baseline, synthesis scope |
+| [Design-space experiment](results/design-space.md) | K reuse, 8x8 and 16x16 sweeps, mapped areas, SRAM candidates |
+| [Synthetic precision](results/precision.md) | Row-scaled FP4 score error against FP32 |
+| [Latest verification](results/latest-verification.md) | The most recent command run and its tool versions |
+
+## Directory notes
+
+| Document | Covers |
+| --- | --- |
+| [Active RTL](../rtl/README.md) | What is synthesizable and what the parameters mean |
+| [Testbenches](../tb/README.md) | What the integration test covers and how to run it |
+| [Reference model](../model/README.md) | The Python FP4 numerics the RTL is checked against |
+| [Scripts](../scripts/README.md) | What each script needs and where it writes |
+| [Archive](../archive/README.md) | Coursework, superseded RTL, and old experiments |
+| [M4 package](../archive/coursework/project/m4/README.md) | The historical submission and its reproduction |
+
+## Conventions in one line each
+
+Generated output goes under ignored `build/`. Reviewed summaries are committed in
+[`docs/results/`](results/README.md). Large release outputs go in GitHub release
+assets. Every number says whether it is measured or projected. No adjective without
+a number. The full contract is in [repository layout](repository-layout.md).
+
+## Related
+
+- [Repository root](../README.md)
+- [Repository layout and documentation contract](repository-layout.md)

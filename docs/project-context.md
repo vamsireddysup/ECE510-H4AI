@@ -61,3 +61,10 @@ double buffering, exact scale arithmetic qualification, real activation error,
 and routed full-chip Sky130 timing and power remain open.
 The [development plan](roadmap.md) gives the order and acceptance
 evidence for those steps.
+
+## Related
+
+- [Architecture](architecture.md)
+- [Stream protocol](stream-protocol.md)
+- [Development plan](roadmap.md)
+- [Documentation index](README.md)

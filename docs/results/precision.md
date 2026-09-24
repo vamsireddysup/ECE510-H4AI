@@ -27,3 +27,9 @@ Reproduce the synthetic run from the repository root:
 ```bash
 python3 scripts/eval_precision.py > build/synthetic-precision.json
 ```
+
+## Related
+
+- [Results index](README.md)
+- [P0, where precision is stage P0.2](../problem-statements/p0-dense-fp4-matmul.md)
+- [Stream protocol, for the scale rule](../stream-protocol.md)
