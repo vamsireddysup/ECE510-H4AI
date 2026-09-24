@@ -42,10 +42,16 @@ def fp4_product_bits(a: int, b: int) -> int:
 def qkt(
     q_codes: Sequence[Sequence[int]],
     k_codes: Sequence[Sequence[int]],
-    q_scales: Sequence[float] | None = None,
-    k_scales: Sequence[float] | None = None,
+    q_scales: Sequence[float] | Sequence[Sequence[float]] | None = None,
+    k_scales: Sequence[float] | Sequence[Sequence[float]] | None = None,
+    block_size: int | None = None,
 ) -> list[list[float]]:
-    """Compute dequantized QK^T for FP4 code matrices."""
+    """Compute dequantized QK^T with scales blocked along the reduction axis.
+
+    Flat scale vectors retain the original one-scale-per-row interface and
+    require one block spanning the complete head dimension. Nested scale
+    matrices contain one scale per row and reduction block.
+    """
     if not q_codes or not k_codes:
         raise ValueError("Q and K must not be empty")
     depth = len(q_codes[0])
@@ -56,19 +62,46 @@ def qkt(
     if any(len(row) != depth for row in k_codes):
         raise ValueError("Q and K must use the same head dimension")
 
-    q_scale_values = list(q_scales) if q_scales is not None else [1.0] * len(q_codes)
-    k_scale_values = list(k_scales) if k_scales is not None else [1.0] * len(k_codes)
-    if len(q_scale_values) != len(q_codes) or len(k_scale_values) != len(k_codes):
-        raise ValueError("Scale count must match the number of matrix rows")
+    if block_size is None:
+        block_size = depth
+    if block_size <= 0 or block_size > depth:
+        raise ValueError("block_size must be in [1, D_HEAD]")
+    block_count = (depth + block_size - 1) // block_size
+
+    def normalize_scales(
+        scales: Sequence[float] | Sequence[Sequence[float]] | None,
+        row_count: int,
+    ) -> list[list[float]]:
+        if scales is None:
+            return [[1.0] * block_count for _ in range(row_count)]
+        values = list(scales)
+        if len(values) != row_count:
+            raise ValueError("Scale count must match the number of matrix rows")
+        if values and isinstance(values[0], Sequence):
+            matrix = [list(row) for row in values]  # type: ignore[arg-type]
+            if any(len(row) != block_count for row in matrix):
+                raise ValueError("Each scale row must match the reduction block count")
+            return matrix
+        if block_count != 1:
+            raise ValueError("Flat scales are valid only for one reduction block")
+        return [[float(value)] for value in values]  # type: ignore[arg-type]
+
+    q_scale_values = normalize_scales(q_scales, len(q_codes))
+    k_scale_values = normalize_scales(k_scales, len(k_codes))
 
     result: list[list[float]] = []
-    for q_row, q_scale in zip(q_codes, q_scale_values, strict=True):
+    for q_row, q_row_scales in zip(q_codes, q_scale_values, strict=True):
         output_row = []
-        for k_row, k_scale in zip(k_codes, k_scale_values, strict=True):
-            dot = sum(
-                fp4_decode(q_value) * fp4_decode(k_value)
-                for q_value, k_value in zip(q_row, k_row, strict=True)
-            )
-            output_row.append(dot * q_scale * k_scale)
+        for k_row, k_row_scales in zip(k_codes, k_scale_values, strict=True):
+            score = 0.0
+            for block in range(block_count):
+                start = block * block_size
+                stop = min(start + block_size, depth)
+                dot = sum(
+                    fp4_decode(q_row[index]) * fp4_decode(k_row[index])
+                    for index in range(start, stop)
+                )
+                score += dot * q_row_scales[block] * k_row_scales[block]
+            output_row.append(score)
         result.append(output_row)
     return result

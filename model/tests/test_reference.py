@@ -67,6 +67,22 @@ def test_scales_are_applied_by_output_row_and_column() -> None:
     ]
 
 
+def test_block_scales_are_applied_before_cross_block_sum() -> None:
+    q_codes = [[fp4_encode(value) for value in [1.0, 1.0, 1.0, 1.0]]]
+    k_codes = [[fp4_encode(value) for value in [1.0, 1.0, 1.0, 1.0]]]
+    assert qkt(q_codes, k_codes, [[2.0, 3.0]], [[5.0, 7.0]], block_size=2) == [
+        [62.0]
+    ]
+
+
+def test_partial_final_reduction_block() -> None:
+    q_codes = [[fp4_encode(1.0)] * 5]
+    k_codes = [[fp4_encode(1.0)] * 5]
+    assert qkt(q_codes, k_codes, [[1.0, 2.0]], [[1.0, 3.0]], block_size=3) == [
+        [15.0]
+    ]
+
+
 def test_invalid_shapes_are_rejected() -> None:
     with pytest.raises(ValueError):
         qkt([], [])
@@ -74,3 +90,9 @@ def test_invalid_shapes_are_rejected() -> None:
         qkt([[1, 2]], [[1]])
     with pytest.raises(ValueError):
         qkt([[1]], [[1]], q_scales=[1.0, 2.0])
+    with pytest.raises(ValueError):
+        qkt([[1, 2]], [[1, 2]], q_scales=[1.0], block_size=1)
+    with pytest.raises(ValueError):
+        qkt([[1, 2]], [[1, 2]], q_scales=[[1.0]], block_size=1)
+    with pytest.raises(ValueError):
+        qkt([[1]], [[1]], block_size=0)
