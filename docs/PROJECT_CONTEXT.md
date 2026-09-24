@@ -28,7 +28,7 @@ still needed.
 
 The 4x4 top passes T=1/4/7/8/16 at `D_HEAD=4/64` and T=64/128/512 at
 `D_HEAD=64`, including edge tiles and repeated commands. The 512 run contains
-16,384 output tiles and completes 262,144 scores in 1,821,185 simulated core
+16,384 output tiles and completes 262,144 scores in 1,821,184 simulated core
 cycles with a continuously ready host. Full counters, host traffic, CPU timing,
 and Sky130 synthesis scope are in [the reviewed result](results/packed-engine.md).
 No routed active-top clock, power, or silicon latency is available yet.

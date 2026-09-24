@@ -61,7 +61,7 @@ T=64/128/512 run. The historical compatibility point is:
 - recorded `CYCLE_COUNT=498`
 
 That 498-cycle result belongs to the pre-upgrade, one-tile controller. The
-active packed-stream v1 top runs the same numerical pattern in 50 simulated
+active packed-stream v1 top runs the same numerical pattern in 49 simulated
 cycles with injected host stalls; see `docs/results/packed-engine.md`.
 The current active source list is `rtl/filelist.f`. The older PE, array,
 controller, and buffers are retained for comparison but are not active.

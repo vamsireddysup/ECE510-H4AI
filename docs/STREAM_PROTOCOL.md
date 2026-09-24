@@ -63,6 +63,10 @@ codes are `1` for invalid `T`, `2` for early `TLAST`, and `3` for a missing
 If a sender stops before a packet is complete, the engine waits for input;
 there is no transport timeout.
 
+AXI4-Lite write address and data channels may arrive in either order or in
+the same cycle. Byte strobes apply to `MATRIX_SIZE` and the reserved scale
+register. A read response holds its data and valid flag until accepted.
+
 | Address | Read value |
 | --- | --- |
 | `0x0C` | Completed output tiles |

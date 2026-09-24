@@ -1,8 +1,8 @@
 # Latest verification
 
 I ran the active RTL checks on September 24, 2026, on `master` after revision
-`8451104`. This summary accompanies the version 2 K scratchpad and array-size
-experiment commit.
+`bd28084`. This summary accompanies the AXI4-Lite handshake fix; the reported
+Sky130 cell areas belong to the earlier design-space revision.
 
 ## Commands and results
 
@@ -19,9 +19,11 @@ experiment commit.
 The integration suite checks `D_HEAD=4/64`, T=1/4/7/8/16, original M4
 numerical inputs, edge masks, packet counts, output stability under stalls,
 random FP4 codes, varied exact scales, worst-case integer sums, malformed
-scale and tile packets, dimension error, reset, and repeated commands. Large
-runs use a continuously ready host. At T=512, the result is 262,144 scores,
-16,384 tiles, 1,821,185 simulated cycles, 264,704 input beats, and 131,072
+scale and tile packets, dimension error, reset, repeated commands,
+AXI4-Lite write-data-first and simultaneous writes, byte strobes, and stable
+read data under backpressure. Large runs use a continuously ready host. At
+T=512, the result is 262,144 scores,
+16,384 tiles, 1,821,184 simulated cycles, 264,704 input beats, and 131,072
 output beats. See [the result record](packed-engine.md) for traffic arithmetic
 and scope. The [design-space record](design-space.md) gives the optional K
 scratchpad and larger-array comparisons.

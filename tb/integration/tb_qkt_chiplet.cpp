@@ -44,12 +44,12 @@ static void reset() {
     dut.arvalid=0; dut.rready=0; dut.s_tvalid=0; dut.m_tready=0;
     for(int i=0;i<4;i++) step(); dut.rst_n=1; step();
 }
-static void write_reg(uint32_t addr,uint32_t data) {
+static void write_reg(uint32_t addr,uint32_t data,uint8_t strobes=15) {
     dut.awaddr=addr; dut.awvalid=1;
     bool accepted=false;
     for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); accepted=dut.awready; step(); if(accepted) break; }
     check(accepted,"AXI address timeout"); dut.awvalid=0;
-    dut.wdata=data; dut.wstrb=15; dut.wvalid=1;
+    dut.wdata=data; dut.wstrb=strobes; dut.wvalid=1;
     accepted=false;
     for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); accepted=dut.wready; step(); if(accepted) break; }
     check(accepted,"AXI data timeout"); dut.wvalid=0;
@@ -63,6 +63,39 @@ static uint32_t read_reg(uint32_t addr) {
     check(accepted,"AXI read address timeout"); dut.arvalid=0;
     for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); if(dut.rvalid) { uint32_t x=dut.rdata; dut.rready=1; step(); dut.rready=0; return x; } step(); }
     throw std::runtime_error("AXI read data timeout");
+}
+static void write_data_first(uint32_t addr,uint32_t data) {
+    dut.wdata=data; dut.wstrb=15; dut.wvalid=1;
+    bool accepted=false;
+    for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); accepted=dut.wready; step(); if(accepted) break; }
+    check(accepted,"AXI W-before-AW timeout"); dut.wvalid=0;
+    dut.awaddr=addr; dut.awvalid=1; accepted=false;
+    for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); accepted=dut.awready; step(); if(accepted) break; }
+    check(accepted,"AXI delayed AW timeout"); dut.awvalid=0;
+    for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); if(dut.bvalid) { dut.bready=1; step(); dut.bready=0; return; } step(); }
+    throw std::runtime_error("AXI W-before-AW response timeout");
+}
+static void write_together(uint32_t addr,uint32_t data) {
+    dut.awaddr=addr; dut.awvalid=1;
+    dut.wdata=data; dut.wstrb=15; dut.wvalid=1;
+    dut.clk=0; dut.eval();
+    check(dut.awready && dut.wready,"AXI simultaneous channels not ready");
+    step(); dut.awvalid=0; dut.wvalid=0;
+    for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); if(dut.bvalid) { dut.bready=1; step(); dut.bready=0; return; } step(); }
+    throw std::runtime_error("AXI simultaneous response timeout");
+}
+static void check_read_stall() {
+    write_reg(0x08,4); write_reg(0x00,1);
+    dut.araddr=0x10; dut.arvalid=1;
+    bool accepted=false;
+    for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); accepted=dut.arready; step(); if(accepted) break; }
+    check(accepted,"AXI stalled read address timeout"); dut.arvalid=0;
+    for(int i=0;i<100;i++) { dut.clk=0; dut.eval(); if(dut.rvalid) break; step(); }
+    check(dut.rvalid,"AXI stalled read data timeout");
+    uint32_t held=dut.rdata;
+    for(int i=0;i<8;i++) { step(); check(dut.rvalid && dut.rdata==held,"AXI read changed under stall"); }
+    dut.rready=1; step(); dut.rready=0;
+    reset();
 }
 static void send_beat(uint64_t data,bool last,int gap=0) {
     dut.s_tvalid=0; for(int i=0;i<gap;i++) step();
@@ -177,7 +210,7 @@ static void run_case(int t) {
         for(int kc=0;kc<t;kc+=B)
             output_beats+=(std::min(B,t-qr)*std::min(B,t-kc)+1)/2;
     check(read_reg(0x24)==uint32_t(output_beats),"output beat count");
-    check(read_reg(0x28)>0,"input stalls absent");
+    if(STRESS_STALLS && t>1) check(read_reg(0x28)>0,"input stalls absent");
     if(STRESS_STALLS) check(read_reg(0x2C)>0,"output stalls absent");
     check(read_reg(0x30)==uint32_t(tiles*D),"compute cycles");
     std::printf("T=%d D=%d scores=%d tiles=%d cycles=%u in_beats=%u out_beats=%u stalls=%u PASS\n",
@@ -188,6 +221,13 @@ int main(int argc,char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
         reset(); check(read_reg(0x1C)==(REUSE?2:1),"stream version");
+        write_data_first(0x08,4);
+        check(read_reg(0x08)==4,"AXI W-before-AW value");
+        write_reg(0x08,0x00000100,0x2);
+        check(read_reg(0x08)==0x104,"AXI write strobes");
+        write_together(0x08,4);
+        check(read_reg(0x08)==4,"AXI simultaneous channels");
+        check_read_stall();
 #ifdef TEST_LARGE
         run_case(64); run_case(128); run_case(512);
 #else

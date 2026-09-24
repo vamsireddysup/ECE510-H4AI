@@ -16,14 +16,14 @@ edge tiles, input and output stalls, error status, and repeated commands.
 
 | Verified configuration | Result |
 | --- | --- |
-| 4x4, `D_HEAD=4`, T=4 | Original 16/16 numerical case; 50 simulated core cycles with stalls |
-| 4x4, `D_HEAD=64`, T=512 | 262,144/262,144 scores; 1,821,185 simulated cycles with ready host |
+| 4x4, `D_HEAD=4`, T=4 | Original 16/16 numerical case; 49 simulated core cycles with stalls |
+| 4x4, `D_HEAD=64`, T=512 | 262,144/262,144 scores; 1,821,184 simulated cycles with ready host |
 | Host traffic at T=512 | 3,166,208 transferred bytes; 10.60 FLOP/byte |
 | Sky130 mapped synthesis area, 4x4, `D_HEAD=64`, `T_MAX=16` | 304,468 um², complete top; no routed timing or power result |
 
 An optional version 2 build caches K for a whole command. At T=512 it lowers
-traffic to 1,085,440 bytes and core cycles to 1,561,089. Simulated 8x8 and
-16x16 default builds complete the same workload in 817,665 and 534,017 core
+traffic to 1,085,440 bytes and core cycles to 1,561,088. Simulated 8x8 and
+16x16 default builds complete the same workload in 817,664 and 534,016 core
 cycles. Their mapped cell areas at `T_MAX=16` are 571,637 and 1,446,323 um².
 These variants have not closed full-chip timing or power. The
 [design-space record](docs/results/design-space.md) compares their tradeoffs.
