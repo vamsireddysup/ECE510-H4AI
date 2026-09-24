@@ -62,10 +62,24 @@ GitHub: https://github.com/vamsireddysup/ECE510-H4AI
 
 ## Continuing development
 
-The M1-M4 directories are preserved course-submission snapshots. Future work
-starts from the verified M4 baseline and will move into one canonical
-development tree instead of editing duplicated RTL copies.
+I am keeping the M1-M4 directories as snapshots of my course submissions. For
+new work, I will start from the verified M4 baseline and move the active design
+into one source tree instead of editing several copies of the same RTL.
 
 Start with the [documentation index](docs/README.md) for the current engineering
 context, professional reorganization plan, development roadmap, and repository
 working conventions.
+
+## Developer quick start
+
+From the repository root:
+
+```bash
+make doctor
+make baseline
+```
+
+`make baseline` reproduces my 4x4 M4 numerical result and writes its output to
+the ignored `build/` directory. `make baseline-strict` also checks completion
+status. It currently fails because the old test does not observe `DONE`; I am
+keeping that failure visible until I fix and test the control path.

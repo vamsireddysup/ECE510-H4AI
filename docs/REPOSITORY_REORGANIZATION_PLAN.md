@@ -146,11 +146,16 @@ As inventoried on 2026-09-24:
 
 ### Phase A: freeze and characterize the baseline
 
+Status: in progress on `refactor/professional-layout`.
+
 Actions:
 
 1. Create `refactor/professional-layout` from the current commit.
 2. Preserve all current user changes and record their ownership.
 3. Add a temporary baseline script that compiles `project/m4/src` in `build/`.
+   Because the repository's parent path contains spaces and Verilator's GNU
+   Make backend rejects such build paths, compilation uses a temporary
+   space-free directory and copies logs and summaries into `build/`.
 4. Strengthen the reference test so it separately reports:
    - 16/16 numerical outputs;
    - AXI-Lite read/write completion;

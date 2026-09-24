@@ -71,6 +71,10 @@ For every published benchmark or synthesis result, record:
 
 ## Markdown standards
 
+- Write project goals, choices, and results from my point of view.
+- Keep the tone natural and direct. Do not use AI-style filler, marketing
+  language, or unnecessary polish.
+- Preserve historical coursework documents in their original voice.
 - Give every document one clear H1 title.
 - Start with purpose and scope, then move from overview to details.
 - Keep headings descriptive and nesting consistent.
