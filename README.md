@@ -77,9 +77,15 @@ From the repository root:
 ```bash
 make doctor
 make baseline
+make lint
+make test-integration
 ```
 
 `make baseline` reproduces my 4x4 M4 numerical result and writes its output to
 the ignored `build/` directory. `make baseline-strict` also checks completion
 status. It currently fails because the old test does not observe `DONE`; I am
 keeping that failure visible until I fix and test the control path.
+
+The active RTL is under [`rtl/`](rtl/README.md), and the active testbenches are
+under [`tb/`](tb/README.md). These files currently match the M4 implementation;
+I have not started changing the design logic yet.
