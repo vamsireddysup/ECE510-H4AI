@@ -333,13 +333,16 @@ module qkt_chiplet_top #(
                         for (int i = 0; i < TILE_SIZE; i++)
                             for (int j = 0; j < TILE_SIZE; j++)
                                 acc_bank[calc_acc_bank][block][i][j] <= '0;
+                    /* verilator lint_off BLKLOOPINIT */
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
                             acc_bank[calc_acc_bank][0][i][j] <=
                                 ACC_W'(decode(q_bank[calc_q_bank][i][0]) *
                                 decode(K_REUSE_EN ? k_cache[calc_col+j][0] :
                                        k_bank[calc_k_bank][j][0]));
+                    /* verilator lint_on BLKLOOPINIT */
                 end else if (calc_busy) begin
+                    /* verilator lint_off BLKLOOPINIT */
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
                             acc_bank[calc_acc_bank][calc_depth/SCALE_BLOCK_SIZE][i][j] <=
@@ -348,6 +351,7 @@ module qkt_chiplet_top #(
                                 ACC_W'(decode(q_bank[calc_q_bank][i][calc_depth]) *
                                 decode(K_REUSE_EN ? k_cache[calc_col+j][calc_depth] :
                                        k_bank[calc_k_bank][j][calc_depth]));
+                    /* verilator lint_on BLKLOOPINIT */
                     if (calc_depth == D_HEAD-1) begin
                         calc_busy <= 1'b0; acc_valid[calc_acc_bank] <= 1'b1;
                         acc_row[calc_acc_bank] <= calc_row;
