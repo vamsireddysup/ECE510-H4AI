@@ -14,9 +14,12 @@ PATTERN = re.compile(
     r"T=(\d+) D=(\d+) scores=(\d+) tiles=(\d+) cycles=(\d+) "
     r"in_beats=(\d+) out_beats=(\d+) stalls=(\d+) PASS"
 )
-DIR_PATTERN = re.compile(r"b(\d+)-t(\d+)-d(\d+)-reuse([01])")
+DIR_PATTERN = re.compile(
+    r"b(\d+)-t(\d+)-d(\d+)-reuse([01])-sb(\d+)-sl(\d+)"
+)
 COLUMNS = (
-    "tile_size", "t_max", "d_head", "k_reuse", "T", "tiles",
+    "tile_size", "t_max", "d_head", "k_reuse", "scale_block_size",
+    "score_lanes", "T", "tiles",
     "scores", "cycles", "scores_per_cycle", "array_utilization",
     "input_beats", "output_beats", "output_stalls", "host_bytes",
     "useful_bytes", "flops", "wire_flops_per_byte"
@@ -29,7 +32,9 @@ def rows() -> list[dict[str, int | float]]:
         config = DIR_PATTERN.fullmatch(log.parent.name)
         if not config:
             continue
-        tile, t_max, depth, reuse = map(int, config.groups())
+        tile, t_max, depth, reuse, scale_block, score_lanes = map(
+            int, config.groups()
+        )
         seen: set[int] = set()
         for match in PATTERN.finditer(log.read_text()):
             t, measured_depth, scores, tiles, cycles, in_beats, out_beats, stalls = map(int, match.groups())
@@ -40,7 +45,9 @@ def rows() -> list[dict[str, int | float]]:
             host_bytes = 8 * (in_beats + out_beats)
             data.append({
                 "tile_size": tile, "t_max": t_max, "d_head": depth,
-                "k_reuse": reuse, "T": t, "tiles": tiles, "scores": scores,
+                "k_reuse": reuse, "scale_block_size": scale_block,
+                "score_lanes": score_lanes, "T": t, "tiles": tiles,
+                "scores": scores,
                 "cycles": cycles, "scores_per_cycle": scores / cycles,
                 "array_utilization": flops / (cycles * 2 * tile * tile),
                 "input_beats": in_beats, "output_beats": out_beats,

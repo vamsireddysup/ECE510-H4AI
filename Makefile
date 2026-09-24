@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help doctor check-docs lint baseline baseline-strict test-model test-integration test-integration-large test-integration-reuse test-integration-reuse-large test-array8 test-array16 test-array8-large test-array16-large report-sim test clean
+.PHONY: help doctor check-docs lint baseline baseline-strict test-model test-integration test-integration-large test-integration-reuse test-integration-reuse-large test-array8 test-array16 test-array8-large test-array16-large test-precision-rtl report-sim test clean
 
 help:
 	@printf '%s\n' \
@@ -20,6 +20,7 @@ help:
 	  '  make test-array16    Verify 16x16, D_HEAD=64' \
 	  '  make test-array8-large  Benchmark 8x8 at T=64/128/512' \
 	  '  make test-array16-large Benchmark 16x16 at T=64/128/512' \
+	  '  make test-precision-rtl Compare T=512 RTL scores bit-exactly to the model' \
 	  '  make report-sim     Summarize available simulation logs as CSV' \
 	  '  make test            Run the current required checks' \
 	  '  make clean           Remove repository-local generated output'
@@ -65,6 +66,9 @@ test-array8-large:
 
 test-array16-large:
 	@./scripts/run_integration.sh --array16-large
+
+test-precision-rtl:
+	@./scripts/run_precision_rtl.sh
 
 report-sim:
 	@mkdir -p build/integration

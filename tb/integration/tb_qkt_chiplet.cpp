@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #ifndef TEST_D
@@ -19,7 +20,11 @@
 #ifndef TEST_B
 #define TEST_B 4
 #endif
+#ifndef TEST_SCALE_BLOCK
+#define TEST_SCALE_BLOCK 32
+#endif
 static constexpr int B=TEST_B, D=TEST_D, TMAX=TEST_TMAX;
+static constexpr int BS=TEST_SCALE_BLOCK, BLOCKS=(D+BS-1)/BS;
 #ifdef TEST_LARGE
 static constexpr bool STRESS_STALLS=false;
 #else
@@ -36,6 +41,11 @@ static bool legacy_mode=false;
 static uint32_t pattern_seed=0;
 static bool varied_scales=false;
 static int extreme_mode=0;
+static bool precision_mode=false;
+static std::vector<uint8_t> precision_q,precision_k;
+static std::vector<float> precision_qscale,precision_kscale;
+static std::vector<uint32_t> precision_scores,precision_reference;
+static double precision_diff_sq=0.0,precision_ref_sq=0.0,precision_abs=0.0;
 static void step() { dut.clk=0; dut.eval(); dut.clk=1; dut.eval(); ++cycles; }
 static void check(bool ok, const char* msg) { if (!ok) throw std::runtime_error(msg); }
 static uint32_t bits(float x) { uint32_t v; std::memcpy(&v,&x,4); return v; }
@@ -106,6 +116,7 @@ static void send_beat(uint64_t data,bool last,int gap=0) {
     throw std::runtime_error("input stream timeout");
 }
 static int code(int row,int depth,int salt) {
+    if(precision_mode) return salt==1 ? precision_q[row*D+depth] : precision_k[row*D+depth];
     if(legacy_mode) {
         static const int pattern[4][4]={{2,0,2,0},{0,2,0,2},{2,2,0,0},{0,0,2,2}};
         return pattern[row][depth];
@@ -119,23 +130,28 @@ static int code(int row,int depth,int salt) {
     }
     return (row*7+depth*3+salt)%16;
 }
-static float qscale(int row) {
+static float qscale(int row,int block=0) {
+    if(precision_mode) return precision_qscale[row*BLOCKS+block];
     if(legacy_mode) return 1.0f;
-    if(varied_scales) { static const float v[]={.25f,1.25f,-1.0f,0.0f}; return v[row%4]; }
-    return row%2 ? 2.0f:1.0f;
+    if(varied_scales) { static const float v[]={.25f,1.25f,-1.0f,0.0f}; return v[(row+block)%4]; }
+    return (row+block)%2 ? 2.0f:1.0f;
 }
-static float kscale(int row) {
+static float kscale(int row,int block=0) {
+    if(precision_mode) return precision_kscale[row*BLOCKS+block];
     if(legacy_mode) return 1.0f;
-    if(varied_scales) { static const float v[]={1.5f,-.5f,2.0f,.75f}; return v[row%4]; }
-    return row%2 ? .5f:1.0f;
+    if(varied_scales) { static const float v[]={1.5f,-.5f,2.0f,.75f}; return v[(row+block)%4]; }
+    return (row+block)%2 ? .5f:1.0f;
 }
 static void send_scales(int t, int malformed=0) {
-    for(int b=0;b<t;b++) {
+    for(int b=0;b<t*BLOCKS;b++) {
         // Scale order is Q[0..T-1], then K[0..T-1].
-        auto value=[&](int idx)->uint32_t { return bits(idx<t ? qscale(idx) : kscale(idx-t)); };
+        auto value=[&](int idx)->uint32_t {
+            return bits(idx<t*BLOCKS ? qscale(idx/BLOCKS,idx%BLOCKS) :
+                kscale((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS));
+        };
         uint32_t lo=value(2*b), hi=value(2*b+1);
         send_beat((uint64_t(hi)<<32)|lo,
-                  malformed==1 ? b==0 : (malformed==2 ? false : b==t-1), STRESS_STALLS ? b%3 : 0);
+                  malformed==1 ? b==0 : (malformed==2 ? false : b==t*BLOCKS-1), STRESS_STALLS ? b%3 : 0);
         if(malformed==1) return;
     }
 }
@@ -155,15 +171,24 @@ static void send_bad_tile(bool early) {
     }
 }
 static float expected(int row,int col) {
-    int sum=0;
-    for(int d=0;d<D;d++) sum+=half(code(row,d,1))*half(code(col,d,5));
-    return (sum*0.25f)*qscale(row)*kscale(col);
+    if(precision_mode) return flt(precision_scores[row*TMAX+col]);
+    float score=0.0f;
+    for(int block=0;block<BLOCKS;block++) {
+        int sum=0, stop=std::min(D,(block+1)*BS);
+        for(int d=block*BS;d<stop;d++)
+            sum+=half(code(row,d,1))*half(code(col,d,5));
+        score+=(sum*0.25f)*qscale(row,block)*kscale(col,block);
+    }
+    return score;
 }
 struct StreamBeat { uint64_t data; bool last; int gap; };
 static void append_scales(std::vector<StreamBeat>& stream,int t) {
-    for(int b=0;b<t;b++) {
-        auto value=[&](int idx)->uint32_t { return bits(idx<t ? qscale(idx) : kscale(idx-t)); };
-        stream.push_back({(uint64_t(value(2*b+1))<<32)|value(2*b),b==t-1,
+    for(int b=0;b<t*BLOCKS;b++) {
+        auto value=[&](int idx)->uint32_t {
+            return bits(idx<t*BLOCKS ? qscale(idx/BLOCKS,idx%BLOCKS) :
+                kscale((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS));
+        };
+        stream.push_back({(uint64_t(value(2*b+1))<<32)|value(2*b),b==t*BLOCKS-1,
                           STRESS_STALLS ? b%3 : 0});
     }
 }
@@ -198,8 +223,9 @@ static void receive_tile(int qr,int kc,int t,int& checked) {
                 int row=qr+got/cols, col=kc+got%cols;
                 float actual=flt(uint32_t(held>>(32*lane)));
                 float want=expected(row,col);
-                if(std::fabs(actual-want)>0.0001f) {
-                    std::fprintf(stderr,"score (%d,%d): got %f want %f\n",row,col,actual,want);
+                if(bits(actual)!=bits(want)) {
+                    std::fprintf(stderr,"score (%d,%d): got %f [%08x] want %f [%08x]\n",
+                                 row,col,actual,bits(actual),want,bits(want));
                     throw std::runtime_error("score mismatch");
                 }
                 checked++;
@@ -253,9 +279,17 @@ static void run_case(int t) {
             for(int lane=0;lane<2 && tile_got<count;lane++,tile_got++) {
                 int row=qr+tile_got/cols, col=kc+tile_got%cols;
                 float actual=flt(uint32_t(held>>(32*lane))), want=expected(row,col);
-                if(std::fabs(actual-want)>0.0001f) {
-                    std::fprintf(stderr,"score (%d,%d): got %f want %f\n",row,col,actual,want);
+                if(bits(actual)!=bits(want)) {
+                    std::fprintf(stderr,"score (%d,%d): got %f [%08x] want %f [%08x]\n",
+                                 row,col,actual,bits(actual),want,bits(want));
                     throw std::runtime_error("score mismatch");
+                }
+                if(precision_mode) {
+                    double reference=flt(precision_reference[row*TMAX+col]);
+                    double difference=double(actual)-reference;
+                    precision_diff_sq+=difference*difference;
+                    precision_ref_sq+=reference*reference;
+                    precision_abs+=std::fabs(difference);
                 }
                 checked++;
             }
@@ -272,7 +306,7 @@ static void run_case(int t) {
     check(read_reg(0x04)==1,"completion or error status");
     check(read_reg(0x0C)==uint32_t(tiles),"tile count");
     int n=(t+B-1)/B;
-    int input_beats=t+(REUSE ? 2*n : n+n*n)*((B*D+15)/16);
+    int input_beats=t*BLOCKS+(REUSE ? 2*n : n+n*n)*((B*D+15)/16);
     check(read_reg(0x20)==uint32_t(input_beats),"input beat count");
     int output_beats=0;
     for(int qr=0;qr<t;qr+=B)
@@ -284,14 +318,37 @@ static void run_case(int t) {
     check(read_reg(0x30)==uint32_t(tiles*D),"compute cycles");
     uint32_t core_cycles=read_reg(0x10);
     if(!STRESS_STALLS && !REUSE && B==4 && D==64 && t==512)
-        check(core_cycles<=1049150,"4x4 T=512 cycle regression");
+        check(core_cycles<=1049665,"4x4 T=512 cycle regression");
     std::printf("T=%d D=%d scores=%d tiles=%d cycles=%u in_beats=%u out_beats=%u stalls=%u PASS\n",
         t,D,checked,tiles,core_cycles,read_reg(0x20),read_reg(0x24),read_reg(0x2C));
 }
 int main(int argc,char** argv) {
     Verilated::commandArgs(argc,argv);
     try {
-        reset(); check(read_reg(0x1C)==(REUSE?2:1),"stream version");
+#ifdef TEST_PRECISION
+        check(argc>=2,"precision capture path missing");
+        std::FILE* capture=std::fopen(argv[1],"rb");
+        check(capture!=nullptr,"precision capture open failed");
+        uint32_t header[3];
+        check(std::fread(header,sizeof(uint32_t),3,capture)==3,"precision header");
+        check(header[0]==uint32_t(TMAX) && header[1]==uint32_t(D) &&
+              header[2]==uint32_t(BLOCKS),"precision capture shape");
+        precision_qscale.resize(TMAX*BLOCKS); precision_kscale.resize(TMAX*BLOCKS);
+        precision_q.resize(TMAX*D); precision_k.resize(TMAX*D);
+        precision_scores.resize(TMAX*TMAX); precision_reference.resize(TMAX*TMAX);
+        check(std::fread(precision_qscale.data(),sizeof(float),precision_qscale.size(),capture)==precision_qscale.size(),"Q scales");
+        check(std::fread(precision_kscale.data(),sizeof(float),precision_kscale.size(),capture)==precision_kscale.size(),"K scales");
+        check(std::fread(precision_q.data(),1,precision_q.size(),capture)==precision_q.size(),"Q codes");
+        check(std::fread(precision_k.data(),1,precision_k.size(),capture)==precision_k.size(),"K codes");
+        check(std::fread(precision_scores.data(),sizeof(uint32_t),precision_scores.size(),capture)==precision_scores.size(),"model scores");
+        check(std::fread(precision_reference.data(),sizeof(uint32_t),precision_reference.size(),capture)==precision_reference.size(),"reference scores");
+        std::fclose(capture); precision_mode=true;
+        reset(); check(read_reg(0x1C)==3,"stream version"); run_case(TMAX);
+        std::printf("RTL_RELATIVE_FROBENIUS=%.9f RTL_MEAN_ABS_ERROR=%.9f\n",
+            std::sqrt(precision_diff_sq/precision_ref_sq),precision_abs/(TMAX*TMAX));
+        return 0;
+#endif
+        reset(); check(read_reg(0x1C)==(REUSE?4:3),"stream version");
         write_data_first(0x08,4);
         check(read_reg(0x08)==4,"AXI W-before-AW value");
         write_reg(0x08,0x00000100,0x2);

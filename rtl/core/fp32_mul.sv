@@ -130,8 +130,31 @@ module fp32_mul (
     end
 
     // -----------------------------------------------------------------------
-    // Stage 3: normalize and pack
+    // Stage 3: normalize, round to nearest even, and pack
     // -----------------------------------------------------------------------
+    logic [23:0] rounded_significand;
+    logic [24:0] rounded_extended;
+    logic [8:0] rounded_exponent;
+    logic round_increment;
+    always_comb begin
+        if (s2_product[47]) begin
+            rounded_significand = s2_product[47:24];
+            round_increment = s2_product[23] &&
+                ((|s2_product[22:0]) || s2_product[24]);
+            rounded_exponent = s2_exp_sum + 9'd1;
+        end else begin
+            rounded_significand = s2_product[46:23];
+            round_increment = s2_product[22] &&
+                ((|s2_product[21:0]) || s2_product[23]);
+            rounded_exponent = s2_exp_sum;
+        end
+        rounded_extended = {1'b0, rounded_significand} + 25'(round_increment);
+        if (rounded_extended[24]) begin
+            rounded_significand = rounded_extended[24:1];
+            rounded_exponent = rounded_exponent + 9'd1;
+        end else rounded_significand = rounded_extended[23:0];
+    end
+
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             result    <= 32'h0;
@@ -141,23 +164,13 @@ module fp32_mul (
 
             if (s2_special) begin
                 result <= s2_special_result;
-            end else begin
-                // Product is 48 bits: sig_a(24) x sig_b(24)
-                // Both normalized: bit 47 or 46 is the leading 1
-                if (s2_product[47]) begin
-                    // Leading 1 at bit 47 -- shift right 1, exp+1
-                    // Result mantissa = product[46:24]
-                    result <= {s2_result_sign,
-                               s2_exp_sum[7:0] + 8'h1,
-                               s2_product[46:24]};
-                end else begin
-                    // Leading 1 at bit 46 -- no shift needed
-                    // Result mantissa = product[45:23]
-                    result <= {s2_result_sign,
-                               s2_exp_sum[7:0],
-                               s2_product[45:23]};
-                end
-            end
+            end else if (rounded_exponent[8] || rounded_exponent >= 9'd255)
+                result <= {s2_result_sign, 8'hff, 23'h0};
+            else if (rounded_exponent == 0)
+                result <= {s2_result_sign, 31'h0};
+            else
+                result <= {s2_result_sign, rounded_exponent[7:0],
+                           rounded_significand[22:0]};
         end
     end
 
