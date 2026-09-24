@@ -1,40 +1,31 @@
+# Local environments and language caches
 hw4ai-env/
 __pycache__/
-hw4ai-env/
-__pycache__/
+*.py[cod]
+
+# Generated simulation/build products
+build/
+obj_dir/
+**/obj_*/
+*.vcd
+*.fst
+*.swp
+*.swo
+
+# Local reference material
 reference/
-project/m2/hdl/tb/obj_dir/
-project/m2/hdl/tb/obj_array/
-project/m2/hdl/tb/obj_pe/
+
+# Codefest-generated products
 codefest/cf04/hdl/sim_A
 codefest/cf04/hdl/sim_B
 codefest/cf04/hdl/sim_correct
-codefest/cf04/cocotb_mac/__pycache__/
 codefest/cf04/cocotb_mac/sim_build/
 codefest/cf04/cocotb_mac/results.xml
-project/m2/hdl/tb/*.vcd
-project/m2/hdl/tb/obj_pe/
-project/m2/hdl/tb/obj_array/
-project/m2/hdl/tb/obj_axi/
-project/m2/hdl/tb/obj_stream/
-*.swp
-*.swo
-project/m2/tb/obj_*/
-project/m2/tb/*.vcd
-project/upgrade/tb/obj_*/
-project/upgrade/tb/*.vcd
-project/upgrade/tb/obj_array_golden/
-project/upgrade_archive/tb/obj_*/
-project/upgrade_archive/tb/*.vcd
-project/m2/tb/obj_*/
-project/m2/tb/*.vcd
+
+# OpenLane/Yosys run products; curated reports remain tracked
 project/m3/runs/RUN_*/
 project/m3/runs/*.log
 project/m3/runs/synth_out.v
 project/m3/openlane1/runs/
-project/m3/runs/RUN_*/
-project/m3/openlane1/runs/
-project/m3/runs/*.log
 project/m3/runs/*.v
 project/m4/openlane/runs/
-chiplet_top_wave.vcd

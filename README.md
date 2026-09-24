@@ -1,4 +1,3 @@
-# ECE 510 -- Hardware for AI/ML -- Spring 2026
 # FP4 QK^T Accelerator Chiplet
 
 **Student:** Vamsidhar Reddy Eraganeni
@@ -60,3 +59,13 @@ Planned improvements to reach higher frequency (future work):
 ## Repository
 
 GitHub: https://github.com/vamsireddysup/ECE510-H4AI
+
+## Continuing development
+
+The M1-M4 directories are preserved course-submission snapshots. Future work
+starts from the verified M4 baseline and will move into one canonical
+development tree instead of editing duplicated RTL copies.
+
+Start with the [documentation index](docs/README.md) for the current engineering
+context, professional reorganization plan, development roadmap, and repository
+working conventions.
