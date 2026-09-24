@@ -25,6 +25,8 @@ An optional version 2 build caches K for a whole command. At T=512 it lowers
 traffic to 1,085,440 bytes and core cycles to 1,561,088. Simulated 8x8 and
 16x16 default builds complete the same workload in 817,664 and 534,016 core
 cycles. Their mapped cell areas at `T_MAX=16` are 571,637 and 1,446,323 um².
+At `T_MAX=512`, the mapped 4x4 standard-cell areas are 1,596,280 um² for
+the default design and 6,672,971 um² for register-based K reuse.
 These variants have not closed full-chip timing or power. The
 [design-space record](docs/results/design-space.md) compares their tradeoffs.
 
@@ -45,6 +47,7 @@ make test-integration-large  # T=64/128/512 at D_HEAD=64
 make test-integration-reuse-large # optional K reuse version 2
 make test-array8-large        # 8x8 simulated sweep
 make test-array16-large       # 16x16 simulated sweep
+make report-sim               # cycle, utilization, and byte CSV
 python3 scripts/bench_cpu.py > build/cpu-benchmark.json
 python3 scripts/eval_precision.py > build/synthetic-precision.json
 ./scripts/run_synthesis.sh 4 64 16

@@ -76,6 +76,8 @@ command-level K scratchpad. `make test-integration-reuse` and
 tests and their cell-area results are recorded in `docs/results/design-space.md`.
 `scripts/eval_precision.py` records synthetic score error under an explicit
 row-scale quantizer. It does not substitute for real transformer activations.
+`make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and
+array utilization from accepted-beat simulation logs.
 `scripts/run_physical.sh` runs the complete 4x4/D_HEAD=64/T_MAX=16 top in
 OpenLane; record its revision and final routed status before using its clock.
 Treat mapped Sky130 cell area as synthesis only until full-chip timing, routing,

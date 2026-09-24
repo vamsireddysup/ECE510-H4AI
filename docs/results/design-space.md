@@ -11,12 +11,12 @@ change committed as `bd28084`. The AXI4-Lite handshake fix made after that
 measurement changes cell counts, so the area column is a prior RTL revision;
 the cycle column below is from the corrected control slave.
 
-| Tile | Contract | T=512 tiles | Core cycles | Host bytes | FLOP/byte | Scores/cycle | Sky130 mapped cell area, T_MAX=16 |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 4x4 | v1, K reload | 16,384 | 1,821,184 | 3,166,208 | 10.60 | 0.144 | 304,468 um² |
-| 4x4 | v2, K reuse | 16,384 | 1,561,088 | 1,085,440 | 30.91 | 0.168 | 417,158 um² |
-| 8x8 | v1, K reload | 4,096 | 817,664 | 2,117,632 | 15.85 | 0.321 | 571,637 um² |
-| 16x16 | v1, K reload | 1,024 | 534,016 | 1,593,344 | 21.06 | 0.491 | 1,446,323 um² |
+| Tile | Contract | T=512 tiles | Core cycles | Host bytes | FLOP/byte | Scores/cycle | Array active | Sky130 mapped cell area, T_MAX=16 |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4x4 | v1, K reload | 16,384 | 1,821,184 | 3,166,208 | 10.60 | 0.144 | 57.58% | 304,468 um² |
+| 4x4 | v2, K reuse | 16,384 | 1,561,088 | 1,085,440 | 30.91 | 0.168 | 67.17% | 417,158 um² |
+| 8x8 | v1, K reload | 4,096 | 817,664 | 2,117,632 | 15.85 | 0.321 | 32.06% | 571,637 um² |
+| 16x16 | v1, K reload | 1,024 | 534,016 | 1,593,344 | 21.06 | 0.491 | 12.27% | 1,446,323 um² |
 
 The version 2 K scratchpad saves 2,080,768 transferred bytes and 260,096
 simulated cycles at T=512 compared with 4x4 version 1. At `T_MAX=16`, it adds
@@ -24,6 +24,15 @@ simulated cycles at T=512 compared with 4x4 version 1. At `T_MAX=16`, it adds
 codes. Its implemented register array has parallel row reads and has not been
 mapped to a physical memory macro. Thus the cell-area comparison is a small
 capacity experiment, not the physical cost of the T=512 scratchpad.
+
+I also mapped both complete 4x4 variants at `T_MAX=512` with the corrected
+AXI4-Lite slave, Yosys 0.44, and the same Sky130 HD typical Liberty file.
+Version 1 occupies **1,596,280 um²** of mapped standard cells. Version 2
+occupies **6,672,971 um²**. Command-level K reuse cuts host bytes by about
+2.9x, but the current register and mux implementation grows mapped cell area
+by about 4.18x at full capacity. These are synthesis areas without clock-tree,
+routing, timing, macro, or power results. Version 1 remains the default until
+a physical memory organization changes that tradeoff.
 
 The local Sky130 macro set has a 2 KiB 32x512 1RW1R block with a 683.1 by
 416.54 um LEF footprint. Eight such macros would provide 16 KiB and occupy
@@ -35,7 +44,8 @@ by 397.5 um; sixteen blocks would occupy 3,051,401 um². These are candidate
 capacity and footprint estimates from the locally installed PDK revision
 `0fe599b2afb6708d281543108caf8310912f54af`, not an SRAM-integrated top.
 
-Larger arrays reduce simulated cycles but increase mapped area. The 16x16
+Array active is useful FLOPs divided by core cycles times the array's two
+FLOPs per PE per cycle ceiling. Larger arrays reduce simulated cycles but increase mapped area. The 16x16
 variant is 3.41 times faster in core cycles than 4x4 version 1 for T=512, but
 its mapped area is 4.75 times as large at T_MAX=16. The output interface has a
 hard two-score-per-cycle ceiling. Current 16x16 sustained output is 0.491

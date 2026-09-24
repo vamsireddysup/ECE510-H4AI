@@ -27,8 +27,10 @@ not a design assumption. The M1-M4 snapshots remain unchanged in `archive/`.
   under the stated quantizer. It is not a real-activation result; see
   [the precision record](results/precision.md).
 - Optional stream version 2 loads K once into an RTL scratchpad. I verified
-  it at T=512 and measured its byte and cycle savings. I also verified 8x8
-  and 16x16 versions of the default stream and mapped all three tile sizes
+  it at T=512 and measured its byte and cycle savings. Full-capacity
+  standard-cell mapping grows to 6.67 mm², so it remains an experiment. I
+  also verified 8x8 and 16x16 versions of the default stream and mapped all
+  three tile sizes
   through full-top Sky130 cell synthesis. The [design-space record](results/design-space.md)
   keeps this evidence separate from timing closure.
 
