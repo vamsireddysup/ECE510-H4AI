@@ -159,6 +159,26 @@ static float expected(int row,int col) {
     for(int d=0;d<D;d++) sum+=half(code(row,d,1))*half(code(col,d,5));
     return (sum*0.25f)*qscale(row)*kscale(col);
 }
+struct StreamBeat { uint64_t data; bool last; int gap; };
+static void append_scales(std::vector<StreamBeat>& stream,int t) {
+    for(int b=0;b<t;b++) {
+        auto value=[&](int idx)->uint32_t { return bits(idx<t ? qscale(idx) : kscale(idx-t)); };
+        stream.push_back({(uint64_t(value(2*b+1))<<32)|value(2*b),b==t-1,
+                          STRESS_STALLS ? b%3 : 0});
+    }
+}
+static void append_tile(std::vector<StreamBeat>& stream,int start,int t,int salt) {
+    constexpr int N=B*D;
+    for(int b=0;b<(N+15)/16;b++) {
+        uint64_t beat=0;
+        for(int lane=0;lane<16;lane++) {
+            int element=b*16+lane;
+            if(element<N && start+element/D<t)
+                beat|=uint64_t(code(start+element/D,element%D,salt))<<(4*lane);
+        }
+        stream.push_back({beat,b==(N+15)/16-1,STRESS_STALLS ? b%4 : 0});
+    }
+}
 static void receive_tile(int qr,int kc,int t,int& checked) {
     int rows=std::min(B,t-qr), cols=std::min(B,t-kc), count=rows*cols, got=0;
     uint64_t held=0; bool held_last=false, stalled=false;
@@ -191,16 +211,63 @@ static void receive_tile(int qr,int kc,int t,int& checked) {
 }
 static void run_case(int t) {
     write_reg(0x08,t); write_reg(0x00,1);
-    send_scales(t);
-    if(REUSE) for(int kc=0;kc<t;kc+=B) send_tile(kc,t,5);
-    int checked=0, tiles=0;
+    std::vector<StreamBeat> stream;
+    append_scales(stream,t);
+    if(REUSE) for(int kc=0;kc<t;kc+=B) append_tile(stream,kc,t,5);
     for(int qr=0;qr<t;qr+=B) {
-        send_tile(qr,t,1);
-        for(int kc=0;kc<t;kc+=B) {
-            if(!REUSE) send_tile(kc,t,5);
-            receive_tile(qr,kc,t,checked); tiles++;
+        append_tile(stream,qr,t,1);
+        if(!REUSE) for(int kc=0;kc<t;kc+=B) append_tile(stream,kc,t,5);
+    }
+
+    size_t input_index=0; int input_gap=stream.empty()?0:stream[0].gap;
+    int checked=0, tiles=0, qr=0, kc=0, tile_got=0;
+    bool stalled=false, forced_output_stall=!STRESS_STALLS;
+    uint64_t held=0; bool held_last=false;
+    for(int timeout=0;timeout<100000000 && checked<t*t;timeout++) {
+        if(input_index<stream.size() && input_gap==0) {
+            dut.s_tvalid=1; dut.s_tdata=stream[input_index].data;
+            dut.s_tlast=stream[input_index].last;
+        } else dut.s_tvalid=0;
+        dut.m_tready=forced_output_stall && (!STRESS_STALLS || (timeout%5>=2));
+        dut.clk=0; dut.eval();
+        bool input_transfer=dut.s_tvalid && dut.s_tready;
+        if(stalled)
+            check(dut.m_tvalid && dut.m_tdata==held && bool(dut.m_tlast)==held_last,
+                  "output changed under backpressure");
+        int rows=std::min(B,t-qr), cols=std::min(B,t-kc), count=rows*cols;
+        bool output_transfer=dut.m_tvalid && dut.m_tready;
+        if(dut.m_tvalid) {
+            held=dut.m_tdata; held_last=dut.m_tlast;
+            check(bool(dut.m_tlast)==(tile_got+2>=count),"TLAST wrong");
+        }
+        stalled=dut.m_tvalid && !dut.m_tready;
+        step();
+        if(stalled) forced_output_stall=true;
+        if(input_transfer) {
+            input_index++;
+            if(input_index<stream.size()) input_gap=stream[input_index].gap;
+            dut.s_tvalid=0; dut.s_tlast=0;
+        } else if(input_gap>0) input_gap--;
+        if(output_transfer) {
+            if(tile_got+1==count) check(uint32_t(held>>32)==0,"final output padding");
+            for(int lane=0;lane<2 && tile_got<count;lane++,tile_got++) {
+                int row=qr+tile_got/cols, col=kc+tile_got%cols;
+                float actual=flt(uint32_t(held>>(32*lane))), want=expected(row,col);
+                if(std::fabs(actual-want)>0.0001f) {
+                    std::fprintf(stderr,"score (%d,%d): got %f want %f\n",row,col,actual,want);
+                    throw std::runtime_error("score mismatch");
+                }
+                checked++;
+            }
+            if(tile_got==count) {
+                tiles++; tile_got=0; kc+=B;
+                if(kc>=t) { kc=0; qr+=B; }
+            }
         }
     }
+    dut.s_tvalid=0; dut.m_tready=0;
+    check(input_index==stream.size(),"input stream incomplete");
+    check(checked==t*t,"score count");
     for(int i=0;i<100 && !(read_reg(0x04)&1);i++) step();
     check(read_reg(0x04)==1,"completion or error status");
     check(read_reg(0x0C)==uint32_t(tiles),"tile count");
@@ -215,9 +282,11 @@ static void run_case(int t) {
     if(STRESS_STALLS && t>1) check(read_reg(0x28)>0,"input stalls absent");
     if(STRESS_STALLS) check(read_reg(0x2C)>0,"output stalls absent");
     check(read_reg(0x30)==uint32_t(tiles*D),"compute cycles");
+    uint32_t core_cycles=read_reg(0x10);
+    if(!STRESS_STALLS && !REUSE && B==4 && D==64 && t==512)
+        check(core_cycles<=1049150,"4x4 T=512 cycle regression");
     std::printf("T=%d D=%d scores=%d tiles=%d cycles=%u in_beats=%u out_beats=%u stalls=%u PASS\n",
-        t,D,checked,tiles,read_reg(0x10),read_reg(0x20),read_reg(0x24),read_reg(0x2C));
-    check(checked==t*t,"score count");
+        t,D,checked,tiles,core_cycles,read_reg(0x20),read_reg(0x24),read_reg(0x2C));
 }
 int main(int argc,char** argv) {
     Verilated::commandArgs(argc,argv);
