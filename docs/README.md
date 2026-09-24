@@ -10,6 +10,7 @@ M1-M4 documents under `archive/` are course snapshots and remain unchanged.
 | [Packed stream protocol](STREAM_PROTOCOL.md) | Version 1 packet order, packing, status, and counters |
 | [Packed engine result](results/packed-engine.md) | Correctness, cycles, traffic, CPU baseline, synthesis scope |
 | [Design-space experiment](results/design-space.md) | K reuse, array-size sweeps, and SRAM candidates |
+| [Synthetic precision](results/precision.md) | Row-scaled FP4 error against FP32 QK^T |
 | [Latest verification](results/latest-verification.md) | Most recent local commands and tool versions |
 | [Repository reorganization plan](REPOSITORY_REORGANIZATION_PLAN.md) | Repository standards and migration history |
 | [Codex instructions](../CODEX.md) | Workflow and commit rules |

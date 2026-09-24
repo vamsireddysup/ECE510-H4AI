@@ -112,7 +112,7 @@ module qkt_chiplet_top #(
         for (int bit_index = 0; bit_index < ACC_W; bit_index++)
             if (mag[bit_index]) leading = bit_index;
         exponent = 8'(leading + 125);
-        fraction = 23'(mag << (23-leading));
+        fraction = 23'(mag) << (23-leading);
         quarter_to_fp32 = (value == 0) ? 32'h0 :
             {value[ACC_W-1], exponent, fraction};
     endfunction

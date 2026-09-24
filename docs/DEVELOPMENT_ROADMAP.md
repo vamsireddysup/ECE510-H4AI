@@ -22,6 +22,10 @@ not a design assumption. The M1-M4 snapshots remain unchanged in `archive/`.
 - A fixed-input, one-thread NumPy benchmark replaces the archived CPU timing
   as the local software baseline. It is observed throughput, not a peak
   ceiling for a Roofline model.
+- A fixed-seed synthetic precision evaluation measures row-scaled FP4 score
+  error against FP32 QK^T. At T=512 its relative Frobenius error is 14.90%
+  under the stated quantizer. It is not a real-activation result; see
+  [the precision record](results/precision.md).
 - Optional stream version 2 loads K once into an RTL scratchpad. I verified
   it at T=512 and measured its byte and cycle savings. I also verified 8x8
   and 16x16 versions of the default stream and mapped all three tile sizes

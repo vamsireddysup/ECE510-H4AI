@@ -73,6 +73,10 @@ Version 1 is the default K-reload build; `K_REUSE=1` selects version 2 and a
 command-level K scratchpad. `make test-integration-reuse` and
 `make test-integration-reuse-large` verify that variant. The 8x8 and 16x16
 tests and their cell-area results are recorded in `docs/results/design-space.md`.
+`scripts/eval_precision.py` records synthetic score error under an explicit
+row-scale quantizer. It does not substitute for real transformer activations.
+`scripts/run_physical.sh` runs the complete 4x4/D_HEAD=64/T_MAX=16 top in
+OpenLane; record its revision and final routed status before using its clock.
 Treat mapped Sky130 cell area as synthesis only until full-chip timing, routing,
 and power checks finish. Do not derive active latency from the archived 15 ns
 array-only constraint.

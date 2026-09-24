@@ -14,6 +14,7 @@ Sky130 cell areas belong to the earlier design-space revision.
 | `make test-array8` and `make test-array16` | Both sizes pass small edge and packet tests |
 | `make test-array8-large` and `make test-array16-large` | T=64/128/512, all scores pass |
 | `python3 scripts/bench_cpu.py` | Fixed-input, one-thread CPU timings recorded |
+| `python3 scripts/eval_precision.py` | Fixed-seed synthetic FP4 score error recorded |
 | Yosys full-top Sky130 HD mapping | 206,298 um² at 4x4/D=4; see design-space table for D=64 variants, all `T_MAX=16` |
 
 The integration suite checks `D_HEAD=4/64`, T=1/4/7/8/16, original M4

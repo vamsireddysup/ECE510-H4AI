@@ -46,6 +46,7 @@ make test-integration-reuse-large # optional K reuse version 2
 make test-array8-large        # 8x8 simulated sweep
 make test-array16-large       # 16x16 simulated sweep
 python3 scripts/bench_cpu.py > build/cpu-benchmark.json
+python3 scripts/eval_precision.py > build/synthetic-precision.json
 ./scripts/run_synthesis.sh 4 64 16
 ```
 
@@ -61,6 +62,7 @@ Generated logs and binaries stay under ignored `build/`.
 - [Packed stream protocol](docs/STREAM_PROTOCOL.md)
 - [Latest verification](docs/results/latest-verification.md)
 - [Design-space experiment](docs/results/design-space.md)
+- [Synthetic precision](docs/results/precision.md)
 - [Active RTL notes](rtl/README.md)
 - [Course archive](archive/README.md)
 
