@@ -5,12 +5,17 @@ E2M1 Q/K tiles and FP32 row scales, computes exact integer dot products in
 quarter units, applies two pipelined FP32 scale multipliers, and emits packed
 FP32 scores. See the [version 1 stream contract](../docs/stream-protocol.md).
 
+[`core/score_scaler.sv`](core/score_scaler.sv) owns the conversion from exact
+quarter-unit accumulators through both row-scale multipliers. Its `LANES`
+parameter is the widening point for P0.6; the active top currently instantiates
+one lane.
+
 `K_REUSE=1` selects protocol version 2 and a command-level RTL K scratchpad.
 `TILE_SIZE=8` and `16` also pass simulation; none of these variants has routed
 Sky130 timing or power evidence. The [design-space record](../docs/results/design-space.md)
 compares them.
 
-`rtl/filelist.f` lists the active top and its two dependencies, and `rtl/`
+`rtl/filelist.f` lists the active top and its three dependencies, and `rtl/`
 contains nothing else that is synthesizable. The superseded `systolic_array`,
 `pe`, `tile_controller`, FP4 multiplier, FP32 adder, and tile/scale buffer
 modules moved to [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md);

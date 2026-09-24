@@ -56,39 +56,24 @@ module qkt_chiplet_top #(
     logic [31:0] cache_tile;
     logic [31:0] launch_row, launch_col;
     logic [31:0] rows_here, cols_here, scores_here, tile_start;
-    logic [31:0] scale_a_result, scale_b_result;
-    logic scale_a_valid, scale_b_valid;
-    logic [INDEX_W-1:0] a_index_0, a_index_1, a_index_2;
-    logic [INDEX_W-1:0] b_index_0, b_index_1, b_index_2;
-    logic [$clog2(TILE_SIZE)-1:0] a_col_0, a_col_1, a_col_2;
+    logic [0:0] scaler_launch_valid, scaler_result_valid;
+    logic signed [0:0][ACC_W-1:0] scaler_acc;
+    logic [0:0][31:0] scaler_q_scale, scaler_k_scale, scaler_result;
+    logic [0:0][INDEX_W-1:0] scaler_index_in, scaler_result_index;
     logic launch_valid;
     assign launch_valid = state == SCALING && score_index < scores_here;
-    fp32_mul u_scale_q (.clk, .rst_n,
-        .a(quarter_to_fp32(acc[launch_row][launch_col])),
-        .b(sq[tile_row+launch_row]), .valid_in(launch_valid),
-        .result(scale_a_result), .valid_out(scale_a_valid));
-    fp32_mul u_scale_k (.clk, .rst_n, .a(scale_a_result),
-        .b(sk[tile_col+32'(a_col_2)]), .valid_in(scale_a_valid),
-        .result(scale_b_result), .valid_out(scale_b_valid));
-    always_ff @(posedge clk) begin
-        if (!rst_n) begin
-            a_index_0 <= 0; a_index_1 <= 0; a_index_2 <= 0;
-            a_col_0 <= 0; a_col_1 <= 0; a_col_2 <= 0;
-            b_index_0 <= 0; b_index_1 <= 0; b_index_2 <= 0;
-        end else begin
-            if (launch_valid) begin
-                a_index_0 <= INDEX_W'(score_index);
-                a_col_0 <= $clog2(TILE_SIZE)'(launch_col);
-            end
-            a_index_1 <= a_index_0;
-            a_index_2 <= a_index_1;
-            a_col_1 <= a_col_0;
-            a_col_2 <= a_col_1;
-            if (scale_a_valid) b_index_0 <= a_index_2;
-            b_index_1 <= b_index_0;
-            b_index_2 <= b_index_1;
-        end
-    end
+    assign scaler_launch_valid[0] = launch_valid;
+    assign scaler_acc[0] = acc[launch_row][launch_col];
+    assign scaler_q_scale[0] = sq[tile_row+launch_row];
+    assign scaler_k_scale[0] = sk[tile_col+launch_col];
+    assign scaler_index_in[0] = INDEX_W'(score_index);
+    score_scaler #(.ACC_W(ACC_W), .INDEX_W(INDEX_W), .LANES(1)) u_scaler (
+        .clk, .rst_n, .launch_valid(scaler_launch_valid),
+        .acc_in(scaler_acc), .q_scale_in(scaler_q_scale),
+        .k_scale_in(scaler_k_scale), .index_in(scaler_index_in),
+        .result_valid(scaler_result_valid), .result(scaler_result),
+        .result_index(scaler_result_index)
+    );
 
     function automatic signed [4:0] decode(input logic [3:0] code);
         logic signed [4:0] magnitude;
@@ -107,21 +92,6 @@ module qkt_chiplet_top #(
 
     // The accumulator is exact in units of 0.25. Its maximum magnitude at
     // D_HEAD=64 is 9216, so a signed 15-bit register suffices.
-    function automatic logic [31:0] quarter_to_fp32(input logic signed [ACC_W-1:0] value);
-        logic [ACC_W-1:0] mag;
-        logic [7:0] exponent;
-        logic [22:0] fraction;
-        int leading;
-        mag = value[ACC_W-1] ? $unsigned(-value) : $unsigned(value);
-        leading = 0;
-        for (int bit_index = 0; bit_index < ACC_W; bit_index++)
-            if (mag[bit_index]) leading = bit_index;
-        exponent = 8'(leading + 125);
-        fraction = 23'(mag) << (23-leading);
-        quarter_to_fp32 = (value == 0) ? 32'h0 :
-            {value[ACC_W-1], exponent, fraction};
-    endfunction
-
     assign rows_here = (tile_row + TILE_SIZE <= matrix_size) ?
         TILE_SIZE : matrix_size - tile_row;
     assign cols_here = (tile_col + TILE_SIZE <= matrix_size) ?
@@ -282,11 +252,11 @@ module qkt_chiplet_top #(
                             launch_row <= launch_row + 1;
                         end else launch_col <= launch_col + 1;
                     end
-                    if (scale_b_valid) begin
-                        scores[b_index_2] <= scale_b_result;
+                    if (scaler_result_valid[0]) begin
+                        scores[scaler_result_index[0]] <= scaler_result[0];
                         scaled_count <= scaled_count + 1;
                     end
-                    if (scale_b_valid && scaled_count+1 == scores_here) begin
+                    if (scaler_result_valid[0] && scaled_count+1 == scores_here) begin
                         send_index <= 0;
                         state <= OUTPUT;
                     end
