@@ -3,7 +3,7 @@ module qkt_chiplet_top #(
     parameter int TILE_SIZE = 4,
     parameter int D_HEAD = 64,
     parameter int T_MAX = 16,
-    parameter bit K_REUSE = 0
+    parameter int K_REUSE = 0
 )(
     input logic clk, rst_n,
     input logic awvalid, output logic awready, input logic [31:0] awaddr,
@@ -18,6 +18,9 @@ module qkt_chiplet_top #(
     output logic m_tvalid, input logic m_tready, output logic [63:0] m_tdata,
     output logic m_tlast
 );
+    // -GK_REUSE arrives as a 32-bit constant, so narrow it once here and use
+    // the 1-bit form at every test site.
+    localparam bit K_REUSE_EN = K_REUSE != 0;
     localparam int ACC_W = $clog2(144*D_HEAD+1)+1;
     localparam int INDEX_W = $clog2(TILE_SIZE*TILE_SIZE);
     logic start, done;
@@ -26,7 +29,7 @@ module qkt_chiplet_top #(
     logic [31:0] compute_cycles, scale_cycles;
     logic [3:0] error_code;
     logic [31:0] protocol_version;
-    assign protocol_version = K_REUSE ? 32'd2 : 32'd1;
+    assign protocol_version = K_REUSE_EN ? 32'd2 : 32'd1;
     axi4_lite_ctrl u_ctrl (
         .clk, .rst_n, .awvalid, .awready, .awaddr, .wvalid, .wready,
         .wdata, .wstrb, .bvalid, .bready, .bresp, .arvalid, .arready,
@@ -197,7 +200,7 @@ module qkt_chiplet_top #(
                     if (load_beat+1 == (2*matrix_size+1)/2) begin
                         if (!s_tlast) begin error_code <= 4'h3; done <= 1; state <= FINISHED; end
                         else begin
-                            state <= K_REUSE ? CACHE_K : LOAD_Q;
+                            state <= K_REUSE_EN ? CACHE_K : LOAD_Q;
                             load_beat <= 0;
                         end
                     end else if (s_tlast) begin error_code <= 4'h2; done <= 1; state <= FINISHED; end
@@ -210,7 +213,7 @@ module qkt_chiplet_top #(
                     if (load_beat+1 == (TILE_SIZE*D_HEAD+15)/16) begin
                         if (!s_tlast) begin error_code <= 4'h3; done <= 1; state <= FINISHED; end
                         else begin
-                            if (K_REUSE) begin
+                            if (K_REUSE_EN) begin
                                 state <= CALC;
                                 depth <= 0;
                                 for (int i = 0; i < TILE_SIZE; i++)
@@ -260,7 +263,7 @@ module qkt_chiplet_top #(
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
                             acc[i][j] <= acc[i][j] + ACC_W'(decode(q[i][depth]) *
-                                decode(K_REUSE ? k_cache[tile_col+j][depth] : k[j][depth]));
+                                decode(K_REUSE_EN ? k_cache[tile_col+j][depth] : k[j][depth]));
                     if (depth == D_HEAD-1) begin
                         state <= SCALING;
                         score_index <= 0;
@@ -297,7 +300,7 @@ module qkt_chiplet_top #(
                     tile_start <= cycle_count;
                     if (tile_col+TILE_SIZE < matrix_size) begin
                         tile_col <= tile_col + TILE_SIZE;
-                        if (K_REUSE) begin
+                        if (K_REUSE_EN) begin
                             depth <= 0;
                             for (int i = 0; i < TILE_SIZE; i++)
                                 for (int j = 0; j < TILE_SIZE; j++) acc[i][j] <= '0;
