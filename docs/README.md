@@ -12,7 +12,7 @@ M1-M4 documents under `archive/` are course snapshots and remain unchanged.
 | [Design-space experiment](results/design-space.md) | K reuse, array-size sweeps, and SRAM candidates |
 | [Synthetic precision](results/precision.md) | Row-scaled FP4 error against FP32 QK^T |
 | [Latest verification](results/latest-verification.md) | Most recent local commands and tool versions |
-| [Repository reorganization plan](REPOSITORY_REORGANIZATION_PLAN.md) | Repository standards and migration history |
+| [Repository layout](repository-layout.md) | Directory layout, naming, and the documentation contract |
 | [Codex instructions](../CODEX.md) | Workflow and commit rules |
 | [M4 README](../archive/coursework/project/m4/README.md) | Historical submission and reproduction |
 
