@@ -27,9 +27,12 @@ Gaussian workload. P0.8 must test transformer activations with outliers before
 that synthetic result can support a usability claim. See
 [precision](../results/precision.md).
 
-**K reuse works but its storage does not.** Version 4 cuts host traffic 2.9x and
-input beats 57.4x, and grows mapped cell area 4.18x at full capacity because the
-scratchpad is a register array. See
+**K reuse saves traffic but no longer saves time.** Version 4 cuts host traffic
+2.91x and input beats 51.8x under the block-scale contract, but is 2,032 cycles
+slower because its complete cache fill is command startup. Version 3 occupies
+the 64-bit streams for only 37.75% of its T=512 command, so bandwidth is not its
+measured ceiling. The register scratchpad grows mapped cell area 4.18x at full
+capacity. P0.5 therefore waits for P0.7 power evidence. See
 [design space](../results/design-space.md).
 
 **Nothing is routed.** Every area figure is Yosys mapping. There is no frequency,
@@ -43,13 +46,15 @@ latency in seconds, or energy for this top.
 | P0.2 | **Complete:** sweep Bs 64/32/16/8/4/2 with FP32 and three E8M0 rules | [ADR 0003](../adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32 from softmax metrics |
 | P0.3 | **Complete:** overlap load, compute, scale, and output | 99.945% measured 4x4 array activity before the block-scale interface; scaling binds at 8x8/16x16 |
 | P0.4 | **Complete:** implement parameterized 1x32 FP32 scales | All T=512 RTL scores match the software path bit-exactly; 14.23% measured relative Frobenius error |
-| P0.5 | Give the K scratchpad banked storage with clocked reads | Version 4 at full capacity maps below version 3, or an ADR records why version 3 stays default |
 | P0.6 | **Complete:** decide output width from measurement | Keep 64 bits; two scaler lanes move 8x8 to CALC, four move 16x16 to OUTPUT |
 | P0.7 | Route the complete top at the selected configuration | Routed timing and power exist, so a latency in seconds exists |
+| P0.5 | Decide K reuse after P0.7 | Project avoided host-transfer energy against routed power and storage cost; implement SRAM only if it wins, otherwise close the experiment in an ADR |
 | P0.8 | Measure error on real transformer activations | A pinned capture with its SHA-256 and a real-activation error, or a statement that no capture was obtained |
 
 P0.2 comes before the RTL stages so the interface is not rebuilt twice. P0.3 is
 format-independent, so it does not wait on P0.2.
+P0.7 now precedes P0.5 because K reuse has no cycle benefit after overlap; routed
+power is required before its traffic reduction can justify more storage.
 
 ## Note on stage ordering
 

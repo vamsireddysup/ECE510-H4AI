@@ -72,18 +72,26 @@ Stages and their exit conditions are in
 4. **P0.4, implement the chosen format in RTL.** Complete. The parameterized
    Bs=32 default matches the software model bit-exactly, and Bs=16 also passes
    the small integration suite.
-5. **P0.5, give the K scratchpad banked storage.** The installed 2 KiB Sky130
-   macro gives 16 KiB in 2,276,308 um² before routing, against 6,672,971 um² for
-   the register array, but its read is clocked and needs address scheduling the
-   combinational array does not have.
-6. **P0.6, decide the output width from measurement.** Complete. Keep 64 bits;
+5. **P0.6, decide the output width from measurement.** Complete. Keep 64 bits;
    widen score scaling first. Two lanes are sufficient at 8x8 and four reach
    the output limit at 16x16.
-7. **P0.7, route the complete top** at the selected configuration and record PDK
+6. **P0.7, route the complete top.** This now precedes P0.5. Record PDK
    and tool revision, clock constraint, area, setup and hold slack, power, and
    congestion. This is the first routed result for this top.
+7. **P0.5, decide K-reuse storage from routed energy evidence.** Version 4 is
+   2,032 cycles slower, while version 3 uses only 396,288 stream beats over
+   1,049,665 cycles, or 37.75% of one accepted beat per cycle. K reuse therefore
+   has no measured latency case. After P0.7 supplies power, compare the projected
+   energy of 2,080,768 avoided host bytes with the register or SRAM area and
+   power cost. Implement the installed 2 KiB macros only if that comparison wins.
 8. **P0.8, measure error on real transformer activations,** with the capture
    pinned by SHA-256.
+
+P0.7 moves ahead of P0.5 because phase overlap removed K reuse's original cycle
+benefit. Its remaining 2.91x traffic reduction may save off-chip energy, but that
+projected saving cannot be weighed against 4.18x mapped register area without a
+routed power baseline. P0.5 is now a decision made from that evidence rather
+than a prescheduled SRAM implementation.
 
 ### A correction to an earlier assumption
 
