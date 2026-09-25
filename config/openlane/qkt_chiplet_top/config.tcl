@@ -19,3 +19,6 @@ set ::env(PL_TARGET_DENSITY) 0.55
 set ::env(RUN_MAGIC) 1
 set ::env(RUN_LVS) 1
 set ::env(MAX_FANOUT_CONSTRAINT) 30
+set ::env(BASE_SDC_FILE) "/work/config/openlane/qkt_chiplet_top/constraints.sdc"
+set ::env(PNR_SDC_FILE) "/work/config/openlane/qkt_chiplet_top/constraints.sdc"
+set ::env(SIGNOFF_SDC_FILE) "/work/config/openlane/qkt_chiplet_top/constraints.sdc"
