@@ -37,6 +37,11 @@ EOF
 if [[ "$mode" == diagnostic ]]; then
     printf '\nset ::env(PL_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
     printf 'set ::env(GLB_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
+elif [[ "$mode" == route-timing ]]; then
+    # Large post-CTS hold sets make the placement repair effectively
+    # nonconvergent.  Let routed wire delay settle those paths, then run the
+    # global-routing timing repair before extracted signoff.
+    printf '\nset ::env(PL_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
 elif [[ "$mode" != full ]]; then
     printf 'Unknown physical mode: %s\n' "$mode" >&2
     exit 2
