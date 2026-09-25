@@ -16,6 +16,8 @@ scale_block="${SCALE_BLOCK_SIZE:-32}"
 die_area="${DIE_AREA:-0 0 1500 1500}"
 core_util="${FP_CORE_UTIL:-40}"
 target_density="${PL_TARGET_DENSITY:-0.55}"
+placement_hold_margin="${PL_HOLD_MARGIN:-0.1}"
+global_hold_margin="${GLB_HOLD_MARGIN:-0.05}"
 openlane_image="${OPENLANE_IMAGE:-efabless/openlane@sha256:26719ced90c315b8b4ad7b9dc3e9a176991cea4c3f3282660d8d60d0f0cae229}"
 build_dir="$repo_root/build/physical/$run_name"
 mkdir -p "$build_dir"
@@ -27,6 +29,8 @@ set ::env(FP_SIZING) "absolute"
 set ::env(DIE_AREA) "$die_area"
 set ::env(FP_CORE_UTIL) "$core_util"
 set ::env(PL_TARGET_DENSITY) "$target_density"
+set ::env(PL_RESIZER_HOLD_SLACK_MARGIN) "$placement_hold_margin"
+set ::env(GLB_RESIZER_HOLD_SLACK_MARGIN) "$global_hold_margin"
 EOF
 if [[ "$mode" == diagnostic ]]; then
     printf '\nset ::env(PL_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
@@ -43,6 +47,8 @@ fi
     printf 'scale_block_size=%s\nscore_lanes=%s\n' "$scale_block" "$score_lanes"
     printf 'die_area=%s\nfp_core_util=%s\npl_target_density=%s\n' \
         "$die_area" "$core_util" "$target_density"
+    printf 'pl_hold_margin_ns=%s\nglb_hold_margin_ns=%s\n' \
+        "$placement_hold_margin" "$global_hold_margin"
     printf 'openlane_image=%s\n' "$openlane_image"
     printf 'openlane_image_id=%s\n' "$(docker image inspect "$openlane_image" --format '{{.Id}}')"
     printf 'pdk_revision=%s\n' "$(basename "$(dirname "$(readlink -f "$HOME/.volare/sky130A")")")"
