@@ -13,6 +13,7 @@ They are large and reproducible, so they are not committed.
 | [Packed engine result](packed-engine.md) | Per-configuration correctness, cycles, host traffic, CPU baseline, synthesis scope |
 | [Design-space experiment](design-space.md) | K reuse, 8x8 and 16x16 sweeps, mapped areas, SRAM macro candidates |
 | [Synthetic precision](precision.md) | Block-scale sweep, softmax agreement, storage, and accumulator cost |
+| [Real-activation precision](real-activation-precision.md) | Pinned BERT Q/K capture, scale sweep, and the 1x16 decision |
 | [P0.7 physical design](physical-design.md) | Complete-top clock and floorplan sweep, route, signoff timing, DRC, LVS, and power qualification |
 | [Latest verification](latest-verification.md) | The most recent local command run and its tool versions |
 | [P0.3 simulation CSV](p0-3-simulation.csv) | Machine-readable cycles, utilization, traffic, and stalls from the verified P0.3 runs |

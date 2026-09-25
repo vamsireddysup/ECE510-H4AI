@@ -11,7 +11,8 @@ the old one gets a line saying which.
 | --- | --- | --- |
 | [0001](0001-exact-integer-accumulation.md) | Accumulate FP4 products exactly as integers instead of in FP32 | Accepted |
 | [0002](0002-k-reload-is-the-default.md) | Ship K reload (active protocol version 3) as the default, not K reuse | Accepted, revisit at P0.5 |
-| [0003](0003-fp32-scales-with-32-element-blocks.md) | Use FP32 scales with 32-element reduction blocks | Accepted |
+| [0003](0003-fp32-scales-with-32-element-blocks.md) | Use FP32 scales with 32-element reduction blocks | Superseded by 0004 |
+| [0004](0004-use-1x16-fp32-scales.md) | Use FP32 scales with 16-element reduction blocks | Accepted; supersedes 0003 |
 
 ## Naming
 

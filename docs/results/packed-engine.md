@@ -78,7 +78,8 @@ for each output tile. Version 4 K reuse and 8x8/16x16 simulation and historical
 mapped synthesis comparisons are in the [design-space record](design-space.md).
 Physical K scratchpad banking, post-P0.3 synthesis, SRAM macro fit, and routed
 experiments remain open. FP32 quantization error against
-real transformer activations is also unmeasured. The block layout is
+real transformer activations was unmeasured in this run. The later
+[P0.8 capture](real-activation-precision.md) selects 1x16. The block layout is
 not OCP MXFP4 because the active scales are FP32 rather than E8M0 as specified in the
 [MX specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf).
 

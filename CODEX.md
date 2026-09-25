@@ -79,10 +79,11 @@ command-level K scratchpad. `make test-integration-reuse` and
 tests and their cell-area results are recorded in `docs/results/design-space.md`.
 `scripts/eval_precision.py` sweeps reduction-block FP32 and E8M0 scales and
 reports softmax agreement, raw-score error, clipping, storage, and projected
-FP32 adds. ADR 0003 selects 1x32 FP32, now implemented with parameterized block
-size and score lanes. `make test-precision-rtl` compares all T=512 scores
-bit-exactly. Synthetic inputs do not
-substitute for real transformer activations.
+FP32 adds. Protocol version 3 implements ADR 0003's 1x32 FP32 format with a
+parameterized block size and score lanes. The pinned BERT capture in P0.8
+supersedes that choice with ADR 0004's 1x16 FP32 format, which still needs a new
+protocol version and full RTL verification. `make test-precision-rtl` compares
+all current 1x32 T=512 scores bit-exactly.
 `make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and
 array utilization from accepted-beat simulation logs.
 `scripts/run_physical.sh` runs the complete 4x4/D_HEAD=64/T_MAX=16 top in

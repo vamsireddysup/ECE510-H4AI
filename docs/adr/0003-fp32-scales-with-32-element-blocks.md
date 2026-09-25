@@ -1,6 +1,8 @@
 # 0003: use FP32 scales with 32-element reduction blocks
 
-Accepted, September 2026. Implemented in P0.4 at revision `1311eb0`.
+Superseded by [ADR 0004](0004-use-1x16-fp32-scales.md), September 2026.
+The 1x32 format remains implemented as protocol version 3 at revision
+`1311eb0`.
 
 ## Decision
 

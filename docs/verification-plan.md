@@ -21,10 +21,11 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | Simulation summary | `make report-sim` | Cycles, array utilization, useful and wire bytes, and arithmetic intensity, derived from accepted-beat logs | Anything not in a `build/integration/*/run.log` |
 | Archived baseline | `make baseline`, `make baseline-strict` | The untouched M4 sources still reproduce their recorded numeric result | Anything about the active top |
 | Synthetic precision | `python3 scripts/eval_precision.py` and `make test-model` | The 120-point block-scale sweep, committed JSON, and rendered T=512 table reproduce at the pinned NumPy version | Error on real transformer activations; see [precision](results/precision.md) |
+| Real-activation precision | `python3 scripts/eval_precision.py --npz docs/results/p0-8-bert-tiny-layer0-head0.npz` and `make test-model` | The pinned BERT capture and six FP32 block-size rows reproduce from committed inputs | Accuracy across other layers, heads, models, and tasks |
 | RTL precision | `make test-precision-rtl` | Every score at pinned seed-510 T=512 is bit-exact with the software 1x32 FP32 path, and its raw-score error matches | IEEE behavior outside the finite-normal values in that capture |
 | CPU baseline | `python3 scripts/bench_cpu.py` | Observed one-thread NumPy throughput on fixed inputs | A CPU peak, and therefore not a Roofline ceiling |
 | Mapped area | `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE]` | Sky130 HD standard-cell area for the complete top at the typical corner | Timing, routing, congestion, or power |
-| Physical run | `./scripts/run_physical.sh` | An OpenLane flow attempt for the complete top | Nothing yet; no routed result exists |
+| Physical run | `./scripts/run_physical.sh` | Complete-top route, extracted timing, DRC, LVS, antenna, and qualified power status | Timing closure until every setup, hold, slew, and fanout gate passes |
 
 ## What the integration test covers
 
@@ -60,8 +61,9 @@ testbench side, not inside the design.
 There is no formal verification. `sby` is listed as optional in `make doctor` and
 has not been used.
 
-Real-activation accuracy is unmeasured. The precision figure comes from synthetic
-normal inputs under one quantizer rule.
+One pinned BERT layer and head now has real-activation precision evidence. It is
+enough to select 1x16 for the next contract, but it does not establish accuracy
+across layers, heads, models, or tasks.
 
 Nothing is routed. No check in this plan produces a frequency, a latency in
 seconds, or an energy number.

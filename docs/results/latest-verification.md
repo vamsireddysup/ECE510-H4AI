@@ -95,6 +95,17 @@ closure. The power report is rejected because 13,148 slew and 471 fanout checks
 remain. Full provenance and the sweep are in
 [the physical-design record](physical-design.md).
 
+## P0.8 real-activation update
+
+The pinned BERT layer 0, head 0 capture has SHA-256
+`bda32c19f874329b641947da8fc9e6ef2696bc1a6b657914a527b707d50caf22`.
+Two capture runs produced identical bytes. NumPy 1.26.4 measured all 24 scale
+combinations, and the 29-test model suite regenerates the six FP32 rows from the
+committed capture and JSON. Bs=16 is the cheapest FP32 point that improves all
+four softmax metrics over Bs=64 on this harness, so
+[ADR 0004](../adr/0004-use-1x16-fp32-scales.md) supersedes ADR 0003. The RTL
+default and stream protocol have not changed yet.
+
 ## Related
 
 - [Results index](README.md)

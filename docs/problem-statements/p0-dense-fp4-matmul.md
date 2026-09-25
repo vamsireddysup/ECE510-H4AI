@@ -21,11 +21,10 @@ cycle model reproduces all 16 benchmarked configurations exactly; see
 
 ## The remaining open problems
 
-**Real-activation accuracy is still unknown.** P0.4 implements the selected
-1x32 FP32 format and measures 14.23% relative Frobenius error on the pinned
-Gaussian workload. P0.8 must test transformer activations with outliers before
-that synthetic result can support a usability claim. See
-[precision](../results/precision.md).
+**Real-activation evidence is still narrow.** P0.8 measures one pinned BERT
+layer and head. It selects 1x16 FP32 over the implemented 1x32 default, but more
+layers, heads, models, and task data are needed for a usability claim. See
+[real-activation precision](../results/real-activation-precision.md).
 
 **K reuse saves traffic but no longer saves time.** Version 4 cuts host traffic
 2.91x and input beats 51.8x under the block-scale contract, but is 2,032 cycles
@@ -47,13 +46,13 @@ frequency, latency in seconds, or energy for this top. See
 | Stage | Work | Exit condition |
 | --- | --- | --- |
 | P0.1 | Repository and documentation hygiene | `make check-docs` passes with the extended checks; no reference to a path that does not exist outside `archive/` |
-| P0.2 | **Complete:** sweep Bs 64/32/16/8/4/2 with FP32 and three E8M0 rules | [ADR 0003](../adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32 from softmax metrics |
+| P0.2 | **Complete:** sweep Bs 64/32/16/8/4/2 with FP32 and three E8M0 rules | ADR 0003 initially selected 1x32; P0.8 supersedes it with [ADR 0004](../adr/0004-use-1x16-fp32-scales.md) |
 | P0.3 | **Complete:** overlap load, compute, scale, and output | 99.945% measured 4x4 array activity before the block-scale interface; scaling binds at 8x8/16x16 |
 | P0.4 | **Complete:** implement parameterized 1x32 FP32 scales | All T=512 RTL scores match the software path bit-exactly; 14.23% measured relative Frobenius error |
 | P0.6 | **Complete:** decide output width from measurement | Keep 64 bits; two scaler lanes move 8x8 to CALC, four move 16x16 to OUTPUT |
 | P0.7 | Route the complete top at the selected configuration | Routed timing and power exist, so a latency in seconds exists |
 | P0.5 | Decide K reuse after P0.7 | Project avoided host-transfer energy against routed power and storage cost; implement SRAM only if it wins, otherwise close the experiment in an ADR |
-| P0.8 | Measure error on real transformer activations | A pinned capture with its SHA-256 and a real-activation error, or a statement that no capture was obtained |
+| P0.8 | **Initial capture complete:** measure real transformer activations | Pinned BERT capture and sweep select 1x16; broader model evidence remains |
 
 P0.2 comes before the RTL stages so the interface is not rebuilt twice. P0.3 is
 format-independent, so it does not wait on P0.2.

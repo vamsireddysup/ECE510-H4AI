@@ -158,15 +158,18 @@ P0.6 therefore keeps the 64-bit port and selects two lanes for 8x8 or four for
 ## Known limits
 
 The active RTL uses one FP32 value per 32 reduction elements by default, with
-the block size parameterized. That selected format is not OCP
-MXFP4, which uses 32-value blocks with E8M0 scales.
+the block size parameterized. ADR 0004 selects 1x16 for a future versioned
+contract after the real-activation sweep. Neither FP32 format is OCP MXFP4,
+which uses 32-value blocks with E8M0 scales.
 
 The version 4 K scratchpad is a register array with parallel row reads. At full
 capacity it maps to 6,672,971 um² against 1,596,280 um² for version 3, so it is
 an experiment rather than the default.
 
-No routed result exists for this top. Every area number is Yosys mapping only, so
-there is no frequency, no latency in seconds, and no energy figure.
+The first complete 4x4 route is DRC/LVS clean but fails setup, hold, antenna,
+slew, and fanout checks. Its power report is invalid, so there is still no
+timing-closed frequency, latency in seconds, or energy figure. See the
+[physical-design result](results/physical-design.md).
 
 ## Related
 

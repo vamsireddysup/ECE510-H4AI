@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,8 @@ from model.qkt_model import fp4_encode, qkt
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PRECISION_JSON = REPO_ROOT / "docs/results/p0-2-precision.json"
 PRECISION_MARKDOWN = REPO_ROOT / "docs/results/precision.md"
+ACTIVATION_CAPTURE = REPO_ROOT / "docs/results/p0-8-bert-tiny-layer0-head0.npz"
+ACTIVATION_JSON = REPO_ROOT / "docs/results/p0-8-real-activation-precision.json"
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -104,3 +107,21 @@ def test_t512_sweep_matches_committed_json() -> None:
             else:
                 assert actual[key] == recorded[key]
     assert render_t512_table(expected) in PRECISION_MARKDOWN.read_text()
+
+
+def test_real_activation_fp32_sweep_matches_committed_json() -> None:
+    """Keep the pinned capture and the format decision machine-checkable."""
+    committed = json.loads(ACTIVATION_JSON.read_text())
+    assert hashlib.sha256(ACTIVATION_CAPTURE.read_bytes()).hexdigest() == committed["sha256"]
+    with np.load(ACTIVATION_CAPTURE, allow_pickle=False) as capture:
+        q, k = capture["q"], capture["k"]
+    expected = [
+        row for row in committed["metrics"] if row["scale_type"] == "FP32"
+    ]
+    regenerated = [evaluate(q, k, block_size, "FP32") for block_size in BLOCK_SIZES]
+    for actual, recorded in zip(regenerated, expected, strict=True):
+        for key in actual:
+            if isinstance(actual[key], float):
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)
+            else:
+                assert actual[key] == recorded[key]

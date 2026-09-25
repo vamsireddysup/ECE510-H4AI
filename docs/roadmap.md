@@ -39,10 +39,14 @@ stay unchanged in [`archive/`](../archive/README.md).
   [the design-space record](results/design-space.md).
 - A fixed-input one-thread NumPy benchmark is the local software baseline. It is
   observed throughput, not a peak, so it is not a Roofline ceiling.
-- P0.2 selected 1x32 FP32 block scales after a 120-point fixed-seed sweep. At
+- P0.2 initially selected 1x32 FP32 block scales after a 120-point fixed-seed sweep. At
   T=512 it measures mean KL 0.01025, mean total variation 0.05665, top-1
   agreement 75.78%, and top-5 overlap 82.27%. See
   [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md).
+- P0.8 captured layer 0, head 0 Q/K from a pinned pretrained BERT miniature.
+  The real activation sweep selects 1x16 FP32 in
+  [ADR 0004](adr/0004-use-1x16-fp32-scales.md); the current version 3 RTL stays
+  at 1x32 until a new protocol version is implemented and verified.
 - P0.4 implements that decision as protocol versions 3 and 4. The default path
   keeps one exact accumulator per 32-element block, scales both blocks in
   parallel, and combines them with one FP32 add. All 262,144 T=512 RTL scores
@@ -62,7 +66,7 @@ Stages and their exit conditions are in
    exist.
 2. **P0.2, decide the scale format in software.** Complete. The sweep covered
    Bs 64, 32, 16, 8, 4, and 2 with FP32 and three E8M0 rules.
-   [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md) selects 1x32 FP32:
+   [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md) initially selected 1x32 FP32:
    one cross-block FP32 add is a better P0 point than the three required by
    1x16, while all three measured E8M0 rules lose to the FP32 baseline.
 3. **P0.3, overlap the phases.** Complete. Two-bank Q, K, accumulator, and score
@@ -87,8 +91,9 @@ Stages and their exit conditions are in
    has no measured latency case. After P0.7 supplies power, compare the projected
    energy of 2,080,768 avoided host bytes with the register or SRAM area and
    power cost. Implement the installed 2 KiB macros only if that comparison wins.
-8. **P0.8, measure error on real transformer activations,** with the capture
-   pinned by SHA-256.
+8. **P0.8, measure error on real transformer activations.** Initial capture
+   complete. A pinned BERT head selects 1x16 FP32; broaden this evidence across
+   layers, heads, and models after implementing the new contract.
 
 P0.7 moves ahead of P0.5 because phase overlap removed K reuse's original cycle
 benefit. Its remaining 2.91x traffic reduction may save off-chip energy, but that

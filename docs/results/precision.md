@@ -1,8 +1,8 @@
 # Reduction-block FP4 precision sweep
 
 This record compares scale formats for P0.2. It uses synthetic normal Q/K inputs
-to select the scale contract before RTL implementation; it does not claim accuracy
-on transformer activations.
+and led to the now-superseded 1x32 decision. The later
+[real-activation result](real-activation-precision.md) selects 1x16.
 
 ## Method
 
@@ -113,7 +113,7 @@ python3 scripts/eval_precision.py > build/p0-2-precision.json
 
 ## Related
 
-- [ADR 0003, which selects 1x32 FP32](../adr/0003-fp32-scales-with-32-element-blocks.md)
+- [ADR 0003, the superseded synthetic decision](../adr/0003-fp32-scales-with-32-element-blocks.md)
 - [P0 dense FP4 problem](../problem-statements/p0-dense-fp4-matmul.md)
 - [Reference model](../../model/README.md)
 - [Results index](README.md)
