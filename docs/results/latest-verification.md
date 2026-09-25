@@ -84,6 +84,17 @@ latency in seconds, or accuracy on real transformer activations.
 Generated logs remain under ignored `build/`; the concise CSV above is the
 committed result.
 
+## P0.7 physical update
+
+On September 25, 2026, revision `98e5623` completed the first full GDS flow for
+the 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=32, one-lane top. The 2200 um die has zero
+detailed-route, Magic DRC, KLayout DRC, and LVS errors. It has 262 pin and 225
+net antenna violations. Extracted worst-corner setup WNS is -71.08 ns and worst
+hold slack is -0.04 ns at 125 ns, so this is a routed failure, not timing
+closure. The power report is rejected because 13,148 slew and 471 fanout checks
+remain. Full provenance and the sweep are in
+[the physical-design record](physical-design.md).
+
 ## Related
 
 - [Results index](README.md)

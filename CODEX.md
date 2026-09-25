@@ -86,10 +86,11 @@ substitute for real transformer activations.
 `make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and
 array utilization from accepted-beat simulation logs.
 `scripts/run_physical.sh` runs the complete 4x4/D_HEAD=64/T_MAX=16 top in
-OpenLane; record its revision and final routed status before using its clock.
-Treat mapped Sky130 cell area as synthesis only until full-chip timing, routing,
-and power checks finish. Do not derive active latency from the archived 15 ns
-array-only constraint.
+OpenLane. The first complete 2200 um-die route is DRC/LVS clean but misses setup
+and hold at a 125 ns constraint, has antenna violations, and has a slew-invalid
+power report; see `docs/results/physical-design.md`. Do not call its inferred
+196.08 ns setup period timing closed or use its power numbers. Do not derive
+active latency from the archived 15 ns array-only constraint.
 
 For every published benchmark or synthesis result, record:
 

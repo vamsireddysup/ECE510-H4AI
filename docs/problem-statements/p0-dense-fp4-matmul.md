@@ -35,8 +35,12 @@ measured ceiling. The register scratchpad grows mapped cell area 4.18x at full
 capacity. P0.5 therefore waits for P0.7 power evidence. See
 [design space](../results/design-space.md).
 
-**Nothing is routed.** Every area figure is Yosys mapping. There is no frequency,
-latency in seconds, or energy for this top.
+**The first complete route is not timing clean.** The 4x4 top is route, Magic
+DRC, KLayout DRC, and LVS clean on a 2200 um die, but extracted setup WNS is
+-71.08 ns and hold slack is -0.04 ns at 125 ns. The remaining slew violations
+make its power estimate invalid. There is therefore still no timing-closed
+frequency, latency in seconds, or energy for this top. See
+[physical design](../results/physical-design.md).
 
 ## Stages
 

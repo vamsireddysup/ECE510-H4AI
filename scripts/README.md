@@ -21,7 +21,7 @@ All of them run from the repository root.
 | `eval_precision.py` | run directly | NumPy | stdout JSON with the block-scale sweep; redirect to `build/p0-2-precision.json` |
 | `bench_cpu.py` | run directly | NumPy | stdout JSON; redirect to `build/cpu-benchmark.json` |
 | `run_synthesis.sh` | run directly as `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE] [BLOCK] [LANES]` | Yosys, Sky130 HD Liberty | `build/synthesis/t<tile>-d<depth>-max<tmax>-reuse<reuse>-sb<block>-sl<lanes>/yosys.log` |
-| `run_physical.sh` | `./scripts/run_physical.sh RUN PERIOD [TILE] [LANES] [MODE]` | Docker, pinned OpenLane image, Sky130 PDK | `build/physical/<run-name>/`, including the generated config, manifest, log, and `runs/full/` |
+| `run_physical.sh` | `./scripts/run_physical.sh RUN PERIOD [TILE] [LANES] [MODE]` | Docker, pinned OpenLane image, Sky130 PDK | `build/physical/<run-name>/`, with an absolute die area, generated config, manifest, log, and `runs/full/` |
 | `clean.sh` | `make clean` | nothing | removes `build/` and `.pytest_cache/` only |
 
 ## Conventions

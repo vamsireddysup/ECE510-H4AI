@@ -1,0 +1,5 @@
+run,git_revision,tile_size,score_lanes,clock_ns,die_um,mode,status,post_cts_setup_slack_ns,signoff_setup_slack_ns,signoff_hold_slack_ns,route_violations,magic_drc,klayout_drc,lvs,pin_antenna_violations,net_antenna_violations
+t4-50ns,0f775cc,4,1,50,1500,full,stopped_timing_repair,-33.95,,,,,,,,
+t4-100ns,0f775cc,4,1,100,1500,full,stopped_timing_repair,0.00_rounded,,,,,,,,
+t4-125ns-die1500,0f775cc,4,1,125,1500,no_timing_repair,stopped_unroutable,0.00_rounded,,,54335,,,,,
+t4-125ns-die2200,98e5623,4,1,125,2200,no_timing_repair,flow_completed,0.00_rounded,-71.08,-0.04,0,0,0,clean,262,225
