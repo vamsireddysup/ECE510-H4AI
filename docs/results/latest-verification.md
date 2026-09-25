@@ -84,6 +84,13 @@ latency in seconds, or accuracy on real transformer activations.
 Generated logs remain under ignored `build/`; the concise CSV above is the
 committed result.
 
+## P0.7 and P0.5 closeout gate
+
+On September 25, 2026, `make test` passed at revision `ae707be`: documentation
+checks, eight lint configurations, 29 model tests, and the D=4 and D=64 small
+integration suites all passed. The physical-flow changes affect constraints and
+orchestration only; no score-producing RTL changed in P0.7 or P0.5.
+
 ## P0.7 physical update
 
 On September 25, 2026, revision `028401d` completed the 4x4,
