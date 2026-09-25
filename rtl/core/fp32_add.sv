@@ -76,7 +76,7 @@ module fp32_add (
                 if (bit_index < distance) sticky |= value[bit_index];
         end
         shifted[0] |= sticky;
-        return shifted;
+        shift_with_sticky = shifted;
     endfunction
 
     logic s2_valid, s2_special, s2_sign;

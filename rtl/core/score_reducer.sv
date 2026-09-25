@@ -23,8 +23,8 @@ module score_reducer #(
         assign result_index = block_index[0];
     end else begin : g_reduce
         logic [BLOCK_COUNT-1:0] stage_valid;
-        logic [BLOCK_COUNT-1:0][31:0] stage_result;
-        logic [BLOCK_COUNT-1:0][INDEX_W-1:0] stage_index;
+        logic [31:0] stage_result [0:BLOCK_COUNT-1];
+        logic [INDEX_W-1:0] stage_index [0:BLOCK_COUNT-1];
         assign stage_valid[0] = &block_valid;
         assign stage_result[0] = block_result[0];
         assign stage_index[0] = block_index[0];

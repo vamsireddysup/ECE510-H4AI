@@ -2,9 +2,13 @@
 set ::env(DESIGN_NAME) "qkt_chiplet_top"
 set ::env(VERILOG_FILES) "
     /work/rtl/core/fp32_mul.sv
+    /work/rtl/core/fp32_add.sv
+    /work/rtl/core/score_scaler.sv
+    /work/rtl/core/score_reducer.sv
     /work/rtl/interfaces/axi4_lite_ctrl.sv
     /work/rtl/top/qkt_chiplet_top.sv
 "
+set ::env(SYNTH_PARAMETERS) "TILE_SIZE=4 D_HEAD=64 T_MAX=16 K_REUSE=0 SCALE_BLOCK_SIZE=32 SCORE_LANES=1"
 set ::env(CLOCK_PORT) "clk"
 set ::env(CLOCK_PERIOD) "50.0"
 set ::env(PDK) "sky130A"
