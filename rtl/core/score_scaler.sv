@@ -8,12 +8,12 @@ module score_scaler #(
 )(
     input logic clk, rst_n,
     input logic [LANES-1:0] launch_valid,
-    input logic signed [LANES-1:0][ACC_W-1:0] acc_in,
-    input logic [LANES-1:0][31:0] q_scale_in, k_scale_in,
-    input logic [LANES-1:0][INDEX_W-1:0] index_in,
+    input logic signed [LANES*ACC_W-1:0] acc_in,
+    input logic [LANES*32-1:0] q_scale_in, k_scale_in,
+    input logic [LANES*INDEX_W-1:0] index_in,
     output logic [LANES-1:0] result_valid,
-    output logic [LANES-1:0][31:0] result,
-    output logic [LANES-1:0][INDEX_W-1:0] result_index
+    output logic [LANES*32-1:0] result,
+    output logic [LANES*INDEX_W-1:0] result_index
 );
     function automatic logic [31:0] quarter_to_fp32(
         input logic signed [ACC_W-1:0] value
@@ -39,13 +39,14 @@ module score_scaler #(
         logic [31:0] k_scale_pipe [0:2];
 
         fp32_mul u_scale_q (
-            .clk, .rst_n, .a(quarter_to_fp32(acc_in[lane])),
-            .b(q_scale_in[lane]), .valid_in(launch_valid[lane]),
+            .clk, .rst_n,
+            .a(quarter_to_fp32($signed(acc_in[lane*ACC_W +: ACC_W]))),
+            .b(q_scale_in[lane*32 +: 32]), .valid_in(launch_valid[lane]),
             .result(q_result), .valid_out(q_valid)
         );
         fp32_mul u_scale_k (
             .clk, .rst_n, .a(q_result), .b(k_scale_pipe[2]),
-            .valid_in(q_valid), .result(result[lane]),
+            .valid_in(q_valid), .result(result[lane*32 +: 32]),
             .valid_out(result_valid[lane])
         );
 
@@ -55,8 +56,8 @@ module score_scaler #(
                 for (int stage = 0; stage < 3; stage++) k_scale_pipe[stage] <= '0;
             end else begin
                 if (launch_valid[lane]) begin
-                    index_pipe[0] <= index_in[lane];
-                    k_scale_pipe[0] <= k_scale_in[lane];
+                    index_pipe[0] <= index_in[lane*INDEX_W +: INDEX_W];
+                    k_scale_pipe[0] <= k_scale_in[lane*32 +: 32];
                 end
                 for (int stage = 1; stage < 6; stage++)
                     index_pipe[stage] <= index_pipe[stage-1];
@@ -64,6 +65,6 @@ module score_scaler #(
                 k_scale_pipe[2] <= k_scale_pipe[1];
             end
         end
-        assign result_index[lane] = index_pipe[5];
+        assign result_index[lane*INDEX_W +: INDEX_W] = index_pipe[5];
     end
 endmodule

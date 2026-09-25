@@ -9,9 +9,9 @@ module score_reducer #(
     input logic clk, rst_n,
     /* verilator lint_on UNUSEDSIGNAL */
     input logic [BLOCK_COUNT-1:0] block_valid,
-    input logic [BLOCK_COUNT-1:0][31:0] block_result,
+    input logic [BLOCK_COUNT*32-1:0] block_result,
     /* verilator lint_off UNUSEDSIGNAL */
-    input logic [BLOCK_COUNT-1:0][INDEX_W-1:0] block_index,
+    input logic [BLOCK_COUNT*INDEX_W-1:0] block_index,
     /* verilator lint_on UNUSEDSIGNAL */
     output logic result_valid,
     output logic [31:0] result,
@@ -19,29 +19,29 @@ module score_reducer #(
 );
     if (BLOCK_COUNT == 1) begin : g_passthrough
         assign result_valid = &block_valid;
-        assign result = block_result[0];
-        assign result_index = block_index[0];
+        assign result = block_result[0 +: 32];
+        assign result_index = block_index[0 +: INDEX_W];
     end else begin : g_reduce
         logic [BLOCK_COUNT-1:0] stage_valid;
         logic [31:0] stage_result [0:BLOCK_COUNT-1];
         logic [INDEX_W-1:0] stage_index [0:BLOCK_COUNT-1];
         assign stage_valid[0] = &block_valid;
-        assign stage_result[0] = block_result[0];
-        assign stage_index[0] = block_index[0];
+        assign stage_result[0] = block_result[0 +: 32];
+        assign stage_index[0] = block_index[0 +: INDEX_W];
 
         for (genvar stage = 1; stage < BLOCK_COUNT; stage++) begin : g_add
             localparam int DELAY = 3*(stage-1);
             logic [31:0] aligned_block;
             logic [INDEX_W-1:0] index_pipe [0:2];
             if (DELAY == 0) begin : g_no_delay
-                assign aligned_block = block_result[stage];
+                assign aligned_block = block_result[stage*32 +: 32];
             end else begin : g_delay
                 logic [31:0] delay_pipe [0:DELAY-1];
                 always_ff @(posedge clk) begin
                     if (!rst_n)
                         for (int slot = 0; slot < DELAY; slot++) delay_pipe[slot] <= '0;
                     else begin
-                        delay_pipe[0] <= block_result[stage];
+                        delay_pipe[0] <= block_result[stage*32 +: 32];
                         for (int slot = 1; slot < DELAY; slot++)
                             delay_pipe[slot] <= delay_pipe[slot-1];
                     end

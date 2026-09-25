@@ -101,12 +101,12 @@ module qkt_chiplet_top #(
     logic [31:0] scale_effective_index;
     logic [31:0] scale_launch_count, reduced_count;
     logic [SCALER_LANES-1:0] scaler_launch_valid, scaler_result_valid;
-    logic signed [SCALER_LANES-1:0][ACC_W-1:0] scaler_acc;
-    logic [SCALER_LANES-1:0][31:0] scaler_q_scale, scaler_k_scale, scaler_result;
-    logic [SCALER_LANES-1:0][INDEX_W-1:0] scaler_index_in, scaler_result_index;
+    logic signed [SCALER_LANES*ACC_W-1:0] scaler_acc;
+    logic [SCALER_LANES*32-1:0] scaler_q_scale, scaler_k_scale, scaler_result;
+    logic [SCALER_LANES*INDEX_W-1:0] scaler_index_in, scaler_result_index;
     logic [SCORE_LANES-1:0] reduced_valid;
-    logic [SCORE_LANES-1:0][31:0] reduced_result;
-    logic [SCORE_LANES-1:0][INDEX_W-1:0] reduced_index;
+    logic [SCORE_LANES*32-1:0] reduced_result;
+    logic [SCORE_LANES*INDEX_W-1:0] reduced_index;
     assign scale_start = command_active && !scale_busy &&
         acc_valid[scale_acc_bank] && !score_valid[scale_score_bank];
     assign scale_effective_index = scale_start ? 0 : scale_launch_index;
@@ -130,22 +130,24 @@ module qkt_chiplet_top #(
             localparam int FLAT_LANE = LANE_BASE+block;
             assign scaler_launch_valid[FLAT_LANE] =
                 scale_launch && score_lane < scale_launch_count;
-            assign scaler_acc[FLAT_LANE] =
+            assign scaler_acc[FLAT_LANE*ACC_W +: ACC_W] =
                 acc_bank[scale_acc_bank][block][lane_row][lane_col];
-            assign scaler_q_scale[FLAT_LANE] =
+            assign scaler_q_scale[FLAT_LANE*32 +: 32] =
                 sq[acc_row[scale_acc_bank]+lane_row][block];
-            assign scaler_k_scale[FLAT_LANE] =
+            assign scaler_k_scale[FLAT_LANE*32 +: 32] =
                 sk[acc_col[scale_acc_bank]+lane_col][block];
-            assign scaler_index_in[FLAT_LANE] = INDEX_W'(lane_index);
+            assign scaler_index_in[FLAT_LANE*INDEX_W +: INDEX_W] =
+                INDEX_W'(lane_index);
         end
         score_reducer #(.BLOCK_COUNT(BLOCK_COUNT), .INDEX_W(INDEX_W)) u_reducer (
             .clk, .rst_n,
             .block_valid(scaler_result_valid[LANE_BASE +: BLOCK_COUNT]),
-            .block_result(scaler_result[LANE_BASE +: BLOCK_COUNT]),
-            .block_index(scaler_result_index[LANE_BASE +: BLOCK_COUNT]),
+            .block_result(scaler_result[LANE_BASE*32 +: BLOCK_COUNT*32]),
+            .block_index(scaler_result_index[
+                LANE_BASE*INDEX_W +: BLOCK_COUNT*INDEX_W]),
             .result_valid(reduced_valid[score_lane]),
-            .result(reduced_result[score_lane]),
-            .result_index(reduced_index[score_lane])
+            .result(reduced_result[score_lane*32 +: 32]),
+            .result_index(reduced_index[score_lane*INDEX_W +: INDEX_W])
         );
     end
     score_scaler #(.ACC_W(ACC_W), .INDEX_W(INDEX_W),
@@ -383,8 +385,9 @@ module qkt_chiplet_top #(
                         scale_launch_index <= scale_launch_index + scale_launch_count;
                     for (int lane = 0; lane < SCORE_LANES; lane++)
                         if (reduced_valid[lane])
-                            score_bank[scale_score_bank][reduced_index[lane]] <=
-                                reduced_result[lane];
+                            score_bank[scale_score_bank]
+                                [reduced_index[lane*INDEX_W +: INDEX_W]] <=
+                                reduced_result[lane*32 +: 32];
                     if (reduced_count != 0) begin
                         scale_result_count <= scale_result_count + reduced_count;
                         if (scale_result_count+reduced_count == acc_scores[scale_acc_bank]) begin
