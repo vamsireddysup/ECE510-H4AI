@@ -23,6 +23,7 @@ cp "$repo_root/config/openlane/qkt_chiplet_top/config.tcl" "$build_dir/config.tc
 cat >> "$build_dir/config.tcl" <<EOF
 set ::env(CLOCK_PERIOD) "$period"
 set ::env(SYNTH_PARAMETERS) "TILE_SIZE=$tile D_HEAD=$depth T_MAX=$tmax K_REUSE=$reuse SCALE_BLOCK_SIZE=$scale_block SCORE_LANES=$score_lanes"
+set ::env(FP_SIZING) "absolute"
 set ::env(DIE_AREA) "$die_area"
 set ::env(FP_CORE_UTIL) "$core_util"
 set ::env(PL_TARGET_DENSITY) "$target_density"
@@ -36,7 +37,7 @@ elif [[ "$mode" != full ]]; then
 fi
 {
     printf 'git_revision=%s\n' "$(git -C "$repo_root" rev-parse HEAD)"
-    printf 'run_name=%s\nclock_period_ns=%s\n' "$run_name" "$period"
+    printf 'run_name=%s\nmode=%s\nclock_period_ns=%s\n' "$run_name" "$mode" "$period"
     printf 'tile_size=%s\nd_head=%s\nt_max=%s\nk_reuse=%s\n' \
         "$tile" "$depth" "$tmax" "$reuse"
     printf 'scale_block_size=%s\nscore_lanes=%s\n' "$scale_block" "$score_lanes"
