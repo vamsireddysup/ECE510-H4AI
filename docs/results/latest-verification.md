@@ -86,14 +86,25 @@ committed result.
 
 ## P0.7 physical update
 
-On September 25, 2026, revision `98e5623` completed the first full GDS flow for
-the 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=32, one-lane top. The 2200 um die has zero
-detailed-route, Magic DRC, KLayout DRC, and LVS errors. It has 262 pin and 225
-net antenna violations. Extracted worst-corner setup WNS is -71.08 ns and worst
-hold slack is -0.04 ns at 125 ns, so this is a routed failure, not timing
-closure. The power report is rejected because 13,148 slew and 471 fanout checks
-remain. Full provenance and the sweep are in
+On September 25, 2026, revision `028401d` completed the 4x4,
+`D_HEAD=64`, `T_MAX=16`, Bs=32, one-lane flow at 225 ns with the project SDC.
+The 2200 um die has zero detailed-route, Magic DRC, KLayout DRC, and LVS errors.
+Worst extracted setup slack is +28.7995 ns, while worst multi-corner hold slack
+is -1.0069 ns. It has 256 pin and 224 net antenna violations, plus 476 typical
+slew and 483 typical fanout violations. The dynamic-power report is physically
+invalid and rejected. The run took 1 hour 36 minutes and peaked at 6,229 MB.
+Full provenance and the constraint sweep are in
 [the physical-design record](physical-design.md).
+
+## P0.5 K-reuse update
+
+[ADR 0005](../adr/0005-close-register-k-reuse.md) closes the register-based
+experiment. Horowitz's 45 nm DRAM range projects 0.338 to 0.676 mJ saved per
+T=512 command. Area-scaling the routed 0.495 mW slow-corner leakage over the
+historical full-capacity register increment projects 0.686 mJ before dynamic
+energy, while the added mapped area alone exceeds the routed die. Protocol
+version 4 remains verified evidence; SRAM requires new routed power, a measured
+higher-energy link, or a bandwidth-bound workload to reopen the decision.
 
 ## P0.8 real-activation update
 

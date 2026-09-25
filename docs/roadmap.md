@@ -55,6 +55,11 @@ stay unchanged in [`archive/`](../archive/README.md).
   from scaling to CALC and complete T=512 in 263,305 cycles. At 16x16, four
   lanes move it to output and complete in 132,361 cycles, 1,289 cycles above
   the two-score-per-cycle steady floor.
+- P0.5 closes register-based K reuse in
+  [ADR 0005](adr/0005-close-register-k-reuse.md). Its projected slow-corner
+  leakage alone reaches 0.686 mJ per T=512 command, while avoided DRAM energy
+  is projected at 0.338 to 0.676 mJ. SRAM needs new routed power or host-link
+  evidence before the question reopens.
 
 ## P0, active: dense FP4 matrix multiplication
 
@@ -79,28 +84,24 @@ Stages and their exit conditions are in
 5. **P0.6, decide the output width from measurement.** Complete. Keep 64 bits;
    widen score scaling first. Two lanes are sufficient at 8x8 and four reach
    the output limit at 16x16.
-6. **P0.7, route the complete top.** This now precedes P0.5. Record PDK
-   and tool revision, clock constraint, area, setup and hold slack, power, and
-   congestion. The first complete route is DRC/LVS clean at a 2200 um die, but
-   misses setup by 71.08 ns and hold by 0.04 ns at a 125 ns constraint. Its
-   slew-invalid power report is rejected, so this stage remains active. See
+6. **P0.7, route the complete top.** Active. A 225 ns run on the 2200 um die is
+   DRC/LVS and setup clean, but worst multi-corner hold slack is -1.0069 ns. It
+   has antenna, slew, and fanout violations, and its dynamic power is rejected.
+   The next route must fix these on 4x4 before trying 8x8. See
    [the physical result](results/physical-design.md).
-7. **P0.5, decide K-reuse storage from routed energy evidence.** Version 4 is
-   2,032 cycles slower, while version 3 uses only 396,288 stream beats over
-   1,049,665 cycles, or 37.75% of one accepted beat per cycle. K reuse therefore
-   has no measured latency case. After P0.7 supplies power, compare the projected
-   energy of 2,080,768 avoided host bytes with the register or SRAM area and
-   power cost. Implement the installed 2 KiB macros only if that comparison wins.
+7. **P0.5, decide K-reuse storage from routed energy evidence.** Complete for
+   the current implementation. Close register K reuse; its full-capacity area
+   does not fit the current die and the conservative slow-corner leakage
+   projection exceeds the projected DRAM saving. Reopen for a measured SRAM
+   implementation, a higher-energy host link, or a bandwidth-bound workload.
 8. **P0.8, measure error on real transformer activations.** Initial capture
    complete. A pinned BERT head selects 1x16 FP32; broaden this evidence across
    layers, heads, and models after implementing the new contract.
 
-P0.7 moves ahead of P0.5 because phase overlap removed K reuse's original cycle
-benefit. Its remaining 2.91x traffic reduction may save off-chip energy, but that
-projected saving cannot be weighed against 4.18x mapped register area without a
-routed power baseline. The first route did not provide valid power because its
-slew checks fail, so P0.5 remains evidence blocked rather than substituting the
-invalid OpenSTA estimate.
+P0.7 moved ahead of P0.5 because phase overlap removed K reuse's original cycle
+benefit. The routed slow-corner leakage and historical full-capacity area are
+enough to reject the register implementation conservatively, even though
+dynamic power remains invalid. ADR 0005 records the projection and its limits.
 
 ### A correction to an earlier assumption
 

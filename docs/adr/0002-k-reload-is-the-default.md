@@ -1,7 +1,8 @@
 # 0002: ship K reload as the default, not K reuse
 
-Accepted, September 2026. Revisit at stage P0.5 of
-[P0](../problem-statements/p0-dense-fp4-matmul.md).
+Accepted, September 2026. Superseded by
+[ADR 0005](0005-close-register-k-reuse.md), which closes the register-based
+experiment after P0.7.
 
 ## Decision
 

@@ -5,7 +5,8 @@ against the exact integer-dot reference. T=512 cycle and byte counts use a
 continuously ready host. Sky130 HD cell area uses Yosys 0.44 mapping at the
 typical 25 C, 1.80 V Liberty corner with `T_MAX=16`; these area and T=512
 numbers have different `T_MAX` builds and are not a single physical
-configuration. No variant has routed timing or power evidence yet.
+configuration. The current 4x4 default has since routed, but its dynamic power
+is invalid; the mapped area comparisons here remain the P0.5 capacity evidence.
 The mapped areas were produced from revision `4ce83ab` plus the default-depth
 change committed as `bd28084`. The AXI4-Lite handshake fix made after that
 measurement changes cell counts, so the area column is a prior RTL revision;
@@ -77,6 +78,15 @@ Commands: `make test-integration-large`, `make test-integration-reuse-large`,
 `make test-array8-large`, `make test-array16-large`, and
 `./scripts/run_synthesis.sh TILE_SIZE 64 16 K_REUSE`. Full generated logs are
 under ignored `build/`.
+
+### P0.5 decision
+
+[ADR 0005](../adr/0005-close-register-k-reuse.md) closes the register-based
+experiment. Its 5,076,691 um2 full-capacity area increment is larger than the
+complete 4.84 mm2 routed die, and a conservative area-scaled slow-corner
+leakage projection reaches 0.686 mJ per command. The projected avoided DRAM
+energy is only 0.338 to 0.676 mJ. The SRAM option remains a reopening condition,
+not an implemented or measured result.
 
 ## Related
 
