@@ -6,11 +6,13 @@ if {[info exists ::env(CLOCK_PORT)] && $::env(CLOCK_PORT) != ""} {
     set ::env(CLOCK_PORT) __VIRTUAL_CLK__
 }
 
-# Model a host that consumes 20% of the cycle for maximum-delay checks.  Keep
-# minimum input and output delay at zero; scaling both minimum delays with the
-# clock period creates artificial hold failures when the constraint is relaxed.
+# Model a host that consumes 20% of the cycle for maximum-delay checks.  Use a
+# fixed minimum input delay for host clock-to-Q plus interconnect; scaling the
+# minimum delay with the clock period creates artificial hold failures when the
+# constraint is relaxed.  Outputs have no external minimum-delay requirement.
 set io_max_delay [expr {$::env(CLOCK_PERIOD) * 0.20}]
-set io_min_delay 0.0
+set input_min_delay $::env(IO_MIN_DELAY)
+set output_min_delay 0.0
 
 set_max_fanout $::env(MAX_FANOUT_CONSTRAINT) [current_design]
 if {[info exists ::env(MAX_TRANSITION_CONSTRAINT)]} {
@@ -22,9 +24,9 @@ set clk_index [lsearch [all_inputs] $clk_input]
 set data_inputs [lreplace [all_inputs] $clk_index $clk_index ""]
 
 set_input_delay -max $io_max_delay -clock [get_clocks $::env(CLOCK_PORT)] $data_inputs
-set_input_delay -min $io_min_delay -clock [get_clocks $::env(CLOCK_PORT)] $data_inputs
+set_input_delay -min $input_min_delay -clock [get_clocks $::env(CLOCK_PORT)] $data_inputs
 set_output_delay -max $io_max_delay -clock [get_clocks $::env(CLOCK_PORT)] [all_outputs]
-set_output_delay -min $io_min_delay -clock [get_clocks $::env(CLOCK_PORT)] [all_outputs]
+set_output_delay -min $output_min_delay -clock [get_clocks $::env(CLOCK_PORT)] [all_outputs]
 
 if {![info exists ::env(SYNTH_CLK_DRIVING_CELL)]} {
     set ::env(SYNTH_CLK_DRIVING_CELL) $::env(SYNTH_DRIVING_CELL)
