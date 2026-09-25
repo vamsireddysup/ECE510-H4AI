@@ -5,8 +5,10 @@ score should be; the RTL is checked against it, not the other way round. Read it
 before changing either the FP4 encoding or the scale rule.
 
 The reference package has no third-party runtime dependency. The required test
-extra includes pinned NumPy 1.26.4 because the precision provenance regression
-imports it; `make test-model` must not silently skip that required gate.
+extra includes NumPy 1.26.4 through 2.x because the precision provenance
+regression imports it; `make test-model` must not silently skip that required
+gate. NumPy 1.26.4 generated the committed JSON, while the test's `rel=1e-6`
+tolerance admits physical reduction-order changes across supported versions.
 
 ## What it owns
 

@@ -9,8 +9,8 @@ description = "Reference model and tests for my FP4 QK^T accelerator"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-test = ["pytest>=7.4,<9", "numpy==1.26.4"]
-benchmark = ["numpy==1.26.4", "threadpoolctl>=3,<4"]
+test = ["pytest>=7.4,<9", "numpy>=1.26.4,<3"]
+benchmark = ["numpy>=1.26.4,<3", "threadpoolctl>=3,<4"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

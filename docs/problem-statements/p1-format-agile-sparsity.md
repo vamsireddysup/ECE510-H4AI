@@ -110,6 +110,15 @@ measured negative result is the honest deliverable if that is what the data says
 P1.5 comes last because a policy that selects between formats is meaningless until
 each format has a measured cost.
 
+Before P1.3 widens the accumulator, replace `score_scaler`'s current
+`quarter_to_fp32` conversion. Its expression
+`23'(magnitude) << (23-leading)` is valid for today's `ACC_W=14/15`, but a
+43-bit FP8 accumulator can have `leading` up to 42. The 23-bit cast would
+discard high magnitude bits, and `23-leading` would become a negative shift
+count that SystemVerilog interprets as a large unsigned shift, producing a zero
+mantissa. P1.3 needs a width-independent leading-bit normalization with explicit
+round, guard, and sticky handling before any 43-bit configuration is enabled.
+
 ## Before P1.2 starts
 
 The closest prior art claims support for all six MX data types in TSMC 16 nm. Only
