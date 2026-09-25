@@ -3,3 +3,5 @@ t4-50ns,0f775cc,4,1,50,1500,full,stopped_timing_repair,-33.95,,,,,,,,
 t4-100ns,0f775cc,4,1,100,1500,full,stopped_timing_repair,0.00_rounded,,,,,,,,
 t4-125ns-die1500,0f775cc,4,1,125,1500,no_timing_repair,stopped_unroutable,0.00_rounded,,,54335,,,,,
 t4-125ns-die2200,98e5623,4,1,125,2200,no_timing_repair,flow_completed,0.00_rounded,-71.08,-0.04,0,0,0,clean,262,225
+t4-225ns-die2200-stock,5090f4e,4,1,225,2200,full,stopped_hold_repair,,,-,,,,-,-,-
+t4-225ns-die2200-route,028401d,4,1,225,2200,route_timing,flow_completed,,28.7995,-1.0069,0,0,0,clean,256,224
