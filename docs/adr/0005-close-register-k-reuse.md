@@ -17,7 +17,7 @@ workload saturates the input stream and gives reuse a latency benefit.
 ## Evidence
 
 At T=512, version 4 saves 2,080,768 host bytes but takes 2,032 more cycles than
-version 3. Version 3 accepts 396,288 stream beats in 1,049,665 cycles, so the
+version 3. Version 3 accepts 396,288 stream beats in 1,049,666 cycles, so the
 64-bit stream is occupied for only 37.75% of the command. K reuse has no
 measured bandwidth or latency case after phase overlap.
 
@@ -40,6 +40,31 @@ This comparison crosses revisions, capacities, and process nodes. It is a
 projection, and the route's dynamic power is invalid. It is sufficient to
 reject the existing register implementation because its full-capacity area
 increment is also larger than the complete 4.84 mm2 routed die.
+
+### Clock-dependent reopening condition
+
+The transfer saving is paid once per command, while leakage energy is
+`2.905 mW * command_time`. Equating that leakage to the projected transfer
+saving gives `0.338 mJ / 2.905 mW = 116 ms` at the pessimistic low DRAM energy
+and `0.676 mJ / 2.905 mW = 233 ms` at the optimistic high DRAM energy. For the
+1,051,698-cycle version 4 command, those durations correspond to about 9.1 MHz
+and 4.5 MHz. A valid clock above roughly 9 MHz makes even the pessimistic
+transfer estimate exceed the projected incremental leakage. Dynamic SRAM,
+mux, and clock energy would still need measurement, but clock improvement is a
+specific reason to reopen the comparison.
+
+### Engine-count-dependent reopening condition
+
+The single-engine conclusion also depends on unused input bandwidth. Version 3
+requires 265,216 input beats per T=512 command, against 5,120 for version 4.
+With replicated 4x4 engines, version 3 reaches that input floor at four engines:
+CALC work is 262,144 cycles and additional engines do not lower the projected
+265,216-cycle command. Version 4 continues to eight engines, where 131,072 CALC
+cycles meet the 131,072-cycle output floor and the full projected command is
+134,194 cycles. K reuse therefore changes from an energy-only question to a
+throughput enabler under replication. This is a reopening condition, not a new
+decision, because neither the multi-engine arbiter nor an SRAM K store has been
+implemented or routed.
 
 ## Alternatives considered
 
@@ -71,4 +96,5 @@ states the evidence needed to reconsider it.
 - [Decision records](README.md)
 - [Physical-design result](../results/physical-design.md)
 - [Design-space experiment](../results/design-space.md)
+- [Replicated-engine study](../results/replicated-engines.md)
 - [Development plan](../roadmap.md)
