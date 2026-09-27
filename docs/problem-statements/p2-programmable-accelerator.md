@@ -36,7 +36,11 @@ have a basis. And a decision about whether the engine generalizes from `Q * K^T`
 to GEMM, which is a larger change than anything in P0 or P1.
 
 P1's precision axis is a strict subset of P2's reconfiguration axes, so P1 work is
-reusable here and nothing is redone by waiting.
+reusable here and nothing is redone by waiting. P0's replicated homogeneous
+tiles are the natural substrate for per-tile precision selection: P1 can attach
+a format choice to each independently scheduled tile, and P2 can later extend
+the same scheduler to memory and dataflow choices. P1 and P2 converge at that
+tile interface rather than proceeding as independent hardware designs.
 
 ## Related
 

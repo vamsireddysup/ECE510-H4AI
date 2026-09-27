@@ -9,7 +9,7 @@ stay unchanged in [`archive/`](../archive/README.md).
 
 ## Completed and verified
 
-- The active top uses [packed stream version 3](stream-protocol.md), with explicit
+- The active top uses [packed stream version 5](stream-protocol.md), with explicit
   packet-length checks, a full-width matrix dimension, partial-tile masking, and
   output that stays stable under stalls.
 - A `TILE_SIZE x TILE_SIZE` grid accumulates signed FP4 half-unit products in
@@ -22,7 +22,7 @@ stay unchanged in [`archive/`](../archive/README.md).
   matrix is in the [verification plan](verification-plan.md).
 - Counters expose accepted beats, stalls, dot cycles, scale cycles, completed
   tiles, and command cycles.
-- A closed-form cycle model reproduces all 16 benchmarked configurations exactly,
+- A closed-form cycle model reproduces all 24 benchmarked configurations exactly,
   including both protocols and all three tile sizes. See
   [architecture](architecture.md) and `scripts/cycle_model.py`.
 - P0.3 overlaps input, exact dot products, scaling, and output through two Q, K,
@@ -43,17 +43,16 @@ stay unchanged in [`archive/`](../archive/README.md).
   T=512 it measures mean KL 0.01025, mean total variation 0.05665, top-1
   agreement 75.78%, and top-5 overlap 82.27%. See
   [ADR 0003](adr/0003-fp32-scales-with-32-element-blocks.md).
-- P0.8 captured layer 0, head 0 Q/K from a pinned pretrained BERT miniature.
-  The real activation sweep selects 1x16 FP32 in
-  [ADR 0004](adr/0004-use-1x16-fp32-scales.md); the current version 3 RTL stays
-  at 1x32 until a new protocol version is implemented and verified.
-- P0.4 implements that decision as protocol versions 3 and 4. The default path
-  keeps one exact accumulator per 32-element block, scales both blocks in
-  parallel, and combines them with one FP32 add. All 262,144 T=512 RTL scores
-  match the software model bit-exactly; RTL relative Frobenius error is 14.23%.
+- P0.8 captured four pinned BERT heads across two model sizes. The real
+  activation sweeps select 1x16 FP32 in
+  [ADR 0004](adr/0004-use-1x16-fp32-scales.md). Protocol versions 5 and 6 make
+  it the verified RTL default while retaining versions 3 and 4 for 1x32.
+- P0.4 provides the parameterized block accumulators, parallel scale lanes, and
+  cross-block FP32 reducer. All 262,144 T=512 default RTL scores match the 1x16
+  software model bit-exactly; RTL relative Frobenius error is 13.29%.
 - P0.6 keeps the 64-bit output. At 8x8, two score lanes move the binding stage
-  from scaling to CALC and complete T=512 in 263,306 cycles. At 16x16, four
-  lanes move it to output and complete in 132,362 cycles, 1,290 cycles above
+  from scaling to CALC and complete T=512 in 264,336 cycles. At 16x16, four
+  lanes move it to output and complete in 133,392 cycles, 2,320 cycles above
   the two-score-per-cycle steady floor.
 - P0.5 closes register-based K reuse in
   [ADR 0005](adr/0005-close-register-k-reuse.md). Its projected slow-corner
@@ -85,8 +84,8 @@ Stages and their exit conditions are in
    activity is 99.945% and speedup is 1.736x at T=512. Scaling binds at 8x8 and
    16x16; [the architecture record](architecture.md) gives the exact model.
 4. **P0.4, implement the chosen format in RTL.** Complete. The parameterized
-   Bs=32 default matches the software model bit-exactly, and Bs=16 also passes
-   the small integration suite.
+   scaler supports both Bs=16 and Bs=32. The Bs=16 default matches the software
+   model bit-exactly in the full T=512 suite.
 5. **P0.6, decide the output width from measurement.** Complete. Keep 64 bits;
    widen score scaling first. Two lanes are sufficient at 8x8 and four reach
    the output limit at 16x16.
@@ -101,9 +100,9 @@ Stages and their exit conditions are in
    does not fit the current die and the conservative slow-corner leakage
    projection exceeds the projected DRAM saving. Reopen for a measured SRAM
    implementation, a higher-energy host link, or a bandwidth-bound workload.
-8. **P0.8, measure error on real transformer activations.** Initial capture
-   complete. A pinned BERT head selects 1x16 FP32; broaden this evidence across
-   layers, heads, and models after implementing the new contract.
+8. **P0.8, measure error on real transformer activations.** Complete for the P0
+   decision. Four pinned heads across two BERT sizes select 1x16 FP32; broader
+   architectures and tasks remain future validation rather than a blocker.
 
 P0.7 moved ahead of P0.5 because phase overlap removed K reuse's original cycle
 benefit. The routed slow-corner leakage and historical full-capacity area are
@@ -129,8 +128,9 @@ settled baseline format and a settled accumulator. Stages, the accumulator-width
 arithmetic, the five-option multiplier study, and the sparsity question are in
 [the P1 page](problem-statements/p1-format-agile-sparsity.md).
 
-Before P1.2 starts, the full text of the closest prior art has to be read, not
-just its abstract. If the gap closes, P1 changes.
+The closest hybrid and long-integer MX reduction papers and their public RTL
+have been reviewed. They occupy the accumulation thesis, so P1 now targets
+attention-specific quality and per-tile format scheduling.
 
 ## P2, shelved
 
@@ -139,7 +139,7 @@ Nothing starts without an explicit decision.
 
 ## Standing constraints
 
-Keep protocol version 3 block-scaled FP4 and dense FP32 scores as the default.
+Keep protocol version 5 block-scaled FP4 and dense FP32 scores as the default.
 The selected format is not OCP MXFP4, which
 uses 32-value blocks and E8M0 scales. Softmax and V fusion stay outside this project's scope.
 

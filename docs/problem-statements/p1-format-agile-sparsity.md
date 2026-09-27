@@ -10,23 +10,47 @@ settled accumulator. Read it to see the thesis and how it will be tested.
 > sparsity according to layer/workload characteristics to minimize memory traffic
 > and energy while maintaining accuracy?
 
-## The thesis
+## What prior work already answers
 
-Published precision-scalable MAC work reaches format agility by bit-slicing and
-shift-add composition, and pays for it: benchmarking across 72 architectures in
-28 nm reports that spatial sub-computation designs can need up to 4.4x the area of
-a fixed MAC, with shift-add logic alone accounting for roughly 67% of area and 79%
-of power.
+The accumulator architecture itself is occupied. The
+[hybrid precision-scalable reduction tree](https://arxiv.org/abs/2511.06313)
+combines exact integer reduction inside an MX block with floating-point partial
+alignment between blocks. It evaluates MXINT8, MXFP8, MXFP6, and MXFP4 on an
+8x8 SNAX accelerator and reports 4,065 GOPS/W for MXFP4 in 22 nm. Its companion
+[precision-scalable MX accelerator](https://arxiv.org/abs/2505.22404) supports
+all six OCP MX data types with hierarchical two-bit multipliers in an 8x8 array.
+The authors publish SystemVerilog for both long-integer and hybrid accumulation
+in the
+[Precision-Scalable_MX repository](https://github.com/KULeuven-MICAS/Precision-Scalable_MX).
+The review used repository revision
+`bddb9f93c5cb20c61f2393715eb2928a50a4984f`, including the standalone MAC
+variants and the 8x8 SNAX `Block_PE` integration.
 
-P0's datapath is a different substrate. It already decodes to small signed
-integers and accumulates exactly, deferring all rounding to one conversion. On
-that substrate, changing format means changing a decode front-end and an
-accumulator width, with no reconfigurable multiplier topology.
+Those designs occupy the broad accumulation direction P0 reached independently,
+but the circuits are not identical. Their hybrid MAC aligns a fixed-width
+product sum against a stored floating-point partial result on every accumulation
+step and deliberately studies reduced mantissa width. P0 instead completes an
+exact integer sum over each 16-value block, converts and scales each completed
+block once, then reduces block results in FP32. P1 will not claim hybrid
+integer/floating reduction, format-scalable arithmetic, or the
+integer-versus-floating-point accumulation comparison as new. Its measurements
+must still distinguish P0's block boundary and accuracy behavior from the
+published datapath.
 
-The testable claim: **for MX block formats, format agility bought through exact
-integer accumulation costs accumulator width and decode logic, not multiplier
-reconfiguration, and the crossover against sub-word-parallel scaling is
-measurable.**
+## The open question
+
+The cited work evaluates general GEMM for training and continual-learning
+workloads. It does not evaluate attention probability quality, and it does not
+map precision choices onto independently scheduled attention tiles. P0 already
+measures mean softmax KL divergence, total variation, top-1 agreement, and top-5
+overlap on pinned Q/K activations. Its small replicated engines also provide a
+place to select precision per output tile without widening one global array.
+
+The testable P1 claim is therefore: **attention-aware format selection across
+replicated tiles can reduce scale and operand traffic while meeting a softmax
+quality target, and its routing, scheduling, and metadata costs are measurable.**
+Exact per-block integer accumulation and cross-block FP32 reduction are the
+baseline used to test that claim.
 
 ## Accumulator width, worked at `D_HEAD=64`
 
@@ -49,8 +73,8 @@ product is `229,376^2 = 52,613,349,376`, which is 36 bits. Over 64 terms,
 
 So covering all three exactly widens the accumulator from 15 to 43 bits, a factor
 of 2.87. At `TILE_SIZE=4` there are 16 accumulators, so the incremental cost is
-`(43 - 15) * 16 = 448` flip-flops plus wider adders. That is the figure to put
-against the published 4.4x.
+`(43 - 15) * 16 = 448` flip-flops plus wider adders. That is the local storage
+cost to measure; it is not evidence of a new accumulation method.
 
 **Two costs that are not hidden.** FP8 decode is a 4-bit significand shifted by up
 to 17 positions, so an 18-bit barrel shifter per operand; moving it to load time
@@ -70,8 +94,8 @@ synthesized separately so area differences are attributable.
 | M0 | Decode to signed half units, then a signed multiply, accumulated exactly | The current design, and the reference for the other four |
 | M1 | Select and shift | The nonzero decode magnitudes are `{1,2,4,8}` and `{3,6,12}`, which is `{1,3} * 2^e`, so a product is `(m1*m2) << (e1+e2)` with `m1*m2` in `{1,3,9}` and the shift in `0..6`, reaching `9 << 4 = 144`. A 4-bit mux and a small shifter, exact, no multiplier |
 | M2 | The 256-entry FP4 product ROM in [`archive/superseded-rtl/fp4_mul_lut.sv`](../../archive/superseded-rtl/fp4_mul_lut.sv) | Already verified against the model, so a free comparison point |
-| M3 | One integer multiplier sized for the widest supported format, FP4 and INT4 using the low bits | The thesis position |
-| M4 | Sub-word-parallel packing of several narrow multiplies into one wide unit | The opposing position; M3 against M4 is what makes the study a result |
+| M3 | One integer multiplier sized for the widest supported format, FP4 and INT4 using the low bits | A simple baseline |
+| M4 | Sub-word-parallel packing of several narrow multiplies into one wide unit | Comparison with the published hierarchical approach |
 
 M1's structure has not surfaced in my literature search stated for E2M1, but it
 follows directly from the format and may exist in industrial designs, so it is
@@ -102,9 +126,9 @@ measured negative result is the honest deliverable if that is what the data says
 | --- | --- |
 | P1.1 | Model support for INT4 and FP8 E4M3, with accuracy on the same inputs as P0.2 |
 | P1.2 | The multiplier study: M0 through M4 at fixed format, each synthesized |
-| P1.3 | The format-agile datapath: widened accumulator, load-time decode |
+| P1.3 | Map published format-agile arithmetic onto a replicated attention tile |
 | P1.4 | The sparsity measurement |
-| P1.5 | The selection policy and its descriptor or register interface |
+| P1.5 | A per-tile selection policy and its descriptor or register interface |
 | P1.6 | The comparison matrix and its Pareto front |
 
 P1.5 comes last because a policy that selects between formats is meaningless until
@@ -119,11 +143,13 @@ count that SystemVerilog interprets as a large unsigned shift, producing a zero
 mantissa. P1.3 needs a width-independent leading-bit normalization with explicit
 round, guard, and sticky handling before any 43-bit configuration is enabled.
 
-## Before P1.2 starts
+## Research boundary
 
-The closest prior art claims support for all six MX data types in TSMC 16 nm. Only
-its abstract has been read. Its full text must be read and this thesis re-checked;
-if the gap closes, P1 changes.
+P1 begins with reproduction, not RTL invention: compare the published long
+integer and hybrid implementations with P0's per-block path under the same
+formats. The contribution must come from attention-specific quality and
+per-tile scheduling evidence. A format unit alone, even if smaller, does not
+answer the revised question.
 
 ## Related
 
