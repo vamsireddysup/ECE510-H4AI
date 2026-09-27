@@ -318,7 +318,7 @@ static void run_case(int t) {
     check(read_reg(0x30)==uint32_t(tiles*D),"compute cycles");
     uint32_t core_cycles=read_reg(0x10);
     if(!STRESS_STALLS && !REUSE && B==4 && D==64 && t==512)
-        check(core_cycles<=1049665,"4x4 T=512 cycle regression");
+        check(core_cycles<=1049666,"4x4 T=512 cycle regression");
     std::printf("T=%d D=%d scores=%d tiles=%d cycles=%u in_beats=%u out_beats=%u stalls=%u PASS\n",
         t,D,checked,tiles,core_cycles,read_reg(0x20),read_reg(0x24),read_reg(0x2C));
 }

@@ -26,7 +26,7 @@ The original M4 numerical pattern is one of the cases, so the historical 16/16
 result stays covered. The small suite injects host stalls on both streams. Its input producer and
 output consumer run concurrently, which exercises overlapping stages and stable
 backpressure behavior. The large suite keeps both streams continuously ready so
-its cycle counts are comparable. The 4x4 T=512 test fails above 1,049,665 core
+its cycle counts are comparable. The 4x4 T=512 test fails above 1,049,666 core
 cycles to prevent silent loss of the P0.3 gain.
 
 `make test-precision-rtl` generates the pinned seed-510 T=512 matrices used by
