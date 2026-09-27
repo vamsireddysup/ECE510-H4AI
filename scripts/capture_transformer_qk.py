@@ -40,27 +40,41 @@ def main() -> None:
     )
     parser.add_argument("--layer", type=int, default=0)
     parser.add_argument("--head", type=int, default=0)
+    parser.add_argument("--model", default=MODEL)
+    parser.add_argument("--revision")
     args = parser.parse_args()
+
+    revision = args.revision or (REVISION if args.model == MODEL else None)
+    if revision is None:
+        raise ValueError("nondefault models require an explicit --revision")
 
     torch.set_num_threads(1)
     text_bytes = args.text.read_bytes()
     text = text_bytes.decode("utf-8")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL, revision=REVISION)
-    model = AutoModel.from_pretrained(MODEL, revision=REVISION).eval()
+    tokenizer = AutoTokenizer.from_pretrained(args.model, revision=revision)
+    model = AutoModel.from_pretrained(args.model, revision=revision).eval()
     encoded = tokenizer(
         text, return_tensors="pt", truncation=True, max_length=512,
         add_special_tokens=True,
     )
     if encoded["input_ids"].shape != (1, 512):
         raise ValueError("fixture must produce exactly 512 tokens")
+    if not 0 <= args.layer < len(model.encoder.layer):
+        raise ValueError("capture layer is out of range")
     attention = model.encoder.layer[args.layer].attention.self
+    captured: dict[str, torch.Tensor] = {}
+
+    def capture_attention_input(module, inputs) -> None:  # type: ignore[no-untyped-def]
+        hidden = inputs[0]
+        captured["query"] = module.query(hidden)
+        captured["key"] = module.key(hidden)
+
+    hook = attention.register_forward_pre_hook(capture_attention_input)
     with torch.no_grad():
-        hidden = model.embeddings(
-            input_ids=encoded["input_ids"],
-            token_type_ids=encoded.get("token_type_ids"),
-        )
-        query = attention.query(hidden)
-        key = attention.key(hidden)
+        model(**encoded)
+    hook.remove()
+    query = captured["query"]
+    key = captured["key"]
     head_count = model.config.num_attention_heads
     head_width = model.config.hidden_size // head_count
     if not 0 <= args.head < head_count or head_width != 64:
@@ -72,8 +86,8 @@ def main() -> None:
         "k": k.cpu().numpy().astype("<f4"),
         "input_ids": encoded["input_ids"].cpu().numpy().astype("<i8"),
         "attention_mask": encoded["attention_mask"].cpu().numpy().astype("u1"),
-        "model": np.asarray(MODEL),
-        "revision": np.asarray(REVISION),
+        "model": np.asarray(args.model),
+        "revision": np.asarray(revision),
         "layer": np.asarray(args.layer, dtype="<u4"),
         "head": np.asarray(args.head, dtype="<u4"),
         "text_sha256": np.asarray(hashlib.sha256(text_bytes).hexdigest()),
