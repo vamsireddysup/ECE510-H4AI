@@ -30,21 +30,41 @@ def stage_costs(
 
 def core_cycles(
     seq: int, tile: int, depth: int, k_reuse: bool = False,
-    block_size: int = 32, score_lanes: int = 1,
+    block_size: int = 32, score_lanes: int = 1, engine_count: int = 1,
 ) -> int:
-    """Exact no-stall command cycles for benchmark dimensions divisible by tile."""
+    """No-stall cycles; exact at N=1 and an ideal shared-port model at N>1."""
+    if engine_count < 1:
+        raise ValueError("engine_count must be positive")
     tile_beats = ceil(tile * depth / 16)
     tile_rows = seq // tile
     tile_total = tile_rows * tile_rows
     stages = stage_costs(tile, depth, k_reuse, block_size, score_lanes)
-    pipeline = sum(stages.values()) + (tile_total - 1) * max(stages.values())
     # Scales are command startup. Version 2 then fills the complete K cache.
     # The first Q tile is the final fill stage before the tile pipeline starts;
     # subsequent Q loads fit behind the binding stage with two Q banks.
     startup = seq * ceil(depth / block_size) + tile_beats
     if k_reuse:
         startup += tile_rows * tile_beats
-    return startup + pipeline
+
+    tiles_per_engine = ceil(tile_total / engine_count)
+    work = {
+        "CALC": tiles_per_engine * stages["CALC"],
+        "SCALING": tiles_per_engine * stages["SCALING"],
+        # One 64-bit output port remains shared by every engine.
+        "OUTPUT": tile_total * stages["OUTPUT"],
+    }
+    if not k_reuse:
+        # Version 3 transfers a distinct K tile for every output tile.
+        work["LOAD_K"] = tile_total * stages["LOAD_K"]
+    fill_drain = sum(stages.values()) - max(stages.values())
+    engine_path = startup + max(work.values()) + fill_drain
+
+    # Q loads are hidden at N=1 but share the same input port as K. Once engines
+    # consume tiles quickly enough, total accepted input beats are the hard floor.
+    return max(
+        engine_path,
+        input_beats(seq, tile, depth, k_reuse, block_size),
+    )
 
 
 def input_beats(
@@ -66,6 +86,25 @@ def binding_stage(
     stages = stage_costs(tile, depth, k_reuse, block_size, score_lanes)
     name = max(stages, key=lambda key: stages[key])
     return name, stages[name]
+
+
+def replication_bounds(
+    seq: int, tile: int, depth: int, k_reuse: bool = False,
+    block_size: int = 32, score_lanes: int = 1, engine_count: int = 1,
+) -> dict[str, int]:
+    """First-principles work floors used by the replicated-engine projection."""
+    tile_total = ceil(seq / tile) ** 2
+    tiles_per_engine = ceil(tile_total / engine_count)
+    stages = stage_costs(tile, depth, k_reuse, block_size, score_lanes)
+    bounds = {
+        "INPUT": input_beats(seq, tile, depth, k_reuse, block_size),
+        "CALC": tiles_per_engine * stages["CALC"],
+        "SCALING": tiles_per_engine * stages["SCALING"],
+        "OUTPUT": tile_total * stages["OUTPUT"],
+    }
+    if not k_reuse:
+        bounds["K_RELOAD"] = tile_total * stages["LOAD_K"]
+    return bounds
 
 
 # Measured on master with Verilator 5.041 and a continuously ready host.
@@ -114,6 +153,22 @@ def main() -> int:
             parts = " ".join(f"{key}={value}" for key, value in stages.items())
             print(f"  {tile:>2}x{tile:<2} L={lanes} {parts}; "
                   f"{name} binds at {cost} cycles/tile")
+
+    print("\nProjected T=512 replicated-engine schedules:")
+    print(f"{'protocol':>8} {'tile':>6} {'N':>3} {'cycles':>10} "
+          f"{'input':>9} {'calc':>9} {'scale':>9} {'output':>9} {'binder':>9}")
+    for reuse, protocol in ((False, "v3"), (True, "v4")):
+        for tile in (4, 8, 16):
+            for engines in (1, 2, 4, 8, 16):
+                bounds = replication_bounds(
+                    512, tile, 64, reuse, 32, 1, engines
+                )
+                cycles = core_cycles(512, tile, 64, reuse, 32, 1, engines)
+                binder = max(bounds, key=bounds.get)
+                print(f"{protocol:>8} {tile:>3}x{tile:<2} {engines:>3} "
+                      f"{cycles:>10,} {bounds['INPUT']:>9,} "
+                      f"{bounds['CALC']:>9,} {bounds['SCALING']:>9,} "
+                      f"{bounds['OUTPUT']:>9,} {binder:>9}")
 
     if failures:
         print(f"\n{failures} configuration(s) do not match. "
