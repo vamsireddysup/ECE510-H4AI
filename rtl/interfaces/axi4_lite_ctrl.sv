@@ -109,4 +109,19 @@ module axi4_lite_ctrl (
             end
         end
     end
+
+`ifndef SYNTHESIS
+    property p_write_response_stable;
+        @(posedge clk) disable iff (!rst_n)
+        bvalid && !bready |=> bvalid && $stable(bresp);
+    endproperty
+    assert property (p_write_response_stable);
+
+    property p_read_response_stable;
+        @(posedge clk) disable iff (!rst_n)
+        rvalid && !rready |=>
+            rvalid && $stable(rdata) && $stable(rresp);
+    endproperty
+    assert property (p_read_response_stable);
+`endif
 endmodule

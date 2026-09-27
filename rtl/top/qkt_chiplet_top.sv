@@ -488,4 +488,65 @@ module qkt_chiplet_top #(
             end
         end
     end
+
+`ifndef SYNTHESIS
+    // Protocol and ownership invariants for the concurrent tile sequencers.
+    property p_output_stable_while_stalled;
+        @(posedge clk) disable iff (!rst_n)
+        m_tvalid && !m_tready |=>
+            m_tvalid && $stable(m_tdata) && $stable(m_tlast);
+    endproperty
+    assert property (p_output_stable_while_stalled);
+
+    property p_q_bank_ownership;
+        @(posedge clk) disable iff (!rst_n)
+        calc_busy && s_tvalid && s_tready && frontend == FE_LOAD_Q |->
+            load_q_bank != calc_q_bank;
+    endproperty
+    assert property (p_q_bank_ownership);
+
+    property p_k_bank_ownership;
+        @(posedge clk) disable iff (!rst_n)
+        !K_REUSE_EN && calc_busy && s_tvalid && s_tready &&
+            frontend == FE_LOAD_K |-> load_k_bank != calc_k_bank;
+    endproperty
+    assert property (p_k_bank_ownership);
+
+    property p_acc_bank_ownership;
+        @(posedge clk) disable iff (!rst_n)
+        calc_busy && scale_busy |-> calc_acc_bank != scale_acc_bank;
+    endproperty
+    assert property (p_acc_bank_ownership);
+
+    property p_score_bank_ownership;
+        @(posedge clk) disable iff (!rst_n)
+        scale_busy && m_tvalid |-> scale_score_bank != output_score_bank;
+    endproperty
+    assert property (p_score_bank_ownership);
+
+    property p_output_index_legal;
+        @(posedge clk) disable iff (!rst_n)
+        m_tvalid |-> send_index < score_count[output_score_bank];
+    endproperty
+    assert property (p_output_index_legal);
+
+    property p_output_bank_order;
+        @(posedge clk) disable iff (!rst_n)
+        $changed(output_score_bank) && $past(rst_n) |->
+            $past(start || (m_tvalid && m_tready && m_tlast));
+    endproperty
+    assert property (p_output_bank_order);
+
+    property p_legal_frontend_transition;
+        @(posedge clk) disable iff (!rst_n)
+        $changed(frontend) |->
+            frontend == FE_SCALES || frontend == FE_DONE ||
+            ($past(frontend) == FE_SCALES &&
+                (frontend == FE_CACHE_K || frontend == FE_LOAD_Q)) ||
+            ($past(frontend) == FE_CACHE_K && frontend == FE_LOAD_Q) ||
+            ($past(frontend) == FE_LOAD_Q && frontend == FE_LOAD_K) ||
+            ($past(frontend) == FE_LOAD_K && frontend == FE_LOAD_Q);
+    endproperty
+    assert property (p_legal_frontend_transition);
+`endif
 endmodule
