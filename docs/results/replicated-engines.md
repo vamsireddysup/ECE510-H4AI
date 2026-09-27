@@ -87,7 +87,8 @@ the bank holding the next ordinal. With two score banks per engine, later tiles
 can finish while an earlier tile drains. This is a bounded internal reorder
 buffer and keeps protocol versions 3 and 4 unchanged.
 
-Adding an explicit tile header would require protocol version 5 and one extra
+Adding an explicit tile header would require a later protocol version (version
+7 is the next unused identifier) and one extra
 64-bit beat per 4x4 tile. That raises the T=512 output floor from 131,072 to
 147,456 cycles, a 12.5% penalty exactly where eight engines need the output
 port. I reject that option for the first prototype.

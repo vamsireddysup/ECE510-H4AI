@@ -62,7 +62,7 @@ parameter sets. The historical compatibility point is:
 - recorded `CYCLE_COUNT=498`
 
 That 498-cycle result belongs to the pre-upgrade, one-tile controller. The
-active packed-stream v3 top runs the same numerical pattern in 49 simulated
+active packed-stream v5 top runs the same numerical pattern in 49 simulated
 cycles with injected host stalls; see `docs/results/latest-verification.md`.
 The current active source list is `rtl/filelist.f`. Independent input, compute,
 scaling, and output sequencers exchange two-bank Q, K, accumulator, and score
@@ -73,17 +73,17 @@ array, controller, and buffers are retained for comparison but are not active.
 Numerical correctness alone is insufficient. New regressions must also check
 completion status, counters, AXI handshakes, timeouts, and backpressure.
 Use `docs/stream-protocol.md` for packet ordering and status definitions.
-Version 3 is the default block-scale K-reload build; `K_REUSE=1` selects version 4 and a
+Version 5 is the default 1x16 block-scale K-reload build; `K_REUSE=1` selects version 6 and a
 command-level K scratchpad. `make test-integration-reuse` and
 `make test-integration-reuse-large` verify that variant. The 8x8 and 16x16
 tests and their cell-area results are recorded in `docs/results/design-space.md`.
 `scripts/eval_precision.py` sweeps reduction-block FP32 and E8M0 scales and
 reports softmax agreement, raw-score error, clipping, storage, and projected
-FP32 adds. Protocol version 3 implements ADR 0003's 1x32 FP32 format with a
-parameterized block size and score lanes. The pinned BERT capture in P0.8
-supersedes that choice with ADR 0004's 1x16 FP32 format, which still needs a new
-protocol version and full RTL verification. `make test-precision-rtl` compares
-all current 1x32 T=512 scores bit-exactly.
+FP32 adds. Protocol versions 5 and 6 implement ADR 0004's 1x16 FP32 format with
+a parameterized block size and score lanes; versions 3 and 4 retain 1x32
+compatibility. Four pinned BERT heads across two model sizes support that
+choice. `make test-precision-rtl` compares all default 1x16 T=512 scores
+bit-exactly.
 `make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and
 array utilization from accepted-beat simulation logs.
 `scripts/run_physical.sh` runs the complete 4x4/D_HEAD=64/T_MAX=16 top in
@@ -100,9 +100,9 @@ off-chip-energy projection. Do not derive active latency from the archived
 15 ns array-only constraint.
 
 `scripts/cycle_model.py` also models replicated engines. N=1 is exact against
-the 16 recorded configurations; N greater than one is explicitly projected.
+the 24 recorded configurations; N greater than one is explicitly projected.
 The current decision keeps ordered output through an internal tile reorder
-buffer, so replication does not itself change protocol versions 3 or 4. See
+buffer, so replication does not itself change the stream format. See
 `docs/results/replicated-engines.md` before proposing a replicated top.
 
 For every published benchmark or synthesis result, record:

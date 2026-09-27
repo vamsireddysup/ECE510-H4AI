@@ -17,7 +17,7 @@ ADD_PIPELINE_LATENCY = 3
 
 def stage_costs(
     tile: int, depth: int, k_reuse: bool = False,
-    block_size: int = 32, score_lanes: int = 1,
+    block_size: int = 16, score_lanes: int = 1,
 ) -> dict[str, int]:
     """Sustained per-tile service time of each concurrent stage."""
     stages = {
@@ -33,7 +33,7 @@ def stage_costs(
 
 def core_cycles(
     seq: int, tile: int, depth: int, k_reuse: bool = False,
-    block_size: int = 32, score_lanes: int = 1, engine_count: int = 1,
+    block_size: int = 16, score_lanes: int = 1, engine_count: int = 1,
 ) -> int:
     """No-stall cycles; exact at N=1 and an ideal shared-port model at N>1."""
     if engine_count < 1:
@@ -72,7 +72,7 @@ def core_cycles(
 
 def input_beats(
     seq: int, tile: int, depth: int, k_reuse: bool = False,
-    block_size: int = 32,
+    block_size: int = 16,
 ) -> int:
     tile_beats = ceil(tile * depth / 16)
     tile_rows = seq // tile
@@ -84,7 +84,7 @@ def input_beats(
 
 def binding_stage(
     tile: int, depth: int, k_reuse: bool = False,
-    block_size: int = 32, score_lanes: int = 1,
+    block_size: int = 16, score_lanes: int = 1,
 ) -> tuple[str, int]:
     stages = stage_costs(tile, depth, k_reuse, block_size, score_lanes)
     name = max(stages, key=lambda key: stages[key])
@@ -93,7 +93,7 @@ def binding_stage(
 
 def replication_bounds(
     seq: int, tile: int, depth: int, k_reuse: bool = False,
-    block_size: int = 32, score_lanes: int = 1, engine_count: int = 1,
+    block_size: int = 16, score_lanes: int = 1, engine_count: int = 1,
 ) -> dict[str, int]:
     """First-principles work floors used by the replicated-engine projection."""
     tile_total = ceil(seq / tile) ** 2
@@ -129,6 +129,14 @@ MEASURED = [
     ("v3 8x8 L4 T=512", 512, 8, 64, False, 32, 4, 263_290, 134_144),
     ("v3 16x16 L2 T=512", 512, 16, 64, False, 32, 2, 142_656, 68_608),
     ("v3 16x16 L4 T=512", 512, 16, 64, False, 32, 4, 132_362, 68_608),
+    ("v5 4x4 T=64", 64, 4, 64, False, 16, 1, 16_712, 4_608),
+    ("v5 4x4 T=128", 128, 4, 64, False, 16, 1, 66_120, 17_408),
+    ("v5 4x4 T=512", 512, 4, 64, False, 16, 1, 1_050_696, 266_240),
+    ("v6 4x4 T=64", 64, 4, 64, True, 16, 1, 16_952, 768),
+    ("v6 4x4 T=128", 128, 4, 64, True, 16, 1, 66_616, 1_536),
+    ("v6 4x4 T=512", 512, 4, 64, True, 16, 1, 1_052_728, 6_144),
+    ("v5 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 264_336, 135_168),
+    ("v5 16x16 L4 T=512", 512, 16, 64, False, 16, 4, 133_392, 69_632),
 ]
 
 

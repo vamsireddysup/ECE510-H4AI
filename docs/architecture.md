@@ -52,8 +52,8 @@ Each FP4 code is E2M1 with magnitudes 0, 0.5, 1, 1.5, 2, 3, 4, 6 and a sign bit.
 Both zero encodings decode to zero. The decode returns the magnitude in half
 units, so the integer set is 0, 1, 2, 3, 4, 6, 8, 12, and the product of two
 operands is exact in quarter units. Each reduction block has its own accumulator.
-With the default `SCALE_BLOCK_SIZE=32`, the worst-case block sum is
-`144 * 32 = 4608`, so 14 signed bits hold it exactly. The parameterized width is
+With the default `SCALE_BLOCK_SIZE=16`, the worst-case block sum is
+`144 * 16 = 2304`, so 13 signed bits hold it exactly. The parameterized width is
 derived from the block depth, including a partial final block.
 
 Every block accumulator converts to FP32 and passes through its own pair of Q
@@ -72,10 +72,11 @@ form ready/valid boundaries between the stages. A bank changes owner only after
 its consumer finishes, so input and output backpressure cannot overwrite live
 data.
 
-The loader still observes Q-row-major packet order. Version 1 can accept the next
+The loader still observes Q-row-major packet order. The K-reload protocols can accept the next
 K packet while `CALC` reads the other K bank, and it can accept the next Q packet
-once the last calculation using the old Q bank finishes. Version 2 loads the K
-cache before Q and bypasses K ping-pong. Both versions preserve output tile order.
+once the last calculation using the old Q bank finishes. The K-reuse protocols
+load the K cache before Q and bypass K ping-pong. Every version preserves output
+tile order.
 
 `score_scaler` owns the exact-quarter-unit conversion and the two chained FP32
 multipliers. The top instantiates one scaler lane per block for every concurrent
@@ -85,13 +86,13 @@ scores; its default is one. `score_reducer` combines corresponding block lanes.
 ## Cycle cost model
 
 [`scripts/cycle_model.py`](../scripts/cycle_model.py) derives the no-stall command
-count and reproduces all 16 measured configurations exactly. For tile size `B`,
+count and reproduces all 24 measured configurations exactly. For tile size `B`,
 depth `D`, block size `Bs`, score lanes `L`, and block count
 `C=ceil(D/Bs)`, concurrent stage service times are:
 
 | Stage | Cycles per tile | Why |
 | --- | ---: | --- |
-| `LOAD_K`, version 3 | `ceil(B*D/16)` | 16 FP4 codes per accepted input beat |
+| `LOAD_K`, K reload | `ceil(B*D/16)` | 16 FP4 codes per accepted input beat |
 | `CALC` | `D` | the first products initialize the accumulator bank, followed by `D-1` updates |
 | `SCALING` | `ceil(B^2/L) + 7 + 3*(C-1)` | `L` score launches per cycle, scale prefetch, multiplier drain, and cross-block-add drain |
 | `OUTPUT` | `ceil(B^2/2)` | two FP32 scores per accepted output beat |
@@ -101,12 +102,12 @@ streams, the exact model is:
 
 ```text
 pipeline = sum(stage costs) + (N-1) * max(stage costs)
-version 3 = T*C + Qbeats + pipeline
-version 4 = T*C + (T/B)*Qbeats + Qbeats + pipeline_without_LOAD_K
+K reload = T*C + Qbeats + pipeline
+K reuse = T*C + (T/B)*Qbeats + Qbeats + pipeline_without_LOAD_K
 ```
 
-The leading `T*C` loads the scale packet. Version 3 then fills the first Q bank;
-`LOAD_K` is already part of its tile pipeline. Version 4 fills the complete K
+The leading `T*C` loads the scale packet. K reload then fills the first Q bank;
+`LOAD_K` is already part of its tile pipeline. K reuse fills the complete K
 cache and the first Q bank before its tile pipeline. Later Q loads fit behind the
 binding stage for these measured configurations.
 
@@ -131,6 +132,13 @@ T=512 and version 4 transfers 5,120. Version 4 is 2,032 cycles slower because it
 host bytes; P0.5 must decide whether that traffic reduction justifies physical
 storage.
 
+The Bs=16 default was measured after the scale-prefetch change with the same
+Verilator version. Version 5 takes 1,050,696 cycles and 266,240 input beats at
+4x4/T=512; version 6 takes 1,052,728 cycles and 6,144 input beats. The 8x8 L2
+and 16x16 L4 defaults take 264,336 and 133,392 cycles. The model reproduces all
+of these counts exactly. Versions 3 and 4 remain the measured Bs=32
+compatibility points in the table above.
+
 ## Binding stages after overlap
 
 | Tile | `LOAD_K` | `CALC` | `SCALING` | `OUTPUT` | Binding stage | Steady tiles | Fill/drain | Measured T=512 |
@@ -138,6 +146,12 @@ storage.
 | 4x4 | 16 | 64 | 26 | 8 | `CALC`, 64 | 1,048,576 | 1,090 | 1,049,666 |
 | 8x8 | 32 | 64 | 74 | 32 | `SCALING`, 74 | 303,104 | 1,184 | 304,288 |
 | 16x16 | 64 | 64 | 266 | 128 | `SCALING`, 266 | 272,384 | 1,344 | 273,728 |
+
+Those rows retain Bs=32 and one score lane so the P0.3 comparison stays
+reproducible. At the Bs=16 default, the selected lane counts give scaling
+service of 32 cycles for 4x4 L1, 48 for 8x8 L2, and 80 for 16x16 L4. CALC binds
+the first two and OUTPUT binds 16x16. Their measured T=512 totals are 1,050,696,
+264,336, and 133,392 cycles.
 
 At 4x4 the dot array runs for 1,048,576 of 1,049,666 command cycles, so measured
 array-active is 99.896%. The 1,090 remaining cycles are scale loading,
@@ -168,9 +182,8 @@ area breakdown, and ordering decision.
 
 ## Known limits
 
-The active RTL uses one FP32 value per 32 reduction elements by default, with
-the block size parameterized. ADR 0004 selects 1x16 for a future versioned
-contract after the real-activation sweep. Neither FP32 format is OCP MXFP4,
+The active RTL uses one FP32 value per 16 reduction elements by default, with
+the 1x32 compatibility mode retained. Neither FP32 format is OCP MXFP4,
 which uses 32-value blocks with E8M0 scales.
 
 The version 4 K scratchpad is a register array with parallel row reads. At full

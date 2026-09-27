@@ -1,5 +1,22 @@
 # Latest verification
 
+## September 27 Bs=16 default
+
+The default stream contract is now version 5 with one FP32 scale per 16
+reduction elements; `K_REUSE=1` selects version 6. Versions 3 and 4 remain
+tested Bs=32 compatibility points. With Verilator 5.041, every default score
+remains bit identical to the software model. The T=512 measurements are
+1,050,696 cycles for 4x4 L1, 264,336 for 8x8 L2, and 133,392 for 16x16 L4.
+Version 6 takes 1,052,728 cycles at 4x4. The cycle model reproduces all 24
+recorded configurations exactly.
+
+`make test`, every large 4x4/8x8/16x16 and K-reuse suite, the explicit Bs=32
+compatibility suite, and `make test-precision-rtl` pass. The precision run
+compares all 262,144 scores bit-for-bit and measures 13.2942637% relative
+Frobenius error and 0.842930886 mean absolute error against the pinned FP32
+reference. The reviewed rows are in
+[`p0-8-bs16-simulation.csv`](p0-8-bs16-simulation.csv).
+
 ## September 27 critical-path update
 
 At revision `782619d`, `make test`, every large 4x4/8x8/16x16 and K-reuse

@@ -28,7 +28,7 @@ def main() -> None:
     parser.add_argument("output", type=Path)
     parser.add_argument("--seed", type=int, default=510)
     parser.add_argument("--depth", type=int, default=64)
-    parser.add_argument("--block-size", type=int, default=32)
+    parser.add_argument("--block-size", type=int, default=16)
     args = parser.parse_args()
 
     generator = np.random.default_rng(args.seed)

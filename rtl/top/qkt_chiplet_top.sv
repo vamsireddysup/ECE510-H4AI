@@ -6,7 +6,7 @@ module qkt_chiplet_top #(
     parameter int D_HEAD = 64,
     parameter int T_MAX = 16,
     parameter int K_REUSE = 0,
-    parameter int SCALE_BLOCK_SIZE = 32,
+    parameter int SCALE_BLOCK_SIZE = 16,
     parameter int SCORE_LANES = 1
 )(
     input logic clk, rst_n,
@@ -37,7 +37,9 @@ module qkt_chiplet_top #(
     logic [31:0] compute_cycles, scale_cycles;
     logic [3:0] error_code;
     logic [31:0] protocol_version;
-    assign protocol_version = K_REUSE_EN ? 32'd4 : 32'd3;
+    assign protocol_version = (SCALE_BLOCK_SIZE == 16) ?
+        (K_REUSE_EN ? 32'd6 : 32'd5) :
+        (K_REUSE_EN ? 32'd4 : 32'd3);
     axi4_lite_ctrl u_ctrl (
         .clk, .rst_n, .awvalid, .awready, .awaddr, .wvalid, .wready,
         .wdata, .wstrb, .bvalid, .bready, .bresp, .arvalid, .arready,

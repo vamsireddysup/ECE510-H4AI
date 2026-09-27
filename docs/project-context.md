@@ -1,7 +1,7 @@
 # Project context
 
 I use this repository for a Sky130-targeted FP4 E2M1 QK^T accelerator. The
-active top computes dense FP32 scores with FP32 Q and K scales per 32 reduction
+active top computes dense FP32 scores with FP32 Q and K scales per 16 reduction
 elements. It does
 not include masking, softmax, or the multiplication by V. M1-M4 course work in
 `archive/` remains a historical snapshot.
@@ -11,11 +11,11 @@ not include masking, softmax, or the multiplication by V. M1-M4 course work in
 The active `qkt_chiplet_top` accepts packed 64-bit input packets, holds two banks each for Q tiles, K tiles, exact accumulators, and FP32 scores,
 and computes all scores of a 4x4 output tile from exact block-local
 quarter-unit integer dot products. Parallel multiplier pairs apply the block
-scales, and an FP32 adder combines the two default blocks. It emits two FP32
+scales, and an FP32 adder chain combines the four default blocks. It emits two FP32
 scores per 64-bit beat, with a zero-padded upper half on odd final beats. See
-[stream protocol version 3](stream-protocol.md) for
+[stream protocol version 5](stream-protocol.md) for
 packet order, status codes, and counters.
-An optional `K_REUSE=1` build changes the packet order to version 4 and keeps
+An optional `K_REUSE=1` build changes the packet order to version 6 and keeps
 K in an RTL scratchpad for the whole command. Its physical storage choice is
 still open.
 
@@ -32,7 +32,7 @@ every IEEE exception and signed-zero rule.
 
 The 4x4 top passes T=1/4/7/8/16 at `D_HEAD=4/64` and T=64/128/512 at
 `D_HEAD=64`, including edge tiles and repeated commands. The 512 run contains
-16,384 output tiles and completes 262,144 scores in 1,049,666 simulated core
+16,384 output tiles and completes 262,144 scores in 1,050,696 simulated core
 cycles with a continuously ready host. Full counters, host traffic, CPU timing,
 and Sky130 synthesis scope are in [the reviewed result](results/packed-engine.md).
 No routed active-top clock, power, or silicon latency is available yet.
@@ -59,8 +59,8 @@ state corrections in active records.
 ## Remaining engineering work
 
 The default host stream reloads K for each output tile. Physical K banking,
-broader scale-arithmetic qualification, real activation error, and routed full-chip Sky130
-timing and power remain open.
+broader scale-arithmetic qualification, broader model-quality evidence, and
+routed full-chip Sky130 timing and power remain open.
 The [development plan](roadmap.md) gives the order and acceptance
 evidence for those steps.
 

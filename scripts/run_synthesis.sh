@@ -8,7 +8,7 @@ tile="${1:-4}"
 depth="${2:-64}"
 tmax="${3:-16}"
 reuse="${4:-0}"
-scale_block="${5:-32}"
+scale_block="${5:-16}"
 score_lanes="${6:-1}"
 liberty="${SKY130_LIB:-}"
 if [[ -z "$liberty" ]]; then

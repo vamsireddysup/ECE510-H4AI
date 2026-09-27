@@ -21,7 +21,7 @@
 #define TEST_B 4
 #endif
 #ifndef TEST_SCALE_BLOCK
-#define TEST_SCALE_BLOCK 32
+#define TEST_SCALE_BLOCK 16
 #endif
 static constexpr int B=TEST_B, D=TEST_D, TMAX=TEST_TMAX;
 static constexpr int BS=TEST_SCALE_BLOCK, BLOCKS=(D+BS-1)/BS;
@@ -35,6 +35,8 @@ static constexpr bool REUSE=true;
 #else
 static constexpr bool REUSE=false;
 #endif
+static constexpr uint32_t PROTOCOL_VERSION =
+    BS == 16 ? (REUSE ? 6u : 5u) : (REUSE ? 4u : 3u);
 static Vqkt_chiplet_top dut;
 static uint64_t cycles=0;
 static bool legacy_mode=false;
@@ -318,7 +320,7 @@ static void run_case(int t) {
     check(read_reg(0x30)==uint32_t(tiles*D),"compute cycles");
     uint32_t core_cycles=read_reg(0x10);
     if(!STRESS_STALLS && !REUSE && B==4 && D==64 && BLOCKS==2 && t==512)
-        check(core_cycles<=1049666,"4x4 T=512 cycle regression");
+        check(core_cycles<=1050696,"4x4 T=512 cycle regression");
     std::printf("T=%d D=%d scores=%d tiles=%d cycles=%u in_beats=%u out_beats=%u stalls=%u PASS\n",
         t,D,checked,tiles,core_cycles,read_reg(0x20),read_reg(0x24),read_reg(0x2C));
 }
@@ -343,12 +345,12 @@ int main(int argc,char** argv) {
         check(std::fread(precision_scores.data(),sizeof(uint32_t),precision_scores.size(),capture)==precision_scores.size(),"model scores");
         check(std::fread(precision_reference.data(),sizeof(uint32_t),precision_reference.size(),capture)==precision_reference.size(),"reference scores");
         std::fclose(capture); precision_mode=true;
-        reset(); check(read_reg(0x1C)==3,"stream version"); run_case(TMAX);
+        reset(); check(read_reg(0x1C)==PROTOCOL_VERSION,"stream version"); run_case(TMAX);
         std::printf("RTL_RELATIVE_FROBENIUS=%.9f RTL_MEAN_ABS_ERROR=%.9f\n",
             std::sqrt(precision_diff_sq/precision_ref_sq),precision_abs/(TMAX*TMAX));
         return 0;
 #endif
-        reset(); check(read_reg(0x1C)==(REUSE?4:3),"stream version");
+        reset(); check(read_reg(0x1C)==PROTOCOL_VERSION,"stream version");
         write_data_first(0x08,4);
         check(read_reg(0x08)==4,"AXI W-before-AW value");
         write_reg(0x08,0x00000100,0x2);

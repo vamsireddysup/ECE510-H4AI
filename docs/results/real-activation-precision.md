@@ -107,7 +107,7 @@ evidence for the default, not a general model-quality claim.
 At Bs=16 the existing parameterized RTL would use four exact block accumulators,
 four block scaler lanes per score lane, and three FP32 adds per score. The cycle
 model projects scaling service of 31, 47, and 79 cycles per tile for 4x4 L1, 8x8
-L2, and 16x16 L4. Their T=512 totals become 1,050,695, 264,335, and 133,391
+L2, and 16x16 L4. Their T=512 totals become 1,050,696, 264,336, and 133,392
 cycles, each 1,030 cycles above Bs=32 while retaining the same binding stage.
 Scale traffic rises by 1,024 beats, or 8,192 bytes, and scale storage doubles to
 0.25 bytes per Q or K element.

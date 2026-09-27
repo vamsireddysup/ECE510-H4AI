@@ -1,8 +1,7 @@
 # 0004: use FP32 scales with 16-element reduction blocks
 
 Accepted, September 2026. Supersedes
-[ADR 0003](0003-fp32-scales-with-32-element-blocks.md). Implementation as the
-default stream contract is pending; protocol version 3 remains 1x32.
+[ADR 0003](0003-fp32-scales-with-32-element-blocks.md).
 
 ## Decision
 
@@ -10,8 +9,8 @@ Use one FP32 scale per 16 FP4 values along the reduction axis in the next stream
 contract. For `D_HEAD=64`, every row carries four scales. Keep block size
 parameterized and keep the current 1x32 protocol available for compatibility.
 
-Do not change protocol version 3 in place. The additional scale words require a
-new version before 1x16 becomes the RTL default.
+Do not change protocol version 3 in place. Versions 5 and 6 identify the 1x16
+K-reload and K-reuse contracts; versions 3 and 4 retain 1x32 compatibility.
 
 ## Evidence
 
@@ -22,9 +21,12 @@ BERT activation capture, 1x32 FP32 improves three metrics but reduces top-1 from
 top-1 89.26%, and top-5 88.95%, compared with 0.01371, 0.06540, 87.11%, and
 88.13% at 1x64.
 
-This is one layer and head, so it is evidence for the engineering default rather
-than a universal accuracy guarantee. The capture, model revision, input hash,
-tool versions, complete format sweep, and raw-score metrics are in the
+The initial result covered one layer and head. Follow-up captures cover both
+heads of the deeper layer and one last-layer head from a larger BERT. Bs=16
+improves all four softmax metrics over Bs=64 in all four captures. Bs=32 fails
+that rule in two captures. This is evidence for the engineering default rather
+than a universal accuracy guarantee. Capture hashes, model revisions, tools,
+complete sweeps, and raw-score metrics are in the
 [real-activation result](../results/real-activation-precision.md).
 
 ## Cost
@@ -38,15 +40,16 @@ The existing cycle model projects:
 
 | Build | Bs=32 T=512 | Bs=16 T=512 | Binding stage |
 | --- | ---: | ---: | --- |
-| 4x4, one score lane | 1,049,665 | 1,050,695 | CALC |
-| 8x8, two score lanes | 263,305 | 264,335 | CALC |
-| 16x16, four score lanes | 132,361 | 133,391 | OUTPUT |
+| 4x4, one score lane | 1,049,666 | 1,050,696 | CALC |
+| 8x8, two score lanes | 263,306 | 264,336 | CALC |
+| 16x16, four score lanes | 132,362 | 133,392 | OUTPUT |
 
 The 1,030-cycle increase is 1,024 additional scale-input beats plus pipeline fill
-and drain. Scaling service rises from 25 to 31 cycles at 4x4, 41 to 47 at 8x8,
-and 73 to 79 at 16x16, so it does not change the binding stage in these builds.
-These are projections from the exact cycle model; the 1x16 default has not run
-the large RTL suite or physical flow.
+and drain. Scaling service rises from 26 to 32 cycles at 4x4, 42 to 48 at 8x8,
+and 74 to 80 at 16x16, so it does not change the binding stage in these builds.
+These Bs=16 values now match the large RTL suites exactly. The physical routes
+in the current P0.7 sweep retain Bs=32, so the default still needs its own routed
+PPA result.
 
 ## Alternatives considered
 
@@ -65,11 +68,10 @@ worse than the 1x64 FP32 baseline.
 
 ## Consequences
 
-A new stream protocol must carry four Q scales and four K scales per row at
-`D_HEAD=64`. The current parameterized accumulators, scaler, and reducer already
-elaborate at Bs=16 and pass the small integration suite, but the default change
-needs the full large regression, cycle provenance, synthesis, and physical
-measurement.
+Stream versions 5 and 6 carry four Q scales and four K scales per row at
+`D_HEAD=64`. The parameterized accumulators, scaler, and reducer pass the small
+and T=64/128/512 large integration suites at Bs=16. The cycle model reproduces
+the new measurements exactly; routed PPA remains open.
 
 This decision increases pressure on the scale path that P0.7 already identifies
 as critical. P1 must first repair the integer-to-FP32 conversion's width

@@ -4,14 +4,14 @@
 E2M1 Q/K tiles and FP32 reduction-block scales, computes exact integer dot
 products in quarter units, applies parallel pairs of pipelined FP32 scale
 multipliers, combines the blocks, and emits packed FP32 scores. See the
-[version 3 stream contract](../docs/stream-protocol.md).
+[version 5 stream contract](../docs/stream-protocol.md).
 
 [`core/score_scaler.sv`](core/score_scaler.sv) owns the conversion from exact
 quarter-unit accumulators through both block-scale multipliers. The top has one
 scaler lane per block per `SCORE_LANES`; `score_reducer.sv` combines each
 score's blocks through `fp32_add.sv`.
 
-`K_REUSE=1` selects protocol version 4 and a command-level RTL K scratchpad.
+`K_REUSE=1` selects protocol version 6 and a command-level RTL K scratchpad.
 `TILE_SIZE=8` and `16` also pass simulation; none of these variants has routed
 Sky130 timing or power evidence. The [design-space record](../docs/results/design-space.md)
 compares them.

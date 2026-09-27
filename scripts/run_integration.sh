@@ -8,7 +8,7 @@ source "$script_dir/read_filelist.sh"
 read_rtl_filelist "$repo_root"
 reuse=0
 tile=4
-scale_block="${SCALE_BLOCK_SIZE:-32}"
+scale_block="${SCALE_BLOCK_SIZE:-16}"
 score_lanes="${SCORE_LANES:-1}"
 if [[ "${1:-}" == '--reuse' ]]; then
     depths=(4 64)

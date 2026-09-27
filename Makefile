@@ -14,7 +14,7 @@ help:
 	  '  make test-model      Test the FP4 and QK^T reference model' \
 	  '  make test-integration Run the active 4x4 end-to-end test' \
 	  '  make test-integration-large Run T=64/128/512, D_HEAD=64' \
-	  '  make test-integration-reuse Test version 2 K reuse' \
+	  '  make test-integration-reuse Test version 6 K reuse' \
 	  '  make test-integration-reuse-large Test K reuse at T=64/128/512' \
 	  '  make test-array8     Verify 8x8, D_HEAD=64' \
 	  '  make test-array16    Verify 16x16, D_HEAD=64' \

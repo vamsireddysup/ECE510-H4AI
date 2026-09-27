@@ -26,12 +26,12 @@ The original M4 numerical pattern is one of the cases, so the historical 16/16
 result stays covered. The small suite injects host stalls on both streams. Its input producer and
 output consumer run concurrently, which exercises overlapping stages and stable
 backpressure behavior. The large suite keeps both streams continuously ready so
-its cycle counts are comparable. The 4x4 T=512 test fails above 1,049,666 core
+its cycle counts are comparable. The 4x4 T=512 test fails above 1,050,696 core
 cycles to prevent silent loss of the P0.3 gain.
 
 `make test-precision-rtl` generates the pinned seed-510 T=512 matrices used by
 the software precision sweep and compares all 262,144 RTL score bits with the
-software 1x32 FP32 model before reporting raw-score error.
+software 1x16 FP32 model before reporting raw-score error.
 
 ## Running it
 
@@ -40,8 +40,8 @@ From the repository root:
 ```bash
 make test-integration              # small suite, D_HEAD=4 and 64
 make test-integration-large        # T=64/128/512 at D_HEAD=64
-make test-integration-reuse        # protocol version 4, K reuse
-make test-integration-reuse-large  # version 4 at T=64/128/512
+make test-integration-reuse        # protocol version 6, K reuse
+make test-integration-reuse-large  # version 6 at T=64/128/512
 make test-array8                   # 8x8
 make test-array16                  # 16x16
 make test-precision-rtl            # pinned T=512 model comparison

@@ -1,11 +1,16 @@
 # Packed engine verification and measurement
 
-The current cycle table was measured on `master` at revision `1311eb0` with
+This Bs=32 cycle table was measured on `master` at revision `1311eb0` with
 Verilator 5.041 after P0.4 added parameterized 1x32 FP32 scales. The compact
 [machine-readable summary](p0-4-p0-6-simulation.csv) preserves the reviewed
 large runs and lane sweep. Synthesis figures
 later in this record come from pre-overlap revisions and do not measure the
 added banks or scheduler.
+
+ADR 0004 later moved the default to Bs=16 under protocols 5 and 6. Its reviewed
+cycles and precision are in the [Bs=16 simulation CSV](p0-8-bs16-simulation.csv)
+and [latest verification](latest-verification.md); this record remains the
+reproducible Bs=32 comparison.
 
 The active top is `qkt_chiplet_top`. All cycle figures are RTL simulations. The
 host-stream boundary is the two 64-bit AXI4-Stream ports; transferred bytes are
