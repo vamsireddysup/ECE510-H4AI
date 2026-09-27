@@ -87,7 +87,11 @@ all current 1x32 T=512 scores bit-exactly.
 `make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and
 array utilization from accepted-beat simulation logs.
 `scripts/run_physical.sh` runs the complete 4x4/D_HEAD=64/T_MAX=16 top in
-OpenLane. The latest 2200 um-die route is DRC/LVS and setup clean at 225 ns but
+OpenLane; its `synthesis` mode records comparable mapped timing checkpoints.
+Variable scale-launch division has been replaced with coordinate counters,
+scale reads are prefetched, and integer conversion uses a bounded priority
+tree. The mapped path is 58.09 ns, while the latest 2200 um-die route still
+belongs to the older RTL. That route is DRC/LVS and setup clean at 225 ns but
 fails multi-corner hold by 1.0069 ns, has antenna, slew, and fanout violations,
 and has an invalid dynamic-power report; see `docs/results/physical-design.md`.
 Do not call it timing closed or use its dynamic power numbers. ADR 0005 closes

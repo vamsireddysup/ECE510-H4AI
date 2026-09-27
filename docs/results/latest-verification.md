@@ -1,5 +1,31 @@
 # Latest verification
 
+## September 27 critical-path update
+
+At revision `782619d`, `make test`, every large 4x4/8x8/16x16 and K-reuse
+integration suite, the Bs=16 large suite, and `make test-precision-rtl` pass.
+Every score remains bit identical to its reference. The updated cycle model
+reproduces all 16 recorded configurations exactly. Current Bs=32 T=512 counts
+are 1,049,666 cycles for 4x4 L1, 263,306 for 8x8 L2, and 132,362 for 16x16 L4.
+
+Mapped, prelayout Sky130 timing at a common 225 ns constraint attributes the
+path change as follows: 95.95 ns before the work, 58.58 ns after replacing
+variable divide/modulo with coordinate counters, 58.49 ns after registering
+scale reads, and 58.09 ns after replacing the linear leading-bit scan. The
+worst mapped path is now synchronous reset logic. The optional accumulator-read
+pipeline stage was not added because the first three steps crossed the 68 ns
+mapped target. These values do not establish routed timing; full provenance is
+in the [critical-path record](critical-path.md).
+
+The local tools are Verilator 5.041 development revision
+v5.040-196-g63f5f5c32, Python 3.12.3, pytest 7.4.4, OpenLane 1.1.1,
+OpenROAD `b16bda7e82721d10566ff7e2b68f1ff0be9f9e38`, Yosys 0.38
+`543faed9c8c`, and Sky130A
+`bdc9412b3e468c102d01b7cf6337be06ec6e9c9a`. Generated transcripts remain
+under ignored `build/`.
+
+## September 24 P0.4 and P0.6 record
+
 I ran the complete P0.4 and P0.6 verification matrix on September 24, 2026, on
 `master` at revision `1311eb0`. The target was the complete
 `qkt_chiplet_top` with `D_HEAD=64`, FP32 scales, default
@@ -23,7 +49,8 @@ These are RTL simulation results; no clock constraint or PDK applies.
 | Isolated `uv run` with NumPy 2.4.6 and pytest 8.4.2 | All 28 tests pass, including precision provenance at `rel=1e-6` |
 | GitHub Actions at `f9ab75d` | Passes on Ubuntu 24.04 with its packaged Verilator 5.020 after reproducing and fixing the older lint limitation |
 
-The 4x4 T=512 test has an explicit regression ceiling of 1,049,665 core cycles.
+This historical run used an explicit regression ceiling of 1,049,665 core cycles.
+The scale-prefetch stage raised the current ceiling to 1,049,666.
 The machine-readable reviewed subset is
 [`p0-4-p0-6-simulation.csv`](p0-4-p0-6-simulation.csv).
 

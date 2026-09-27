@@ -18,15 +18,15 @@ edge tiles, input and output stalls, error status, and repeated commands.
 | Verified configuration | Result |
 | --- | --- |
 | 4x4, `D_HEAD=4`, T=4 | Original 16/16 numerical case; 49 simulated core cycles with stalls |
-| 4x4, `D_HEAD=64`, T=512 | 262,144/262,144 scores; 1,049,665 simulated cycles with ready host |
+| 4x4, `D_HEAD=64`, T=512 | 262,144/262,144 scores; 1,049,666 simulated cycles with ready host |
 | Host traffic at T=512 | 3,170,304 transferred bytes; 10.58 FLOP/byte |
 | Historical Sky130 mapped area before P0.3, 4x4, `D_HEAD=64`, `T_MAX=16` | 304,468 um²; current banked scheduler not yet remapped |
 
 An optional version 4 build caches K for a whole command. At T=512 it lowers
-traffic to 1,089,536 bytes and completes in 1,051,697 cycles. Simulated 8x8 and
-16x16 one-lane builds complete the same workload in 300,192 and 272,704 core
+traffic to 1,089,536 bytes and completes in 1,051,698 cycles. Simulated 8x8 and
+16x16 one-lane builds complete the same workload in 304,288 and 273,728 core
 cycles. Their pre-P0.3 mapped cell areas at `T_MAX=16` are 571,637 and 1,446,323 um².
-Two score lanes reduce 8x8 to 263,305 cycles; four reduce 16x16 to 132,361
+Two score lanes reduce 8x8 to 263,306 cycles; four reduce 16x16 to 132,362
 cycles and expose the 64-bit output limit.
 At `T_MAX=512`, the mapped 4x4 standard-cell areas are 1,596,280 um² for
 the default design and 6,672,971 um² for register-based K reuse.
@@ -74,7 +74,7 @@ and what it is authoritative for. The short path:
 - [Verification plan](docs/verification-plan.md): what each check proves, and the gaps
 - [Development plan](docs/roadmap.md) and [decision records](docs/adr/README.md)
 - [Project context](docs/project-context.md) and [repository layout](docs/repository-layout.md)
-- [Latest verification](docs/results/latest-verification.md), [design space](docs/results/design-space.md), [synthetic precision](docs/results/precision.md)
+- [Latest verification](docs/results/latest-verification.md), [critical-path timing](docs/results/critical-path.md), [design space](docs/results/design-space.md), [synthetic precision](docs/results/precision.md)
 - [Active RTL](rtl/README.md), [testbenches](tb/README.md), [reference model](model/README.md), [scripts](scripts/README.md)
 - [Course archive](archive/README.md) and [superseded RTL](archive/superseded-rtl/README.md)
 

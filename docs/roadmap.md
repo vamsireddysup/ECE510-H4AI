@@ -52,8 +52,8 @@ stay unchanged in [`archive/`](../archive/README.md).
   parallel, and combines them with one FP32 add. All 262,144 T=512 RTL scores
   match the software model bit-exactly; RTL relative Frobenius error is 14.23%.
 - P0.6 keeps the 64-bit output. At 8x8, two score lanes move the binding stage
-  from scaling to CALC and complete T=512 in 263,305 cycles. At 16x16, four
-  lanes move it to output and complete in 132,361 cycles, 1,289 cycles above
+  from scaling to CALC and complete T=512 in 263,306 cycles. At 16x16, four
+  lanes move it to output and complete in 132,362 cycles, 1,290 cycles above
   the two-score-per-cycle steady floor.
 - P0.5 closes register-based K reuse in
   [ADR 0005](adr/0005-close-register-k-reuse.md). Its projected slow-corner
@@ -87,7 +87,8 @@ Stages and their exit conditions are in
 6. **P0.7, route the complete top.** Active. A 225 ns run on the 2200 um die is
    DRC/LVS and setup clean, but worst multi-corner hold slack is -1.0069 ns. It
    has antenna, slew, and fanout violations, and its dynamic power is rejected.
-   The next route must fix these on 4x4 before trying 8x8. See
+   Scale-launch restructuring reduced the mapped path from 95.95 ns to 58.09 ns;
+   the next route measures how much survives placement and routing. See
    [the physical result](results/physical-design.md).
 7. **P0.5, decide K-reuse storage from routed energy evidence.** Complete for
    the current implementation. Close register K reuse; its full-capacity area
@@ -106,12 +107,13 @@ dynamic power remains invalid. ADR 0005 records the projection and its limits.
 ### A correction to an earlier assumption
 
 The block-scale implementation makes one score lane cost
-`ceil(B^2/L) + 9` cycles per tile at Bs=32: six multiplier drain cycles and
-three cross-block-add drain cycles. At 8x8, `L=2` gives 41 scaling cycles, below
+`ceil(B^2/L) + 10` cycles per tile at Bs=32: one scale-prefetch cycle, six
+multiplier drain cycles, and three cross-block-add drain cycles. At 8x8, `L=2`
+gives 42 scaling cycles, below
 64-cycle CALC; output is only 32 cycles and cannot bind. At 16x16, `L=2` still
-binds in scaling at 137 cycles, while `L=4` gives 73 scaling cycles and exposes
-the 128-cycle output limit. The measured 132,361-cycle command confirms the
-131,072-cycle steady output floor plus fill and drain. The derivation and
+binds in scaling at 138 cycles, while `L=4` gives 74 scaling cycles and exposes
+the 128-cycle output limit. The measured 132,362-cycle command confirms the
+131,072-cycle steady output floor plus 1,290 fill and drain. The derivation and
 per-stage table are in [architecture](architecture.md).
 
 ## P1, next: format-agile precision and sparsity

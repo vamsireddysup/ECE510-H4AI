@@ -79,6 +79,12 @@ conversion and end at the scaler's first Q multiplier input register. The two
 FP32 multipliers are separated by registers. P1 should optimize scale launch
 selection and integer-to-FP32 conversion before the multiplier chain.
 
+That RTL path has since been shortened in mapped synthesis from 95.95 ns to
+58.09 ns by removing variable division, prefetching scales, and bounding the
+integer conversion. The worst mapped path moved to synchronous reset logic.
+Those results are in the [critical-path record](critical-path.md); this page
+continues to report the last completed route until the new RTL is routed.
+
 ## Power limitation
 
 The nominal extraction reports 476 maximum-slew and 483 maximum-fanout

@@ -93,7 +93,7 @@ depth `D`, block size `Bs`, score lanes `L`, and block count
 | --- | ---: | --- |
 | `LOAD_K`, version 3 | `ceil(B*D/16)` | 16 FP4 codes per accepted input beat |
 | `CALC` | `D` | the first products initialize the accumulator bank, followed by `D-1` updates |
-| `SCALING` | `ceil(B^2/L) + 6 + 3*(C-1)` | `L` score launches per cycle, multiplier drain, and cross-block-add drain |
+| `SCALING` | `ceil(B^2/L) + 7 + 3*(C-1)` | `L` score launches per cycle, scale prefetch, multiplier drain, and cross-block-add drain |
 | `OUTPUT` | `ceil(B^2/2)` | two FP32 scores per accepted output beat |
 
 For `N=(T/B)^2` complete tiles, `Qbeats=ceil(B*D/16)`, and continuously ready
@@ -112,17 +112,17 @@ binding stage for these measured configurations.
 
 ### Model against measurement
 
-Measured at revision `1311eb0` with Verilator 5.041, Bs=32, `SCORE_LANES=1`,
+Measured at revision `782619d` with Verilator 5.041, Bs=32, `SCORE_LANES=1`,
 and continuously ready streams, `D_HEAD=64`:
 
 | Configuration | Model | Measured | Previous serial RTL | Speedup |
 | --- | ---: | ---: | ---: | ---: |
-| v3 4x4, T=64 | 16,577 | 16,577 | 28,736 | 1.734x |
-| v3 4x4, T=128 | 65,857 | 65,857 | 114,304 | 1.736x |
-| v3 4x4, T=512 | 1,049,665 | 1,049,665 | 1,821,184 | 1.735x |
-| v4 4x4, T=512 | 1,051,697 | 1,051,697 | 1,561,088 | 1.484x |
-| v3 8x8, T=512 | 300,192 | 300,192 | 817,664 | 2.724x |
-| v3 16x16, T=512 | 272,704 | 272,704 | 534,016 | 1.958x |
+| v3 4x4, T=64 | 16,578 | 16,578 | 28,736 | 1.734x |
+| v3 4x4, T=128 | 65,858 | 65,858 | 114,304 | 1.736x |
+| v3 4x4, T=512 | 1,049,666 | 1,049,666 | 1,821,184 | 1.735x |
+| v4 4x4, T=512 | 1,051,698 | 1,051,698 | 1,561,088 | 1.484x |
+| v3 8x8, T=512 | 304,288 | 304,288 | 817,664 | 2.687x |
+| v3 16x16, T=512 | 273,728 | 273,728 | 534,016 | 1.951x |
 
 Block scales add 512 input beats: version 3 4x4 transfers 265,216 beats at
 T=512 and version 4 transfers 5,120. Version 4 is 2,032 cycles slower because its
@@ -135,23 +135,23 @@ storage.
 
 | Tile | `LOAD_K` | `CALC` | `SCALING` | `OUTPUT` | Binding stage | Steady tiles | Fill/drain | Measured T=512 |
 | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
-| 4x4 | 16 | 64 | 25 | 8 | `CALC`, 64 | 1,048,576 | 1,089 | 1,049,665 |
-| 8x8 | 32 | 64 | 73 | 32 | `SCALING`, 73 | 299,008 | 1,184 | 300,192 |
-| 16x16 | 64 | 64 | 265 | 128 | `SCALING`, 265 | 271,360 | 1,344 | 272,704 |
+| 4x4 | 16 | 64 | 26 | 8 | `CALC`, 64 | 1,048,576 | 1,090 | 1,049,666 |
+| 8x8 | 32 | 64 | 74 | 32 | `SCALING`, 74 | 303,104 | 1,184 | 304,288 |
+| 16x16 | 64 | 64 | 266 | 128 | `SCALING`, 266 | 272,384 | 1,344 | 273,728 |
 
-At 4x4 the dot array runs for 1,048,576 of 1,049,665 command cycles, so measured
-array-active is 99.896%. The 1,089 remaining cycles are scale loading,
+At 4x4 the dot array runs for 1,048,576 of 1,049,666 command cycles, so measured
+array-active is 99.896%. The 1,090 remaining cycles are scale loading,
 first Q/K fill, scale-pipeline drain, and final output drain. They are command
 latency rather than a sustained bubble. The measured 1.735x gain is slightly
 below the 1.74x steady-state estimate for that reason.
 
 The one-score-lane default binds in scaling for both larger arrays. At 8x8,
-two score lanes reduce scaling to 41 cycles per tile, so the 64-cycle CALC stage
-binds; four lanes only reduce the T=512 result from 263,305 to 263,289 cycles.
+two score lanes reduce scaling to 42 cycles per tile, so the 64-cycle CALC stage
+binds; four lanes only reduce the T=512 result from 263,306 to 263,290 cycles.
 Output cannot bind at 8x8 because its 32 cycles are below CALC. At 16x16, two
-lanes leave scaling binding at 137 cycles, while four lanes reduce it to 73 and
+lanes leave scaling binding at 138 cycles, while four lanes reduce it to 74 and
 move the binding stage to the 128-cycle output. The measured four-lane result is
-132,361 cycles: the 131,072-cycle output floor plus 1,289 fill and drain cycles.
+132,362 cycles: the 131,072-cycle output floor plus 1,290 fill and drain cycles.
 P0.6 therefore keeps the 64-bit port and selects two lanes for 8x8 or four for
 16x16 if either larger array survives physical evaluation.
 

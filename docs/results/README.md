@@ -15,10 +15,12 @@ They are large and reproducible, so they are not committed.
 | [Synthetic precision](precision.md) | Block-scale sweep, softmax agreement, storage, and accumulator cost |
 | [Real-activation precision](real-activation-precision.md) | Pinned BERT Q/K capture, scale sweep, and the 1x16 decision |
 | [P0.7 physical design](physical-design.md) | Complete-top clock and floorplan sweep, route, signoff timing, DRC, LVS, and power qualification |
+| [Critical-path optimization](critical-path.md) | Stepwise mapped timing attribution before the next complete-top route |
 | [Latest verification](latest-verification.md) | The most recent local command run and its tool versions |
 | [P0.3 simulation CSV](p0-3-simulation.csv) | Machine-readable cycles, utilization, traffic, and stalls from the verified P0.3 runs |
 | [P0.4/P0.6 simulation CSV](p0-4-p0-6-simulation.csv) | Machine-readable block-scale cycles, lane sweep, utilization, and binding stages |
 | [P0.7 physical CSV](p0-7-physical.csv) | Machine-readable constraint, floorplan, timing, and signoff outcomes |
+| [Critical-path synthesis CSV](p0-a-critical-path.csv) | Machine-readable mapped path, slack, cells, and area after each timing change |
 
 ## Where generated output lands
 
