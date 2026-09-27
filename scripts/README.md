@@ -22,7 +22,7 @@ All of them run from the repository root.
 | `capture_transformer_qk.py` | P0.8 documented command | PyTorch 2.8.0+cpu, Transformers 4.56.2, NumPy | deterministic NPZ at the requested path |
 | `bench_cpu.py` | run directly | NumPy | stdout JSON; redirect to `build/cpu-benchmark.json` |
 | `run_synthesis.sh` | run directly as `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE] [BLOCK] [LANES]` | Yosys, Sky130 HD Liberty | `build/synthesis/t<tile>-d<depth>-max<tmax>-reuse<reuse>-sb<block>-sl<lanes>/yosys.log` |
-| `run_physical.sh` | `./scripts/run_physical.sh RUN PERIOD [TILE] [LANES] [MODE]` | Docker, pinned OpenLane image, Sky130 PDK | `build/physical/<run-name>/`, with an absolute die area, generated config, manifest, log, and `runs/full/` |
+| `run_physical.sh` | `./scripts/run_physical.sh RUN PERIOD [TILE] [LANES] [MODE]` | Docker, pinned OpenLane image, Sky130 PDK | `build/physical/<run-name>/`, with an absolute die area, generated config, manifest, log, and `runs/full/`; use mode `synthesis` for a reproducible synthesis-only checkpoint |
 | `clean.sh` | `make clean` | nothing | removes `build/` and `.pytest_cache/` only |
 
 ## Conventions
