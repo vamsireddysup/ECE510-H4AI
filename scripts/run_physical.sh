@@ -9,7 +9,6 @@ period="${2:-50.0}"
 tile="${3:-4}"
 score_lanes="${4:-1}"
 mode="${5:-full}"
-flow_stop=""
 depth="${D_HEAD:-64}"
 tmax="${T_MAX:-16}"
 reuse="${K_REUSE:-0}"
@@ -36,7 +35,11 @@ set ::env(PL_RESIZER_HOLD_SLACK_MARGIN) "$placement_hold_margin"
 set ::env(GLB_RESIZER_HOLD_SLACK_MARGIN) "$global_hold_margin"
 EOF
 if [[ "$mode" == synthesis ]]; then
-    flow_stop="-to synthesis"
+    cat > "$build_dir/synthesis.tcl" <<EOF
+package require openlane
+prep -design /work/build/physical/$run_name -tag full -overwrite
+run_synthesis
+EOF
 elif [[ "$mode" == diagnostic ]]; then
     printf '\nset ::env(PL_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
     printf 'set ::env(GLB_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
@@ -64,12 +67,17 @@ fi
     printf 'openlane_image_id=%s\n' "$(docker image inspect "$openlane_image" --format '{{.Id}}')"
     printf 'pdk_revision=%s\n' "$(basename "$(dirname "$(readlink -f "$HOME/.volare/sky130A")")")"
 } > "$build_dir/manifest.txt"
+if [[ "$mode" == synthesis ]]; then
+    flow_command="flow.tcl -interactive -file /work/build/physical/$run_name/synthesis.tcl"
+else
+    flow_command="flow.tcl -design /work/build/physical/$run_name -tag full -overwrite"
+fi
 docker run --rm \
     -v "$repo_root:/work" \
     -v "$HOME/.volare:/root/.volare" \
     -e PDK_ROOT=/root/.volare \
     -e PDK=sky130A \
     "$openlane_image" \
-    bash -lc "flow.tcl -design /work/build/physical/$run_name -tag full -overwrite $flow_stop" \
+    bash -lc "$flow_command" \
     > "$build_dir/flow.log" 2>&1
 printf 'Physical run: %s\n' "$build_dir/runs/full"
