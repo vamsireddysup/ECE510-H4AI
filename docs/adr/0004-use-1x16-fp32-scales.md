@@ -66,6 +66,13 @@ one capture.
 At Bs=16, ceiling is clipping safe but has KL 0.01671 and top-1 83.79%, both
 worse than the 1x64 FP32 baseline.
 
+The later optimized route also removes the timing argument for revisiting E8M0
+in P0. Its worst setup path is synchronous reset distribution rather than an
+FP32 scale multiplier. Replacing scale multiplication with exponent adjustment
+would therefore sacrifice the measured accuracy without shortening the current
+routed critical path. A future format-agile P1 datapath may still measure that
+tradeoff as a separate mode.
+
 ## Consequences
 
 Stream versions 5 and 6 carry four Q scales and four K scales per row at

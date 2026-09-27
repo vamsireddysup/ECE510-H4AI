@@ -64,6 +64,23 @@ engines; its outcome is recorded below.
 
 The route is DRC and LVS clean but not antenna clean.
 
+## 16x16 four-lane attempt
+
+The replicated-engine study recommended one 16x16 four-lane array over eight
+4x4 engines on the available area evidence. I therefore started the same
+125 ns, 2200 um flow at Bs=32 and revision `2c6a76f`. It did not reach a mapped
+netlist. After 20 minutes 49 seconds in Yosys, `OPT_MEM_PRIORITY` was still
+lowering the dynamically written accumulator arrays on one fully occupied CPU
+core. Resident memory had grown to 2.49 GB and the synthesis log had not
+advanced for 9 minutes 49 seconds, so I stopped the bounded attempt.
+
+There is no 16x16 synthesized area, timing, placement, or routing result to
+report. The failure agrees with the earlier 20-minute area attempt and locates
+the next prerequisite: express the accumulator banks with statically selected
+write ports, or otherwise remove the memory-priority expansion, before another
+large-array physical run. It does not justify substituting eight replicated 4x4
+engines, whose conservative area estimate is already larger than this die.
+
 ## Timing and critical path
 
 At the routed 125 ns constraint, the worst maximum-RC setup slack across three

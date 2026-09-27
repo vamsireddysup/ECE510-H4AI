@@ -33,6 +33,11 @@ violations. Dynamic power and energy per score remain rejected. Full tool,
 constraint, timing, area, runtime, and signoff provenance is in the
 [physical-design record](physical-design.md).
 
+The recommended 16x16 four-lane second point was attempted at Bs=32 and 125 ns.
+It did not produce a mapped netlist: Yosys remained in `OPT_MEM_PRIORITY` after
+20 minutes 49 seconds while resident memory grew to 2.49 GB. The bounded run
+was stopped and no 16x16 physical result is claimed.
+
 ## September 27 critical-path update
 
 At revision `782619d`, `make test`, every large 4x4/8x8/16x16 and K-reuse
@@ -190,7 +195,8 @@ combinations, and the 29-test model suite regenerates the six FP32 rows from the
 committed capture and JSON. Bs=16 is the cheapest FP32 point that improves all
 four softmax metrics over Bs=64 on this harness, so
 [ADR 0004](../adr/0004-use-1x16-fp32-scales.md) supersedes ADR 0003. The RTL
-default and stream protocol have not changed yet.
+default and stream protocol had not changed at that measurement revision; the
+current version 5 implementation is recorded at the top of this page.
 
 ## Related
 

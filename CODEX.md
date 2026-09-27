@@ -95,6 +95,9 @@ clean and its fixed-layout sweep closes setup at 30.5 ns, but it fails
 multi-corner hold by 1.2765 ns and retains antenna, slew, and fanout violations.
 Its dynamic-power report is not qualified; see
 `docs/results/physical-design.md`.
+The selected 16x16 four-lane route attempt did not get through Yosys
+`OPT_MEM_PRIORITY` in 20 minutes 49 seconds, so it has no mapped or physical
+result.
 Do not call it timing closed or use its dynamic power numbers. ADR 0005 closes
 the register-based K-reuse experiment using a labeled slow-corner leakage and
 off-chip-energy projection. Do not derive active latency from the archived

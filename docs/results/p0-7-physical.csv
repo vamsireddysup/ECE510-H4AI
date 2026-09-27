@@ -6,3 +6,4 @@ t4-125ns-die2200,98e5623,4,1,125,2200,no_timing_repair,flow_completed,0.00_round
 t4-225ns-die2200-stock,5090f4e,4,1,225,2200,full,stopped_hold_repair,,,-,,,,-,-,-,,,,,,
 t4-225ns-die2200-route,028401d,4,1,225,2200,route_timing,flow_completed,,28.7995,-1.0069,0,0,0,clean,256,224,,,,,,
 p0d-opt4-125ns-die2200-route,e579ad7,4,1,125,2200,route_timing,flow_completed,,75.6704,-1.2765,0,0,0,clean,332,281,69400,860627,9956,21262,533,7707
+p0d-16x16-l4-bs32-125ns-attempt,2c6a76f,16,4,125,2200,route_timing,stopped_synthesis_opt_mem_priority,,,,,,,,,,,,,,,1251

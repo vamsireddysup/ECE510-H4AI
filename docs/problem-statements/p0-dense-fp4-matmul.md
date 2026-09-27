@@ -42,6 +42,8 @@ slack is -1.2765 ns. Antenna, slew, and fanout violations remain, and dynamic
 power is invalid. There is therefore still no timing-closed frequency or
 measured total energy for this top. See
 [physical design](../results/physical-design.md).
+The selected 16x16 four-lane follow-up did not get through Yosys memory-priority
+lowering, so accumulator-bank synthesis scalability is also open.
 
 ## Stages
 

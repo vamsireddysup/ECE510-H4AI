@@ -89,11 +89,11 @@ Stages and their exit conditions are in
 5. **P0.6, decide the output width from measurement.** Complete. Keep 64 bits;
    widen score scaling first. Two lanes are sufficient at 8x8 and four reach
    the output limit at 16x16.
-6. **P0.7, route the complete top.** Active. A 225 ns run on the 2200 um die is
-   DRC/LVS and setup clean, but worst multi-corner hold slack is -1.0069 ns. It
-   has antenna, slew, and fanout violations, and its dynamic power is rejected.
-   Scale-launch restructuring reduced the mapped path from 95.95 ns to 58.09 ns;
-   the next route measures how much survives placement and routing. See
+6. **P0.7, route the complete top.** Active. The optimized 4x4 route is DRC/LVS
+   clean and closes setup at 30.5 ns, but worst multi-corner hold slack is
+   -1.2765 ns. It has antenna, slew, and fanout violations, and its dynamic
+   power is rejected. The selected 16x16 L4 follow-up did not finish Yosys
+   memory-priority lowering, so large-array synthesis scalability is open. See
    [the physical result](results/physical-design.md).
 7. **P0.5, decide K-reuse storage from routed energy evidence.** Complete for
    the current implementation. Close register K reuse; its full-capacity area
