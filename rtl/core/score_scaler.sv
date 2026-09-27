@@ -15,19 +15,31 @@ module score_scaler #(
     output logic [LANES*32-1:0] result,
     output logic [LANES*INDEX_W-1:0] result_index
 );
+    localparam int ACC_INDEX_W = (ACC_W <= 2) ? 1 : $clog2(ACC_W);
+    localparam int ACC_PAD_W = 1 << $clog2(ACC_W);
+
     function automatic logic [31:0] quarter_to_fp32(
         input logic signed [ACC_W-1:0] value
     );
         logic [ACC_W-1:0] magnitude;
+        logic [ACC_PAD_W-1:0] search_value;
         logic [7:0] exponent;
         logic [22:0] fraction;
-        int leading;
+        logic [ACC_INDEX_W-1:0] leading;
+        logic [4:0] fraction_shift;
         magnitude = value[ACC_W-1] ? $unsigned(-value) : $unsigned(value);
-        leading = 0;
-        for (int bit_index = 0; bit_index < ACC_W; bit_index++)
-            if (magnitude[bit_index]) leading = bit_index;
-        exponent = 8'(leading + 125);
-        fraction = 23'(magnitude) << (23-leading);
+        search_value = '0;
+        search_value[ACC_W-1:0] = magnitude;
+        leading = '0;
+        for (int level = $clog2(ACC_PAD_W)-1; level >= 0; level--) begin
+            if (|(search_value >> (1 << level))) begin
+                leading[level] = 1'b1;
+                search_value = search_value >> (1 << level);
+            end
+        end
+        exponent = 8'(leading) + 8'd125;
+        fraction_shift = 5'd23 - 5'(leading);
+        fraction = 23'(magnitude) << fraction_shift;
         quarter_to_fp32 = (value == 0) ? 32'h0 :
             {value[ACC_W-1], exponent, fraction};
     endfunction
