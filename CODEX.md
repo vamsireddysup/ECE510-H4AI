@@ -90,10 +90,11 @@ array utilization from accepted-beat simulation logs.
 OpenLane; its `synthesis` mode records comparable mapped timing checkpoints.
 Variable scale-launch division has been replaced with coordinate counters,
 scale reads are prefetched, and integer conversion uses a bounded priority
-tree. The mapped path is 58.09 ns, while the latest 2200 um-die route still
-belongs to the older RTL. That route is DRC/LVS and setup clean at 225 ns but
-fails multi-corner hold by 1.0069 ns, has antenna, slew, and fanout violations,
-and has an invalid dynamic-power report; see `docs/results/physical-design.md`.
+tree. The mapped path is 58.09 ns. The optimized 2200 um-die route is DRC/LVS
+clean and its fixed-layout sweep closes setup at 30.5 ns, but it fails
+multi-corner hold by 1.2765 ns and retains antenna, slew, and fanout violations.
+Its dynamic-power report is not qualified; see
+`docs/results/physical-design.md`.
 Do not call it timing closed or use its dynamic power numbers. ADR 0005 closes
 the register-based K-reuse experiment using a labeled slow-corner leakage and
 off-chip-energy projection. Do not derive active latency from the archived

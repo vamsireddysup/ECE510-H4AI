@@ -35,11 +35,12 @@ capacity. Its projected slow-corner leakage reaches 0.686 mJ per command against
 0.338 to 0.676 mJ of projected avoided DRAM energy, so
 [ADR 0005](../adr/0005-close-register-k-reuse.md) closes this implementation.
 
-**The complete route is not timing clean.** The 4x4 top is route, Magic DRC,
-KLayout DRC, LVS, and setup clean on a 2200 um die at 225 ns, but worst
-multi-corner hold slack is -1.0069 ns. Antenna, slew, and fanout violations
-remain, and dynamic power is invalid. There is therefore still no timing-closed
-frequency or measured total energy for this top. See
+**The complete route is not timing clean.** The optimized 4x4 top is route,
+Magic DRC, KLayout DRC, LVS, and setup clean on a 2200 um die. A fixed-route
+sweep closes setup at 30.5 ns and misses at 30.4 ns, but worst multi-corner hold
+slack is -1.2765 ns. Antenna, slew, and fanout violations remain, and dynamic
+power is invalid. There is therefore still no timing-closed frequency or
+measured total energy for this top. See
 [physical design](../results/physical-design.md).
 
 ## Stages

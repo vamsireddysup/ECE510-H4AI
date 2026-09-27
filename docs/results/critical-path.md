@@ -37,9 +37,12 @@ logic. Scale prefetch and the conversion tree reduced the worst mapped path by a
 further 0.49 ns in total because neither was on that new worst path.
 
 The 58.09 ns mapped path is below the 68 ns break-even target. I therefore did
-not add the optional accumulator-read pipeline register. A routed result is
-still required: the accepted baseline grew from 95.95 ns after mapping to about
-196.2 ns after routing, so mapped timing alone cannot establish a frequency.
+not add the optional accumulator-read pipeline register. The follow-up route
+confirms the change: a fixed-layout multi-corner sweep closes setup at 30.5 ns
+and misses at 30.4 ns. The routed worst path is synchronous reset distribution,
+so the accumulator and conversion path no longer sets setup timing. Hold,
+slew, fanout, and antenna still fail, so 32.9 MHz remains a setup-only bound
+rather than an achieved frequency.
 
 ## Functional and cycle consequences
 

@@ -2,15 +2,16 @@
 
 This record holds the first complete-top Sky130 routes and the constraint and
 floorplan attempts that led to them. These are **measured EDA outputs**, not
-silicon measurements. P0.7 established a routable floorplan and setup closure,
-but remains open because multi-corner hold, antenna, slew, fanout, and power
-qualification do not close.
+silicon measurements. P0.7 established a routable floorplan and moved the
+setup-only limit from about 196 ns to 30.5 ns, but remains open because
+multi-corner hold, antenna, slew, fanout, and power qualification do not close.
 
 ## Configuration and tools
 
-Both completed runs target `qkt_chiplet_top`, 4x4, `D_HEAD=64`, `T_MAX=16`,
-Bs=32, one score lane, and protocol version 3. The latest run is revision
-`028401d`. It used OpenLane 1.1.1 image digest
+The completed routes target `qkt_chiplet_top`, 4x4, `D_HEAD=64`, `T_MAX=16`,
+Bs=32, one score lane, and protocol version 3. The optimized route contains RTL
+revision `e579ad7`; its generated manifest records that source revision. It
+used OpenLane 1.1.1 image digest
 `sha256:26719ced90c315b8b4ad7b9dc3e9a176991cea4c3f3282660d8d60d0f0cae229`,
 OpenROAD `b16bda7e82721d10566ff7e2b68f1ff0be9f9e38`, Yosys 0.38
 `543faed9c8c`, Magic 8.3.483, Netgen 1.5.270, and Sky130A PDK revision
@@ -34,65 +35,76 @@ acceptance check.
 | 125 ns | 2200 um | Diagnostic route completed; worst extracted setup slack -71.08 ns and hold slack -0.04 ns |
 | 225 ns | 2200 um | Stock SDC hold repair stopped after 34 minutes on 8,948 endpoints |
 | 225 ns | 2200 um | Project SDC and route-time repair completed; setup closes, worst extracted hold slack -1.0069 ns |
+| 125 ns | 2200 um | Optimized RTL completed; fixed-route setup closes through 30.5 ns and misses at 30.4 ns; worst hold slack -1.2765 ns |
 
 The machine-readable [sweep record](p0-7-physical.csv) keeps these outcomes.
-The completed 225 ns run took 1 hour 36 minutes, including 40 minutes of routed
-work, and peaked at 6,229 MB. This cost, together with the unresolved 4x4 hold
-and power failures, is why P0.7 did not start an 8x8 route. The 8x8 two-lane
-point remains the next physical candidate after the shared scale path and
-signoff flow close on 4x4.
+The optimized run took 2 hours 8 minutes, including 1 hour 4 minutes of routed
+work, and peaked at 6,091 MB. Detailed routing took 43 minutes and signoff DRC
+took another 34 minutes. The replicated-engine study therefore selected one
+16x16 four-lane attempt as the second physical point instead of eight 4x4
+engines; its outcome is recorded below.
 
 ## Latest completed route
 
 | Item | Result |
 | --- | ---: |
-| Synthesized cells | 74,491 |
-| Placed cells including physical cells | 537,339 |
-| Placed standard-cell area | 864,944 um2 |
+| Synthesized cells | 69,400 |
+| Placed cells including physical cells | 542,488 |
+| Placed standard-cell area | 860,627 um2 |
 | Core area | 4,762,568 um2 |
 | Die area | 4.84 mm2 |
-| Final utilization | 18.16% |
-| Routed wire length | 4,249,637 um |
-| Vias | 580,244 |
+| Final utilization | 18.07% |
+| Routed wire length | 4,614,216 um |
+| Vias | 571,200 |
 | Detailed-route violations | 0 |
 | Magic DRC violations | 0 |
 | KLayout DRC violations | 0 |
 | LVS errors | 0 |
-| Antenna violations | 256 pins, 224 nets |
+| Antenna violations | 332 pins, 281 nets |
 
 The route is DRC and LVS clean but not antenna clean.
 
 ## Timing and critical path
 
-At 225 ns, the worst extracted setup slack across the three RC extractions and
-three timing corners is **+28.7995 ns**. The worst extracted hold slack is
-**-1.0069 ns** at the slow timing corner. Typical-corner hold slack is positive,
-but a multi-corner signoff cannot discard the slow-corner failure. There is no
-timing-closed period or achieved frequency yet.
+At the routed 125 ns constraint, the worst maximum-RC setup slack across three
+timing corners is **+75.6704 ns**. Re-evaluating that same routed netlist and
+maximum-RC SPEF while preserving the project's 20% maximum I/O-delay rule gives:
 
-Applying the constraint to the verified 1,049,665-cycle T=512 command gives a
-**projected 236.17 ms**. It is not a timing-closed latency because hold fails.
+| Period | Worst setup slack | Worst hold slack |
+| ---: | ---: | ---: |
+| 68 ns | +30.0704 ns | -1.2765 ns |
+| 50 ns | +15.6703 ns | -1.2765 ns |
+| 31 ns | +0.4703 ns | -1.2765 ns |
+| 30.5 ns | +0.0703 ns | -1.2765 ns |
+| 30.4 ns | -0.0097 ns | -1.2765 ns |
 
-The setup path remains the path found in the 125 ns route: accumulator-bank
-selection and dynamic accumulator read feed the `quarter_to_fp32` leading-bit
-conversion and end at the scaler's first Q multiplier input register. The two
-FP32 multipliers are separated by registers. P1 should optimize scale launch
-selection and integer-to-FP32 conversion before the multiplier chain.
+The setup-only crossover is about 30.41 ns, or 32.9 MHz. The worst extracted
+hold slack is **-1.2765 ns** at the slow timing corner; the fastest corner is
+-0.0765 ns and the typical corner is +0.0513 ns. This fixed-layout sweep is a
+measured STA result, but a multi-corner signoff cannot discard either hold
+failure. There is no timing-closed period or achieved frequency yet.
 
-That RTL path has since been shortened in mapped synthesis from 95.95 ns to
-58.09 ns by removing variable division, prefetching scales, and bounding the
-integer conversion. The worst mapped path moved to synchronous reset logic.
-Those results are in the [critical-path record](critical-path.md); this page
-continues to report the last completed route until the new RTL is routed.
+Applying 30.5 ns to the verified Bs=32 1,049,666-cycle T=512 command gives a
+**projected 32.015 ms**. The 125 ns route constraint gives 131.208 ms. Neither
+is a timing-closed latency because hold fails.
+
+The worst setup path is now the synchronous `rst_n` distribution into
+`_118562_`, rather than the accumulator-to-scaler path. The divider removal,
+scale prefetch, and bounded integer conversion therefore survived placement and
+routing and moved the physical bottleneck. The slow-corner hold path starts at
+the `s_tlast` input and ends at `_118347_`. Placement timing repair remains
+disabled after the earlier pass failed to finish on thousands of endpoints;
+route-time repair used only its single analysis corner. That explains why a
+typical-corner clean result still fails slow and fast signoff corners.
 
 ## Power limitation
 
-The nominal extraction reports 476 maximum-slew and 483 maximum-fanout
-violations at the typical timing corner. The slow corner has 9,168 slew
-violations. OpenSTA consequently reports impossible typical values of 734 kW
-internal and 1.35 MW switching power. Those dynamic values are rejected.
+The maximum-RC extraction reports 9,956 maximum-slew and 533 maximum-fanout
+violations at the typical timing corner. The slow corner has 21,262 slew and
+533 fanout violations. Dynamic power is therefore still rejected; the
+structural timing fix did not qualify switching activity or electrical limits.
 
-The slow-corner leakage result is 0.495 mW. Leakage does not depend on assumed
+The slow-corner leakage result is 0.474 mW. Leakage does not depend on assumed
 toggle activity, so P0.5 uses it only as a conservative area-scaled projection;
 it does not turn this run into a valid total-power or energy measurement.
 

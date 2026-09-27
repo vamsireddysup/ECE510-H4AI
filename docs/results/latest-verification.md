@@ -17,6 +17,22 @@ Frobenius error and 0.842930886 mean absolute error against the pinned FP32
 reference. The reviewed rows are in
 [`p0-8-bs16-simulation.csv`](p0-8-bs16-simulation.csv).
 
+## September 27 optimized route
+
+The 4x4, Bs=32, one-lane route containing RTL revision `e579ad7` completed on a
+2200 um die with zero detailed-route, Magic DRC, KLayout DRC, or LVS errors.
+The route has 69,400 synthesized cells, 860,627 um2 placed standard-cell area,
+and 18.07% final utilization. A fixed-route maximum-RC sweep closes setup at
+30.5 ns with +0.0703 ns slow-corner slack and misses at 30.4 ns by 0.0097 ns.
+The worst setup path is now synchronous reset distribution.
+
+This is still not timing closed. Maximum-RC hold slack is -1.2765 ns at the
+slow corner and -0.0765 ns at the fast corner. The route also has 332 pin and
+281 net antenna violations, up to 21,262 slew violations, and 533 fanout
+violations. Dynamic power and energy per score remain rejected. Full tool,
+constraint, timing, area, runtime, and signoff provenance is in the
+[physical-design record](physical-design.md).
+
 ## September 27 critical-path update
 
 At revision `782619d`, `make test`, every large 4x4/8x8/16x16 and K-reuse
