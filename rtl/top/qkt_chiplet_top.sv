@@ -27,6 +27,8 @@ module qkt_chiplet_top #(
     localparam int ACC_DEPTH = (SCALE_BLOCK_SIZE < D_HEAD) ? SCALE_BLOCK_SIZE : D_HEAD;
     localparam int ACC_W = $clog2(144*ACC_DEPTH+1)+1;
     localparam int INDEX_W = $clog2(TILE_SIZE*TILE_SIZE);
+    localparam int TILE_INDEX_W = (TILE_SIZE <= 1) ? 1 : $clog2(TILE_SIZE);
+    localparam int TILE_COUNT_W = $clog2(TILE_SIZE+1);
     localparam int TILE_BEATS = (TILE_SIZE*D_HEAD+15)/16;
 
     logic start, done, command_active;
@@ -66,7 +68,8 @@ module qkt_chiplet_top #(
     logic [31:0] load_beat, cache_tile, input_row, input_col;
     logic [31:0] calc_row, calc_col, calc_depth;
     logic [31:0] acc_row [0:1], acc_col [0:1];
-    logic [31:0] acc_cols [0:1], acc_scores [0:1];
+    logic [TILE_COUNT_W-1:0] acc_cols [0:1];
+    logic [31:0] acc_scores [0:1];
     logic [31:0] score_count [0:1];
     logic [31:0] scale_launch_index, scale_result_count, send_index;
     logic [31:0] tile_start;
@@ -99,6 +102,9 @@ module qkt_chiplet_top #(
     localparam int SCALER_LANES = BLOCK_COUNT*SCORE_LANES;
     logic scale_start, scale_launch;
     logic [31:0] scale_effective_index;
+    logic [TILE_INDEX_W-1:0] scale_launch_row, scale_launch_col;
+    logic [TILE_INDEX_W-1:0] scale_effective_row, scale_effective_col;
+    logic [TILE_INDEX_W-1:0] scale_next_row, scale_next_col;
     logic [31:0] scale_launch_count, reduced_count;
     logic [SCALER_LANES-1:0] scaler_launch_valid, scaler_result_valid;
     logic signed [SCALER_LANES*ACC_W-1:0] scaler_acc;
@@ -110,11 +116,25 @@ module qkt_chiplet_top #(
     assign scale_start = command_active && !scale_busy &&
         acc_valid[scale_acc_bank] && !score_valid[scale_score_bank];
     assign scale_effective_index = scale_start ? 0 : scale_launch_index;
+    assign scale_effective_row = scale_start ? '0 : scale_launch_row;
+    assign scale_effective_col = scale_start ? '0 : scale_launch_col;
     assign scale_launch = command_active && (scale_start ||
         (scale_busy && scale_launch_index < acc_scores[scale_acc_bank]));
     assign scale_launch_count = !scale_launch ? 0 :
         ((scale_effective_index+SCORE_LANES <= acc_scores[scale_acc_bank]) ?
          SCORE_LANES : acc_scores[scale_acc_bank]-scale_effective_index);
+    always_comb begin
+        scale_next_row = scale_effective_row;
+        scale_next_col = scale_effective_col;
+        for (int advance = 0; advance < SCORE_LANES; advance++) begin
+            if (advance < scale_launch_count) begin
+                if (TILE_COUNT_W'(scale_next_col)+1 >= acc_cols[scale_acc_bank]) begin
+                    scale_next_col = '0;
+                    scale_next_row = scale_next_row + 1'b1;
+                end else scale_next_col = scale_next_col + 1'b1;
+            end
+        end
+    end
     always_comb begin
         reduced_count = 0;
         for (int lane = 0; lane < SCORE_LANES; lane++)
@@ -122,10 +142,19 @@ module qkt_chiplet_top #(
     end
     for (genvar score_lane = 0; score_lane < SCORE_LANES; score_lane++) begin : g_score_lane
         localparam int LANE_BASE = score_lane*BLOCK_COUNT;
-        logic [31:0] lane_index, lane_row, lane_col;
-        assign lane_index = scale_effective_index + score_lane;
-        assign lane_row = lane_index / acc_cols[scale_acc_bank];
-        assign lane_col = lane_index % acc_cols[scale_acc_bank];
+        logic [INDEX_W-1:0] lane_index;
+        logic [TILE_INDEX_W-1:0] lane_row, lane_col;
+        assign lane_index = INDEX_W'(scale_effective_index) + INDEX_W'(score_lane);
+        always_comb begin
+            lane_row = scale_effective_row;
+            lane_col = scale_effective_col;
+            for (int advance = 0; advance < score_lane; advance++) begin
+                if (TILE_COUNT_W'(lane_col)+1 >= acc_cols[scale_acc_bank]) begin
+                    lane_col = '0;
+                    lane_row = lane_row + 1'b1;
+                end else lane_col = lane_col + 1'b1;
+            end
+        end
         for (genvar block = 0; block < BLOCK_COUNT; block++) begin : g_scale_block
             localparam int FLAT_LANE = LANE_BASE+block;
             assign scaler_launch_valid[FLAT_LANE] =
@@ -133,11 +162,11 @@ module qkt_chiplet_top #(
             assign scaler_acc[FLAT_LANE*ACC_W +: ACC_W] =
                 acc_bank[scale_acc_bank][block][lane_row][lane_col];
             assign scaler_q_scale[FLAT_LANE*32 +: 32] =
-                sq[acc_row[scale_acc_bank]+lane_row][block];
+                sq[acc_row[scale_acc_bank]+32'(lane_row)][block];
             assign scaler_k_scale[FLAT_LANE*32 +: 32] =
-                sk[acc_col[scale_acc_bank]+lane_col][block];
+                sk[acc_col[scale_acc_bank]+32'(lane_col)][block];
             assign scaler_index_in[FLAT_LANE*INDEX_W +: INDEX_W] =
-                INDEX_W'(lane_index);
+                lane_index;
         end
         score_reducer #(.BLOCK_COUNT(BLOCK_COUNT), .INDEX_W(INDEX_W)) u_reducer (
             .clk, .rst_n,
@@ -196,6 +225,7 @@ module qkt_chiplet_top #(
             load_beat <= 0; cache_tile <= 0; input_row <= 0; input_col <= 0;
             calc_row <= 0; calc_col <= 0; calc_depth <= 0;
             scale_launch_index <= 0; scale_result_count <= 0; send_index <= 0;
+            scale_launch_row <= 0; scale_launch_col <= 0;
             tile_start <= 0;
             for (int bank = 0; bank < 2; bank++) begin
                 acc_row[bank] <= 0; acc_col[bank] <= 0;
@@ -225,6 +255,7 @@ module qkt_chiplet_top #(
                 load_beat <= 0; cache_tile <= 0; input_row <= 0; input_col <= 0;
                 calc_row <= 0; calc_col <= 0; calc_depth <= 0;
                 scale_launch_index <= 0; scale_result_count <= 0; send_index <= 0;
+                scale_launch_row <= 0; scale_launch_col <= 0;
                 tile_start <= 0;
                 if (matrix_size == 0 || matrix_size > T_MAX) begin
                     error_code <= 4'h1; done <= 1'b1; frontend <= FE_DONE;
@@ -358,7 +389,7 @@ module qkt_chiplet_top #(
                         calc_busy <= 1'b0; acc_valid[calc_acc_bank] <= 1'b1;
                         acc_row[calc_acc_bank] <= calc_row;
                         acc_col[calc_acc_bank] <= calc_col;
-                        acc_cols[calc_acc_bank] <= calc_cols_here;
+                        acc_cols[calc_acc_bank] <= TILE_COUNT_W'(calc_cols_here);
                         acc_scores[calc_acc_bank] <= calc_rows_here * calc_cols_here;
                         calc_acc_bank <= ~calc_acc_bank;
                         if (!K_REUSE_EN) begin
@@ -379,10 +410,15 @@ module qkt_chiplet_top #(
                 if (scale_start) begin
                     scale_busy <= 1'b1;
                     scale_launch_index <= scale_launch_count;
+                    scale_launch_row <= scale_next_row;
+                    scale_launch_col <= scale_next_col;
                     scale_result_count <= 0;
                 end else if (scale_busy) begin
-                    if (scale_launch)
+                    if (scale_launch) begin
                         scale_launch_index <= scale_launch_index + scale_launch_count;
+                        scale_launch_row <= scale_next_row;
+                        scale_launch_col <= scale_next_col;
+                    end
                     for (int lane = 0; lane < SCORE_LANES; lane++)
                         if (reduced_valid[lane])
                             score_bank[scale_score_bank]
