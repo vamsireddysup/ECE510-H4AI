@@ -4,8 +4,11 @@
 """Closed-form cycle model for the overlapped tile pipeline."""
 from __future__ import annotations
 
+import argparse
+import csv
 import sys
 from math import ceil
+from pathlib import Path
 
 # One scale-prefetch register plus the two three-cycle FP32 multipliers.
 SCALE_PIPELINE_LATENCY = 7
@@ -129,7 +132,40 @@ MEASURED = [
 ]
 
 
+def replication_rows() -> list[dict[str, int | str]]:
+    """Return the standard T=512 engine sweep used by docs and stdout."""
+    rows: list[dict[str, int | str]] = []
+    for reuse, protocol in ((False, "v3"), (True, "v4")):
+        for tile in (4, 8, 16):
+            for engines in (1, 2, 4, 8, 16):
+                bounds = replication_bounds(
+                    512, tile, 64, reuse, 32, 1, engines
+                )
+                rows.append({
+                    "protocol": protocol,
+                    "tile_size": tile,
+                    "engine_count": engines,
+                    "cycles": core_cycles(
+                        512, tile, 64, reuse, 32, 1, engines
+                    ),
+                    "input_floor": bounds["INPUT"],
+                    "calc_work": bounds["CALC"],
+                    "scale_work": bounds["SCALING"],
+                    "output_floor": bounds["OUTPUT"],
+                    "k_reload_work": bounds.get("K_RELOAD", 0),
+                    "binder": max(bounds, key=bounds.get),
+                    "status": "measured exact" if engines == 1 else "projected",
+                })
+    return rows
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--replication-csv", type=Path,
+        help="write the standard T=512 replicated-engine sweep",
+    )
+    args = parser.parse_args()
     failures = 0
     print(f"{'configuration':16} {'model':>10} {'measured':>10} {'beats':>9} {'meas':>9}")
     for (label, seq, tile, depth, reuse, block_size, score_lanes,
@@ -157,18 +193,20 @@ def main() -> int:
     print("\nProjected T=512 replicated-engine schedules:")
     print(f"{'protocol':>8} {'tile':>6} {'N':>3} {'cycles':>10} "
           f"{'input':>9} {'calc':>9} {'scale':>9} {'output':>9} {'binder':>9}")
-    for reuse, protocol in ((False, "v3"), (True, "v4")):
-        for tile in (4, 8, 16):
-            for engines in (1, 2, 4, 8, 16):
-                bounds = replication_bounds(
-                    512, tile, 64, reuse, 32, 1, engines
-                )
-                cycles = core_cycles(512, tile, 64, reuse, 32, 1, engines)
-                binder = max(bounds, key=bounds.get)
-                print(f"{protocol:>8} {tile:>3}x{tile:<2} {engines:>3} "
-                      f"{cycles:>10,} {bounds['INPUT']:>9,} "
-                      f"{bounds['CALC']:>9,} {bounds['SCALING']:>9,} "
-                      f"{bounds['OUTPUT']:>9,} {binder:>9}")
+    rows = replication_rows()
+    for row in rows:
+        print(f"{row['protocol']:>8} {row['tile_size']:>3}x{row['tile_size']:<2} "
+              f"{row['engine_count']:>3} {row['cycles']:>10,} "
+              f"{row['input_floor']:>9,} {row['calc_work']:>9,} "
+              f"{row['scale_work']:>9,} {row['output_floor']:>9,} "
+              f"{row['binder']:>9}")
+
+    if args.replication_csv:
+        args.replication_csv.parent.mkdir(parents=True, exist_ok=True)
+        with args.replication_csv.open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
 
     if failures:
         print(f"\n{failures} configuration(s) do not match. "

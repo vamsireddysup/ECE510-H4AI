@@ -60,6 +60,12 @@ stay unchanged in [`archive/`](../archive/README.md).
   leakage alone reaches 0.686 mJ per T=512 command, while avoided DRAM energy
   is projected at 0.338 to 0.676 mJ. SRAM needs new routed power or host-link
   evidence before the question reopens.
+- A replicated-engine study derives both shared-port ceilings. Version 3 stops
+  improving at four 4x4 engines and 265,216 projected cycles; version 4 permits
+  eight engines to reach 134,194 projected cycles. The conservative eight-engine
+  mapped-area projection is 4,468,427 um² before physical cells, so the next
+  second route remains the verified 16x16 L4 top. See the
+  [replication result](results/replicated-engines.md).
 
 ## P0, active: dense FP4 matrix multiplication
 

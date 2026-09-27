@@ -74,7 +74,7 @@ and what it is authoritative for. The short path:
 - [Verification plan](docs/verification-plan.md): what each check proves, and the gaps
 - [Development plan](docs/roadmap.md) and [decision records](docs/adr/README.md)
 - [Project context](docs/project-context.md) and [repository layout](docs/repository-layout.md)
-- [Latest verification](docs/results/latest-verification.md), [critical-path timing](docs/results/critical-path.md), [design space](docs/results/design-space.md), [synthetic precision](docs/results/precision.md)
+- [Latest verification](docs/results/latest-verification.md), [critical-path timing](docs/results/critical-path.md), [replicated engines](docs/results/replicated-engines.md), [design space](docs/results/design-space.md), [synthetic precision](docs/results/precision.md)
 - [Active RTL](rtl/README.md), [testbenches](tb/README.md), [reference model](model/README.md), [scripts](scripts/README.md)
 - [Course archive](archive/README.md) and [superseded RTL](archive/superseded-rtl/README.md)
 

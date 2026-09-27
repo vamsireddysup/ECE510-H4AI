@@ -99,6 +99,12 @@ the register-based K-reuse experiment using a labeled slow-corner leakage and
 off-chip-energy projection. Do not derive active latency from the archived
 15 ns array-only constraint.
 
+`scripts/cycle_model.py` also models replicated engines. N=1 is exact against
+the 16 recorded configurations; N greater than one is explicitly projected.
+The current decision keeps ordered output through an internal tile reorder
+buffer, so replication does not itself change protocol versions 3 or 4. See
+`docs/results/replicated-engines.md` before proposing a replicated top.
+
 For every published benchmark or synthesis result, record:
 
 - Git commit;

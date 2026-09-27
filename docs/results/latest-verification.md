@@ -24,6 +24,14 @@ OpenROAD `b16bda7e82721d10566ff7e2b68f1ff0be9f9e38`, Yosys 0.38
 `bdc9412b3e468c102d01b7cf6337be06ec6e9c9a`. Generated transcripts remain
 under ignored `build/`.
 
+The replication extension keeps every N=1 model row exact. At T=512 it projects
+version 3 4x4 engines at 1,049,666, 525,378, 265,216, and 265,216 cycles for
+N=1, 2, 4, and 8; the shared input port binds at N=4. Version 4 reaches 134,194
+cycles at N=8. A same-revision hierarchical Yosys 0.44 mapping measures the
+complete 4x4 L1 hierarchy at 565,736 um². The 16x16 L4 comparison did not finish
+memory-priority lowering in 20 minutes and 2.3 GiB, so no area was claimed for
+it. See the [replicated-engine study](replicated-engines.md).
+
 ## September 24 P0.4 and P0.6 record
 
 I ran the complete P0.4 and P0.6 verification matrix on September 24, 2026, on

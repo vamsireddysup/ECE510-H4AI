@@ -155,6 +155,17 @@ move the binding stage to the 128-cycle output. The measured four-lane result is
 P0.6 therefore keeps the 64-bit port and selects two lanes for 8x8 or four for
 16x16 if either larger array survives physical evaluation.
 
+## Replicated-engine projection
+
+The cycle model also accepts an engine count. N=1 remains exact against all
+measurements. For N greater than one, private CALC and SCALING work divide across
+engines while the 64-bit input and output ports remain shared. At T=512, four
+4x4 engines make version 3 input-bound at 265,216 projected cycles; eight do not
+improve it. Version 4 permits eight engines to reach 134,194 projected cycles,
+including startup and drain, near the 131,072-cycle output floor. The
+[replicated-engine study](results/replicated-engines.md) gives the derivation,
+area breakdown, and ordering decision.
+
 ## Known limits
 
 The active RTL uses one FP32 value per 32 reduction elements by default, with
@@ -178,6 +189,7 @@ timing-closed frequency, latency in seconds, or energy figure. See the
 - [ADR 0002: why K reload is the default](adr/0002-k-reload-is-the-default.md)
 - [Project context](project-context.md)
 - [Development plan](roadmap.md)
+- [Replicated-engine study](results/replicated-engines.md)
 - [Design-space experiment](results/design-space.md)
 - [Packed engine result](results/packed-engine.md)
 - [Documentation index](README.md)

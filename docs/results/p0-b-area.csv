@@ -1,0 +1,9 @@
+item,status,count,unit_area_um2,total_area_um2,classification,notes
+qkt_chiplet_top_local,measured_mapped,1,437588.4320,437588.4320,mixed,"sequencers, scale arrays, tile buffers, accumulator and score banks, dot logic"
+axi4_lite_ctrl,measured_mapped,1,8209.1232,8209.1232,shared,one command and counter block
+score_scaler_with_multipliers,measured_mapped,1,106812.4416,106812.4416,per_engine,"8493.1456 local plus four fp32_mul instances"
+score_reducer_with_adder,measured_mapped,1,13126.3392,13126.3392,per_engine,"321.5584 local plus one fp32_add instance"
+complete_4x4_engine,measured_mapped,1,565736.3360,565736.3360,mixed,Yosys hierarchical total
+four_4x4_shared_axi_only,projected,4,,2238317.9744,mixed,conservative replication projection
+eight_4x4_shared_axi_only,projected,8,,4468426.8256,mixed,conservative replication projection
+complete_16x16_l4,not_measured,1,,,mixed,"same-revision synthesis stopped after 20 minutes and 2.3 GiB in memory priority lowering"
