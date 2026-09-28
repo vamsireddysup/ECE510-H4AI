@@ -115,9 +115,9 @@ Stages and their exit conditions are in
 6. **P0.7, route the complete top.** Active. The optimized 4x4 route is DRC/LVS
    clean and closes setup at 30.5 ns, but worst multi-corner hold slack is
    -1.2765 ns. It has antenna, slew, and fanout violations, and its dynamic
-   power is rejected. The selected 16x16 L4 follow-up did not finish Yosys
-   memory-priority lowering, so large-array synthesis scalability is open. See
-   [the physical result](results/physical-design.md).
+   power is rejected. The selected 16x16 L4 follow-up remains blocked by accumulator synthesis
+   scaling after two bounded alternatives, so ADR 0006 selects replicated 4x4
+   engines as the next prototype. See [the physical result](results/physical-design.md).
 7. **P0.5, decide K-reuse storage from routed energy evidence.** Complete for
    the current implementation. Close register K reuse; its full-capacity area
    does not fit the current die and the conservative slow-corner leakage

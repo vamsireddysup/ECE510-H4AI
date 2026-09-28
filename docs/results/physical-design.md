@@ -75,11 +75,18 @@ core. Resident memory had grown to 2.49 GB and the synthesis log had not
 advanced for 9 minutes 49 seconds, so I stopped the bounded attempt.
 
 There is no 16x16 synthesized area, timing, placement, or routing result to
-report. The failure agrees with the earlier 20-minute area attempt and locates
-the next prerequisite: express the accumulator banks with statically selected
-write ports, or otherwise remove the memory-priority expansion, before another
-large-array physical run. It does not justify substituting eight replicated 4x4
-engines, whose conservative area estimate is already larger than this die.
+report. Follow-up inspection identifies `acc_bank`, not `k_cache`, `sq`, or `sk`,
+as the first scaling failure. The dynamic accumulator writes create 31,654
+process signals and thousands of memory ports. The run already used `T_MAX=16`,
+so lowering cache capacity is not an available workaround.
+
+A static-write experiment bypassed `OPT_MEM_PRIORITY` but expanded to 12.4 GB in
+technology mapping. A second ten-minute experiment skipped the optional priority
+optimization and reached `MEMORY_COLLECT` and `MEMORY_MAP`, but did not produce a
+mapped netlist. Both were bounded and generated logs remain under ignored
+`build/`. [ADR 0006](../adr/0006-use-replicated-4x4-engines.md) therefore selects
+replicated 4x4 engines as the next physical prototype. No 16x16 frequency, area,
+or latency measurement is claimed.
 
 ## Timing and critical path
 

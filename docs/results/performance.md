@@ -175,12 +175,12 @@ Do not build eight 4x4 engines under version 3. They have the same projected
 doubles. Eight engines become competitive only with version 4: 134,194 cycles
 is close to the measured 132,362 cycles of one 16x16 L4 array.
 
-For the next route, keep **one 16x16 L4** as the second candidate after the
-optimized 4x4 route. It has the better current cycle result, existing verified
-RTL, and the historical area evidence is far below the conservative eight-engine
-projection. Reopen a four-engine 4x4 prototype after a shared-K broadcast and
-reorder-buffer RTL plan exists; it is the useful replication point for version
-3 and a smaller physical experiment than eight engines.
+The bounded 16x16 synthesis investigation later showed that its dynamic
+accumulator ports do not scale through the available Yosys flow. [ADR
+0006](../adr/0006-use-replicated-4x4-engines.md) therefore selects replicated
+4x4 engines as the next RTL and physical prototype. The implementation must
+measure shared-K, arbitration, and reorder-buffer area before the 134,194-cycle
+projection can become a full-design result.
 
 
 ## Related

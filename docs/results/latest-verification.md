@@ -1,5 +1,15 @@
 # Latest verification
 
+## September 28 16x16 synthesis diagnosis
+
+The original 16x16 Bs=16 L4 attempt already used `T_MAX=16`. Its log identifies
+`acc_bank` as the source of the `OPT_MEM_PRIORITY` expansion. A static-write
+hierarchy reached 12.4 GB during technology mapping before the kernel killed it.
+A custom flow that skipped `opt_mem_priority` reached `MEMORY_COLLECT` and
+`MEMORY_MAP` within a ten-minute bound but produced no netlist. These are failed
+EDA experiments, not physical results. The working tree was restored after each
+attempt, and the verified score-producing RTL did not change.
+
 ## September 28 repository and documentation verification
 
 The pre-cleanup tree is preserved by annotated tag
