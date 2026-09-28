@@ -24,7 +24,8 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | Synthetic precision | `python3 scripts/eval_precision.py` and `make test-model` | The 120-point block-scale sweep, committed JSON, and rendered T=512 table reproduce at the pinned NumPy version | Error on real transformer activations; see [precision](results/precision.md) |
 | Real-activation precision | `python3 scripts/eval_precision.py --npz CAPTURE` and `make test-model` | Four pinned BERT heads across two models and every recorded scale row reproduce from committed inputs | Accuracy across architectures and downstream tasks |
 | RTL precision | `make test-precision-rtl` | Every score at pinned seed-510 T=512 is bit-exact with the software 1x16 FP32 path, and its raw-score error matches | IEEE behavior outside the finite-normal values in that capture |
-| CPU baseline | `python3 scripts/bench_cpu.py` | Observed one-thread NumPy throughput on fixed inputs | A CPU peak, and therefore not a Roofline ceiling |
+| CPU baseline | `python3 scripts/bench_cpu.py [--all-cores]` | Observed NumPy throughput on fixed inputs, with host, BLAS, thread-pool, and warm-cache provenance, and the measured fraction of a stated theoretical peak | A CPU peak, and therefore not a Roofline ceiling; the peak it prints is a ceiling, never the baseline |
+| Output score format | `python3 scripts/eval_precision.py --npz CAPTURE --output-formats` | FP32, FP16, and BF16 softmax agreement on the pinned captures | Anything about FP16 range outside these four captures; no RTL implements a 16-bit score |
 | Mapped area | `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE]` | Sky130 HD standard-cell area for the complete top at the typical corner | Timing, routing, congestion, or power |
 | Physical run | `./scripts/run_physical.sh` | Complete-top route, extracted timing, DRC, LVS, antenna, and qualified power status | Timing closure until every setup, hold, slew, and fanout gate passes |
 
