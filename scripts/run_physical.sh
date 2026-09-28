@@ -19,6 +19,10 @@ synth_sizing="${SYNTH_SIZING:-0}"
 synth_buffering="${SYNTH_BUFFERING:-1}"
 std_cell_library="${STD_CELL_LIBRARY:-sky130_fd_sc_hd}"
 max_transition="${MAX_TRANSITION_CONSTRAINT:-0.75}"
+# Synthesis may target a tighter period than placement and routing; ABC only
+# restructures for speed when asked, and the resizer cannot repair a
+# constraint the mapped netlist is far from meeting.
+synth_period="${SYNTH_CLOCK_PERIOD:-$period}"
 die_area="${DIE_AREA:-0 0 1500 1500}"
 core_util="${FP_CORE_UTIL:-40}"
 target_density="${PL_TARGET_DENSITY:-0.55}"
@@ -61,6 +65,23 @@ package require openlane
 prep -design /work/build/physical/$run_name -tag full -overwrite
 run_synthesis
 EOF
+elif [[ "$mode" == global-route ]]; then
+    # Floorplan study: stop after global routing, without timing repair, so
+    # runs stay short and differ only in the floorplan.
+    printf '\nset ::env(PL_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
+    printf 'set ::env(GLB_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
+    cat > "$build_dir/flow.tcl" <<EOF
+package require openlane
+prep -design /work/build/physical/$run_name -tag full -overwrite
+set ::env(CLOCK_PERIOD) $synth_period
+run_synthesis
+set ::env(CLOCK_PERIOD) $period
+run_floorplan
+run_placement
+run_cts
+set ::env(RUN_DRT) 0
+run_routing
+EOF
 elif [[ "$mode" == diagnostic ]]; then
     printf '\nset ::env(PL_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
     printf 'set ::env(GLB_RESIZER_TIMING_OPTIMIZATIONS) 0\n' >> "$build_dir/config.tcl"
@@ -78,6 +99,7 @@ fi
     # Uncommitted flow or RTL edits would make the revision above misleading.
     printf 'git_dirty_paths=%s\n' "$(git -C "$repo_root" status --porcelain -- rtl config scripts | wc -l)"
     printf 'run_name=%s\nmode=%s\nclock_period_ns=%s\n' "$run_name" "$mode" "$period"
+    printf 'synth_clock_period_ns=%s\n' "$synth_period"
     printf 'tile_size=%s\nd_head=%s\nt_max=%s\nk_reuse=%s\n' \
         "$tile" "$depth" "$tmax" "$reuse"
     printf 'scale_block_size=%s\nscore_lanes=%s\nengines=%s\n' \
@@ -97,6 +119,8 @@ fi
 } > "$build_dir/manifest.txt"
 if [[ "$mode" == synthesis ]]; then
     flow_command="flow.tcl -interactive -file /work/build/physical/$run_name/synthesis.tcl"
+elif [[ -f "$build_dir/flow.tcl" && "$mode" == global-route ]]; then
+    flow_command="flow.tcl -interactive -file /work/build/physical/$run_name/flow.tcl"
 else
     flow_command="flow.tcl -design /work/build/physical/$run_name -tag full -overwrite"
 fi
