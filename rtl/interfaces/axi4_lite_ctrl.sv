@@ -26,8 +26,10 @@ module axi4_lite_ctrl (
     logic [31:0] write_addr, write_data;
     logic [3:0] write_strb;
 
-    assign awready = !aw_pending && !bvalid;
-    assign wready = !w_pending && !bvalid;
+    // Never acknowledge a request while this block is still held in reset; the
+    // reset reaching it is synchronized and lags the external pin.
+    assign awready = rst_n && !aw_pending && !bvalid;
+    assign wready = rst_n && !w_pending && !bvalid;
     assign aw_fire = awvalid && awready;
     assign w_fire = wvalid && wready;
     assign write_commit = !bvalid && (aw_pending || aw_fire) &&
@@ -36,7 +38,7 @@ module axi4_lite_ctrl (
     assign write_data = w_fire ? wdata : w_hold;
     assign write_strb = w_fire ? wstrb : strb_hold;
     assign bresp = 2'b00;
-    assign arready = !rvalid;
+    assign arready = rst_n && !rvalid;
     assign rresp = 2'b00;
 
     function automatic logic [31:0] merge_bytes(

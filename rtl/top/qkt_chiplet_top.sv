@@ -26,6 +26,18 @@ module qkt_chiplet_top #(
     output logic m_tlast
 );
     localparam bit K_REUSE_EN = K_REUSE != 0;
+
+    // The external reset drives only this synchronizer. Each engine then takes
+    // its own registered copy, so no reset tree starts at a pin and none spans
+    // more than one engine.
+    logic rst_meta_n, rst_sync_n;
+    logic [ENGINES-1:0] eng_rst_n;
+    always_ff @(posedge clk) begin
+        rst_meta_n <= rst_n;
+        rst_sync_n <= rst_meta_n;
+        eng_rst_n <= {ENGINES{rst_sync_n}};
+    end
+
     localparam int BLOCK_COUNT = (D_HEAD+SCALE_BLOCK_SIZE-1)/SCALE_BLOCK_SIZE;
     localparam int TILE_BEATS = (TILE_SIZE*D_HEAD+15)/16;
     localparam int FILL_DEPTHS = (16/TILE_SIZE > 0) ? 16/TILE_SIZE : 1;
@@ -41,7 +53,7 @@ module qkt_chiplet_top #(
         (K_REUSE_EN ? 32'd6 : 32'd5) :
         (K_REUSE_EN ? 32'd4 : 32'd3);
     axi4_lite_ctrl u_ctrl (
-        .clk, .rst_n, .awvalid, .awready, .awaddr, .wvalid, .wready,
+        .clk, .rst_n(rst_sync_n), .awvalid, .awready, .awaddr, .wvalid, .wready,
         .wdata, .wstrb, .arvalid, .arready,
         .araddr, .rvalid, .rready, .rdata, .rresp, .bvalid, .bready, .bresp,
         .start, .done,
@@ -125,7 +137,7 @@ module qkt_chiplet_top #(
             .TILE_SIZE(TILE_SIZE), .D_HEAD(D_HEAD), .K_REUSE(K_REUSE), .SCALE_BLOCK_SIZE(SCALE_BLOCK_SIZE),
             .SCORE_LANES(SCORE_LANES), .ENGINES(ENGINES), .ENGINE_ID(e)
         ) u_engine (
-            .clk, .rst_n, .command_active, .flush(start), .matrix_size,
+            .clk, .rst_n(eng_rst_n[e]), .command_active, .flush(start), .matrix_size,
             .q_valid_in(q_valid),
             .q_wr_valid(s_tvalid && s_tready && frontend == FE_LOAD_Q),
             .q_wr_bank(load_q_bank), .q_wr_beat(load_beat), .q_wr_data(s_tdata),
@@ -196,7 +208,7 @@ module qkt_chiplet_top #(
     end
 
     always_ff @(posedge clk) begin
-        if (!rst_n) begin
+        if (!rst_sync_n) begin
             frontend <= FE_IDLE;
             command_active <= 1'b0;
             done <= 1'b0;
@@ -367,20 +379,20 @@ module qkt_chiplet_top #(
 `ifndef SYNTHESIS
     // Protocol and ownership invariants for the concurrent tile sequencers.
     property p_output_stable_while_stalled;
-        @(posedge clk) disable iff (!rst_n)
+        @(posedge clk) disable iff (!rst_sync_n)
         m_tvalid && !m_tready |=>
             m_tvalid && $stable(m_tdata) && $stable(m_tlast);
     endproperty
     assert property (p_output_stable_while_stalled);
 
     property p_q_bank_ownership;
-        @(posedge clk) disable iff (!rst_n)
+        @(posedge clk) disable iff (!rst_sync_n)
         s_tvalid && s_tready && frontend == FE_LOAD_Q |-> !q_valid[load_q_bank];
     endproperty
     assert property (p_q_bank_ownership);
 
     property p_output_index_legal;
-        @(posedge clk) disable iff (!rst_n)
+        @(posedge clk) disable iff (!rst_sync_n)
         m_tvalid |-> send_index < eng_score_count[retire_engine*32 +: 32];
     endproperty
     assert property (p_output_index_legal);
@@ -388,22 +400,22 @@ module qkt_chiplet_top #(
     // Ordered retirement: the retire pointer only ever advances by one engine
     // within a Q row, and restarts at engine 0 on each new Q row.
     property p_retire_order;
-        @(posedge clk) disable iff (!rst_n)
-        $changed(retire_engine) && $past(rst_n) && !$past(start) |->
+        @(posedge clk) disable iff (!rst_sync_n)
+        $changed(retire_engine) && $past(rst_sync_n) && !$past(start) |->
             retire_engine == '0 ||
             32'(retire_engine) == 32'($past(retire_engine))+1;
     endproperty
     assert property (p_retire_order);
 
     property p_retire_advances_on_tlast;
-        @(posedge clk) disable iff (!rst_n)
-        $changed(retire_col) && $past(rst_n) && !$past(start) |->
+        @(posedge clk) disable iff (!rst_sync_n)
+        $changed(retire_col) && $past(rst_sync_n) && !$past(start) |->
             $past(m_tvalid && m_tready && m_tlast);
     endproperty
     assert property (p_retire_advances_on_tlast);
 
     property p_legal_frontend_transition;
-        @(posedge clk) disable iff (!rst_n)
+        @(posedge clk) disable iff (!rst_sync_n)
         $changed(frontend) |->
             frontend == FE_SCALES || frontend == FE_DONE ||
             ($past(frontend) == FE_SCALES &&
