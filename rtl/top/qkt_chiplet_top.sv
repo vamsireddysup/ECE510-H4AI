@@ -175,6 +175,16 @@ module qkt_chiplet_top #(
     assign m_tlast = m_tvalid &&
         send_index+2 >= eng_score_count[retire_engine*32 +: 32];
 
+    logic [1:0] q_all_released;
+    always_comb begin
+        for (int bank = 0; bank < 2; bank++) begin
+            q_all_released[bank] = 1'b1;
+            for (int e = 0; e < ENGINES; e++)
+                if (!(q_release_seen[e][bank] || eng_q_release[e*2+bank]))
+                    q_all_released[bank] = 1'b0;
+        end
+    end
+
     logic [31:0] active_calc, active_scale;
     always_comb begin
         active_calc = 0;
@@ -324,11 +334,7 @@ module qkt_chiplet_top #(
 
                 // A Q bank is reusable only after every engine has released it.
                 for (int bank = 0; bank < 2; bank++) begin
-                    automatic logic all_released = 1'b1;
-                    for (int e = 0; e < ENGINES; e++)
-                        if (!(q_release_seen[e][bank] || eng_q_release[e*2+bank]))
-                            all_released = 1'b0;
-                    if (all_released && q_valid[bank]) begin
+                    if (q_all_released[bank] && q_valid[bank]) begin
                         q_valid[bank] <= 1'b0;
                         for (int e = 0; e < ENGINES; e++)
                             q_release_seen[e][bank] <= 1'b0;

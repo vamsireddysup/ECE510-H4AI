@@ -314,13 +314,14 @@ module qkt_engine #(
 
                 // K reuse: burst-fill the private tile from the shared cache.
                 if (fill_start || fill_busy) begin
-                    automatic logic [31:0] beat = fill_start ? 32'd0 : fill_beat;
+                    // kc_beat is the fill beat in progress, including beat 0 on
+                    // the cycle the fill starts.
                     for (int j = 0; j < TILE_SIZE; j++)
                         for (int d = 0; d < FILL_DEPTHS; d++)
-                            if (beat*FILL_DEPTHS+d < D_HEAD)
-                                k_bank[load_k_bank][j][beat*FILL_DEPTHS+d] <=
+                            if (kc_beat*FILL_DEPTHS+d < D_HEAD)
+                                k_bank[load_k_bank][j][kc_beat*FILL_DEPTHS+d] <=
                                     kc_data[(j*FILL_DEPTHS+d)*4 +: 4];
-                    if (beat+1 == FILL_BEATS) begin
+                    if (kc_beat+1 == FILL_BEATS) begin
                         fill_busy <= 1'b0; fill_beat <= 0;
                         k_valid[load_k_bank] <= 1'b1;
                         load_k_bank <= ~load_k_bank;
@@ -331,7 +332,7 @@ module qkt_engine #(
                             fill_row <= fill_row + TILE_SIZE;
                         end
                     end else begin
-                        fill_busy <= 1'b1; fill_beat <= beat + 1;
+                        fill_busy <= 1'b1; fill_beat <= kc_beat + 1;
                     end
                 end
 
