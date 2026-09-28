@@ -1,0 +1,7 @@
+step,change,run,git_revision,cells,mapped_area_um2,tt_worst_arrival_ns,tt_min_period_ns,ss_worst_arrival_ns,ss_min_period_ns,ss_min_period_delta_ns,tt_min_period_delta_ns,area_delta_pct,status
+baseline,F2 point before any F3 change,f2-p8-delay-0,e173101,109182,1200353.7,10.6267,10.955,20.2118,20.593,,,,measured; mapped netlist; DELAY 0; 8 ns target; ideal clock; no wire parasitics
+F3.1,reset synchronizer and per-engine registered reset,f3-1-reset-p8-delay-0,117ce31,107747,1189306.9,9.64,9.975,19.4723,19.973,-0.62,-0.98,-0.92,measured; mapped netlist; DELAY 0; 8 ns target; ideal clock; no wire parasitics
+F3.2,registered tile-position compares,f3-2-position-p8-delay-0,9f43560,110295,1213657.7,9.5935,9.928,19.2993,19.799,-0.174,-0.047,2.05,measured; mapped netlist; DELAY 0; 8 ns target; ideal clock; no wire parasitics
+F3.3,accumulator read in the scale prefetch cycle,f3-3-scaler-p8-delay-0,e350fbb,110742,1212141.3,8.9849,9.32,18.4471,18.956,-0.843,-0.608,-0.12,measured; mapped netlist; DELAY 0; 8 ns target; ideal clock; no wire parasitics
+F3.4,narrowed compute depth counter,f3-4-depth-p8-delay-0,3b4b3ac,111773,1214808.8,8.8453,9.18,18.9131,19.411,0.455,-0.14,0.22,measured; mapped netlist; DELAY 0; 8 ns target; ideal clock; no wire parasitics
+F3.5,T_MAX-sized command arithmetic,f3-5-width-p8-delay-0,34d9df5,98565,1092889.4,8.6624,8.998,17.7505,18.241,-1.17,-0.182,-10.04,measured; mapped netlist; DELAY 0; 8 ns target; ideal clock; no wire parasitics

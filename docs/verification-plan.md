@@ -14,6 +14,7 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | RTL lint | `make lint` | Eleven parameter sets elaborate clean under `-Wall`, including both protocols, Bs=16, widened 8x8/16x16 scalers, and `ENGINES=2/4/8` | Functional correctness |
 | Reference model | `make test-model` | The Python FP4 decode, encode, and `QK^T` model agrees with the 256-entry RTL product ROM on all 256 input pairs, and rejects malformed shapes | That the RTL matches the model; the integration test does that |
 | Cycle model | `python3 scripts/cycle_model.py` | The closed-form model reproduces all 32 measured configurations exactly, single-engine and replicated, and every input-beat count | Anything about a configuration not in its table |
+| Recorded cycle counts | `python3 scripts/check_cycle_model.py` | Every configuration in the cycle model's measured table still simulates to its recorded cycle and input-beat count on the current RTL | Configurations not in that table |
 | Replicated engines | `ENGINES=N make test-integration ...` | Bit-exact scores and counters at `ENGINES=1/2/4/8/16` for both protocols, including partial engine groups at T=1 and T=7 | Mapped area or routed timing at any engine count |
 | Small integration | `make test-integration` | Everything in the table below, at `D_HEAD=4` and `64`, with host stalls injected on both streams | Large-`T` behavior; sustained throughput |
 | Large integration | `make test-integration-large` | Scores and counters at T=64/128/512, `D_HEAD=64`, continuously ready host | Behavior under stalls |

@@ -378,6 +378,94 @@ maps at 20.6 ns slow against an 8 ns constraint would recreate the earlier
 nonconvergent repair on thousands of endpoints. The F4 and F5 constraint will be
 set from the post-F3 slow-corner result and recorded with its derivation.
 
+### F3: RTL fixes the ranking justifies
+
+Each change is its own commit, synthesized at the F2 point, `DELAY 0` with an
+8 ns target, and re-ranked with the F1 scripts before choosing the next. Every
+change is cycle-neutral. After the last one, `scripts/check_cycle_model.py`
+re-simulated all 32 recorded cycle-model configurations on revision `34d9df5`,
+including the Bs=32 protocol 3 and 4 points and every 8x8 and 16x16 lane
+variant, and all 32 reproduce their recorded cycle and input-beat counts
+exactly. Every score stayed bit-identical, including the T=512 precision run.
+The cycle model needed no change.
+
+| Step | Revision | Change | Slow min. period | Change | Typical min. period | Change | Area change |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| F2 point | `e173101` | none | 20.593 ns | | 10.955 ns | | |
+| F3.1 | `117ce31` | Reset synchronizer and per-engine registered reset | 19.973 ns | -0.620 ns | 9.975 ns | -0.980 ns | -0.92% |
+| F3.2 | `9f43560` | Registered tile-position compares | 19.799 ns | -0.174 ns | 9.928 ns | -0.047 ns | +2.05% |
+| F3.3 | `e350fbb` | Accumulator read in the scale prefetch cycle | 18.956 ns | -0.843 ns | 9.320 ns | -0.608 ns | -0.12% |
+| F3.4 | `3b4b3ac` | Narrowed compute depth counter | 19.411 ns | **+0.455 ns** | 9.180 ns | -0.140 ns | +0.22% |
+| F3.5 | `34d9df5` | `T_MAX`-sized command arithmetic | **18.241 ns** | -1.170 ns | **8.998 ns** | -0.182 ns | -10.04% |
+
+In total F3 moves the mapped slow-corner minimum period from 20.593 ns to
+18.241 ns, 11.4%, and the typical corner from 10.955 ns to 8.998 ns, 17.9%,
+while cutting mapped area by 8.95% to 1,092,889 um². These are mapped-netlist
+results without wires. The rows are in
+[`data/frequency-attribution.csv`](data/frequency-attribution.csv).
+
+What each step found:
+
+- **F3.1.** `rst_n` now drives only a two-flop synchronizer, and each engine
+  takes its own registered copy, so no reset tree starts at a pin. The change
+  exposed a real protocol fault: `awready`, `wready`, and `arready` were all
+  asserted while the AXI block was held in reset. It was invisible while reset
+  released in one cycle, and it dropped a transaction once the synchronizer
+  delayed release. The ready outputs now stay low in reset. Reset leaves the
+  ranking at both corners.
+- **No registered flush.** Across 14,937 F1 endpoints at both corners `flush`
+  was never the worst startpoint of any endpoint, so F1 did not justify it. It
+  did surface after F3.2 as the next input into the accumulator write cone. The
+  reason is structural: the unreset storage arrays are written inside the
+  `if (!rst_n || flush) ... else` block, so reset and flush gate every storage
+  write enable. A registered flush would not remove that, and after F3.5 it is
+  no longer in the slow-corner top of the ranking.
+- **F3.2.** `calc_start` and `row_skip` compared 32-bit `calc_row` and
+  `calc_col` against `matrix_size` in front of the `calc_start` fanout. The
+  compares are now flags registered from the next position, and an assertion
+  checks them against the original compares on every active cycle. I confirmed
+  the assertions are live by inverting one and watching it fire.
+- **F3.3.** The first scaling multiplier stage began with the 32-to-1
+  accumulator read mux. The accumulator is now read in the prefetch cycle, which
+  already existed, and registered with the scales.
+- **F3.4** removed the 32-bit increment and compare from the Q prefetch
+  address, and that path fell from first to rank 116 at the typical corner. The
+  slow-corner result still regressed by 0.455 ns because ABC restructured the
+  untouched frontend logic worse. I kept the change, which strictly removes
+  logic, and record its measured delta as a regression. **Single synthesis runs
+  of this design move by about half a nanosecond at the slow corner for reasons
+  unrelated to the edit**, so smaller deltas above are not individually
+  significant.
+- **F3.5.** Every quantity derived from `matrix_size` was 32 bits wide although
+  a running command has `matrix_size <= T_MAX`. The done test was
+  `tile_count+1 == tiles_per_row*tiles_per_row`, a 32-bit square, and the score
+  count was `calc_rows_here * calc_cols_here`, another 32-bit multiply of two
+  values no larger than `TILE_SIZE`. The frontend now uses a `T_MAX`-sized
+  registered copy of the size, done is a narrow down-counter, and each engine
+  registers its tile extents. It was the largest gain and removed 10% of the
+  mapped area.
+
+**Why F3 stops here.** After F3.5 the slow-corner top of the ranking contains
+no control path. It is the arithmetic datapath, all within 0.73 ns:
+
+| Rank | Path | Slow slack at 8 ns |
+| ---: | --- | ---: |
+| 1 | Scaler: `quarter_to_fp32` and the first multiplier stage | -10.241 ns |
+| 2 | Multiply-accumulate through the K bank select | -10.088 ns |
+| 3 | Multiply-accumulate accumulator select | -10.082 ns |
+| 4 | Multiply-accumulate from the Q bank select | -10.021 ns |
+| 5 | Reducer: FP32 add normalize stage | -9.819 ns |
+| 6 | Scaler: second multiplier 24x24 stage into the reducer | -9.508 ns |
+
+The zero-cycle retimings left, a K operand prefetch matching the Q one and
+moving the conversion into the prefetch cycle, can gain at most about 0.4 ns
+before the reducer binds, and that is inside the sensitivity F3.4 measured.
+Beyond that, several units need a pipeline stage each: the scaler conversion
+(scaling latency 7 to 8 cycles), the reducer normalize (add latency 3 to 4,
+three more cycles per Bs=16 score), and the multiply-accumulate (a second CALC
+stage). Each costs cycles and changes the cycle model, so it is a design
+decision, not a timing fix. I have not made it.
+
 ## Related
 
 - [Project status](../project-status.md)
