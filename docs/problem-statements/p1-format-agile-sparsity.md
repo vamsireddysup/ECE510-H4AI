@@ -1,155 +1,100 @@
-# P1: format-agile precision and sparsity
+# P1: dynamic precision and sparsity
 
-This is the next problem statement. It starts no earlier than P0.4, because
-measuring the cost of changing format needs a settled baseline format and a
-settled accumulator. Read it to see the thesis and how it will be tested.
+This is the next research problem. It begins after P0 is physically closed so
+energy per format can be measured against a valid routed baseline.
 
 ## The question
 
-> How can an AI accelerator dynamically select FP4/INT4/FP8 precision and exploit
-> sparsity according to layer/workload characteristics to minimize memory traffic
-> and energy while maintaining accuracy?
+> How can an AI accelerator dynamically select FP4, INT4, or FP8 precision and
+> exploit sparsity according to layer and workload characteristics to minimize
+> memory traffic and energy while maintaining accuracy?
 
-## What prior work already answers
+The work couples the software and hardware decisions: the model measures accuracy
+and sparsity on the same pinned workloads, while the RTL measures format-specific
+storage, arithmetic, routing, and energy costs. A selection policy is useful only
+when both sides are measured.
 
-The accumulator architecture itself is occupied. The
-[hybrid precision-scalable reduction tree](https://arxiv.org/abs/2511.06313)
-combines exact integer reduction inside an MX block with floating-point partial
-alignment between blocks. It evaluates MXINT8, MXFP8, MXFP6, and MXFP4 on an
-8x8 SNAX accelerator and reports 4,065 GOPS/W for MXFP4 in 22 nm. Its companion
-[precision-scalable MX accelerator](https://arxiv.org/abs/2505.22404) supports
-all six OCP MX data types with hierarchical two-bit multipliers in an 8x8 array.
-The authors publish SystemVerilog for both long-integer and hybrid accumulation
-in the
-[Precision-Scalable_MX repository](https://github.com/KULeuven-MICAS/Precision-Scalable_MX).
-The review used repository revision
-`bddb9f93c5cb20c61f2393715eb2928a50a4984f`, including the standalone MAC
-variants and the 8x8 SNAX `Block_PE` integration.
+## Accumulator width at `D_HEAD=64`
 
-Those designs occupy the broad accumulation direction P0 reached independently,
-but the circuits are not identical. Their hybrid MAC aligns a fixed-width
-product sum against a stored floating-point partial result on every accumulation
-step and deliberately studies reduced mantissa width. P0 instead completes an
-exact integer sum over each 16-value block, converts and scales each completed
-block once, then reduces block results in FP32. P1 will not claim hybrid
-integer/floating reduction, format-scalable arithmetic, or the
-integer-versus-floating-point accumulation comparison as new. Its measurements
-must still distinguish P0's block boundary and accuracy behavior from the
-published datapath.
+**FP4 E2M1** decodes to signed half units with magnitudes 0, 1, 2, 3, 4, 6, 8,
+and 12. The maximum product is `12 * 12 = 144` in quarter units. Over 64 terms,
+`144 * 64 = 9216`, so `ceil(log2(9217)) = 14` magnitude bits plus sign: **15
+bits**.
 
-## The open question
+**Signed INT4** ranges from -8 to 7. The maximum product is 64. Over 64 terms,
+`64 * 64 = 4096`, so `ceil(log2(4097)) = 13` magnitude bits plus sign: **14
+bits**. It fits within the current FP4 accumulator width.
 
-The cited work evaluates general GEMM for training and continual-learning
-workloads. It does not evaluate attention probability quality, and it does not
-map precision choices onto independently scheduled attention tiles. P0 already
-measures mean softmax KL divergence, total variation, top-1 agreement, and top-5
-overlap on pinned Q/K activations. Its small replicated engines also provide a
-place to select precision per output tile without widening one global array.
+**FP8 E4M3** has smallest subnormal `2^-9` and largest normal 448. Expressed in
+units of `2^-9`, the maximum is `448 * 512 = 229,376`, which needs 18 bits. The
+maximum product is `52,613,349,376`, or 36 bits. Summing 64 terms reaches about
+`3.367e12`, requiring 42 magnitude bits plus sign: **43 bits**.
 
-The testable P1 claim is therefore: **attention-aware format selection across
-replicated tiles can reduce scale and operand traffic while meeting a softmax
-quality target, and its routing, scheduling, and metadata costs are measurable.**
-Exact per-block integer accumulation and cross-block FP32 reduction are the
-baseline used to test that claim.
+Exact support for all three formats therefore widens each accumulator from 15 to
+43 bits, or 2.87x. A 4x4 tile adds `(43 - 15) * 16 = 448` state bits plus wider
+adders. FP8 decode also needs an 18-bit shift range; decoding during load trades
+`O(B^2*D)` repeated decode work for wider tile storage.
 
-## Accumulator width, worked at `D_HEAD=64`
+## Multiplier options
 
-This is the arithmetic the thesis rests on.
+The M0 through M4 study holds the FP4 format and workload fixed. Every option must
+match the Python model bit-for-bit and be synthesized separately so area, timing,
+and energy differences remain attributable.
 
-**FP4 E2M1**, decoded to half units with magnitudes 0, 1, 2, 3, 4, 6, 8, 12.
-Maximum product `12 * 12 = 144` in quarter units. Over 64 terms,
-`144 * 64 = 9216`, so `ceil(log2(9217)) = 14` bits plus sign: **15 bits**. This is
-`ACC_W` today.
-
-**INT4 signed**, range -8 to 7. Maximum product `(-8) * (-8) = 64`. Over 64 terms,
-`64 * 64 = 4096`, so `ceil(log2(4097)) = 13` bits plus sign: **14 bits**. It fits
-the existing accumulator unchanged, so INT4 costs a decode change and nothing
-else.
-
-**FP8 E4M3**, smallest subnormal `2^-9`, largest normal 448. As an integer in
-units of `2^-9` the maximum is `448 * 512 = 229,376`, which is 18 bits. The
-product is `229,376^2 = 52,613,349,376`, which is 36 bits. Over 64 terms,
-`3.367e12`, which is 42 bits plus sign: **43 bits**.
-
-So covering all three exactly widens the accumulator from 15 to 43 bits, a factor
-of 2.87. At `TILE_SIZE=4` there are 16 accumulators, so the incremental cost is
-`(43 - 15) * 16 = 448` flip-flops plus wider adders. That is the local storage
-cost to measure; it is not evidence of a new accumulation method.
-
-**Two costs that are not hidden.** FP8 decode is a 4-bit significand shifted by up
-to 17 positions, so an 18-bit barrel shifter per operand; moving it to load time
-makes it `O(B*D)` rather than `O(B^2*D)` but widens the tile buffer. And an
-18 by 18 multiplier idles in FP4 mode, and recovering that waste by packing narrow
-multiplies into it is option M4 below, which reintroduces the overhead the thesis
-claims to avoid. The contribution is locating the crossover for MX formats on a
-small engine, not escaping the tradeoff.
-
-## The multiplier study
-
-Five options, format held at FP4, each bit-exact against the Python model and
-synthesized separately so area differences are attributable.
-
-| Option | Design | Role |
+| Option | Design | Measurement role |
 | --- | --- | --- |
-| M0 | Decode to signed half units, then a signed multiply, accumulated exactly | The current design, and the reference for the other four |
-| M1 | Select and shift | The nonzero decode magnitudes are `{1,2,4,8}` and `{3,6,12}`, which is `{1,3} * 2^e`, so a product is `(m1*m2) << (e1+e2)` with `m1*m2` in `{1,3,9}` and the shift in `0..6`, reaching `9 << 4 = 144`. A 4-bit mux and a small shifter, exact, no multiplier |
-| M2 | The 256-entry FP4 product ROM in [`archive/superseded-rtl/fp4_mul_lut.sv`](../../archive/superseded-rtl/fp4_mul_lut.sv) | Already verified against the model, so a free comparison point |
-| M3 | One integer multiplier sized for the widest supported format, FP4 and INT4 using the low bits | A simple baseline |
-| M4 | Sub-word-parallel packing of several narrow multiplies into one wide unit | Comparison with the published hierarchical approach |
+| M0 | Decode to signed half units, multiply, and accumulate exactly | Current reference |
+| M1 | Select `{1,3}` significands and shift by the summed exponent | Exact E2M1-specific logic without a general multiplier |
+| M2 | Use the verified 256-entry FP4 product ROM in [`archive/superseded-rtl/fp4_mul_lut.sv`](../../archive/superseded-rtl/fp4_mul_lut.sv) | Table-based comparison point |
+| M3 | Use one integer multiplier sized for the widest enabled format, with FP4 and INT4 in its low bits | Simple multi-format baseline |
+| M4 | Pack several narrow products into one wide multiplication structure | Area and utilization experiment |
 
-M1's structure has not surfaced in my literature search stated for E2M1, but it
-follows directly from the format and may exist in industrial designs, so it is
-supporting work rather than a headline claim.
+For M1, nonzero E2M1 magnitudes are `{1,2,4,8}` and `{3,6,12}`, or `{1,3} *
+2^e`. Their product is `(m1*m2) << (e1+e2)`, with `m1*m2` in `{1,3,9}` and a
+shift from 0 through 6. The maximum remains `9 << 4 = 144`.
 
-## The sparsity question
+## Sparsity analysis
 
-Sparsity here is coupled to precision, not orthogonal to it. FP4 quantization
-manufactures zeros, because any value below half a scale unit maps to code 0, and
-E2M1 has two zero encodings. Published work finds that quantization and sparsity
-interact and that their errors are not additive.
+FP4 quantization creates zero codes when a value falls below half a scale unit,
+and E2M1 has two zero encodings. The model must measure zero-code frequency and
+accuracy together for every format and block size.
 
-The dataflow constrains what is exploitable. `depth` is one shared index driving
-all `TILE_SIZE^2` accumulators in the same cycle, so a reduction step can only be
-skipped when an entire Q or K column is zero. Per-element skipping needs per-PE
-operand queues, which is a large change. Structured N:M along the reduction axis
-composes with a shared index but requires changing the quantizer, so it is
-hardware and software co-design.
+The current datapath has one shared reduction index driving all
+`TILE_SIZE*TILE_SIZE` accumulators. It can skip a cycle only when a complete Q or
+K reduction column is zero. Per-element skipping requires independent PE operand
+queues or equivalent scheduling state. Structured N:M sparsity along the
+reduction axis works with a shared index, but it changes both the quantizer and
+the stream representation.
 
-This stage is therefore a measurement with a predicted negative answer: measure
-the zero-code fraction and the all-zero-column fraction as a function of format and
-block size, and propose a mechanism only if the measurement justifies one. A
-measured negative result is the honest deliverable if that is what the data says.
+The first sparsity result is therefore a measurement: zero-code fraction,
+all-zero-column fraction, softmax quality, and transferred bytes by layer and
+format. RTL is justified only when those measurements predict a net traffic or
+energy reduction after metadata and control costs.
+
+## Score conversion prerequisite
+
+Before a 43-bit FP8 accumulator is enabled, replace `score_scaler`'s current
+`quarter_to_fp32` conversion. Its expression
+`23'(magnitude) << (23-leading)` is valid for today's `ACC_W=14/15`, but a
+43-bit accumulator can have `leading` up to 42. The cast would discard high bits,
+and `23-leading` would become a negative shift count interpreted as a large
+unsigned shift. P1 needs width-independent normalization with explicit round,
+guard, and sticky handling.
 
 ## Stages
 
 | Stage | Work |
 | --- | --- |
-| P1.1 | Model support for INT4 and FP8 E4M3, with accuracy on the same inputs as P0.2 |
-| P1.2 | The multiplier study: M0 through M4 at fixed format, each synthesized |
-| P1.3 | Map published format-agile arithmetic onto a replicated attention tile |
-| P1.4 | The sparsity measurement |
-| P1.5 | A per-tile selection policy and its descriptor or register interface |
-| P1.6 | The comparison matrix and its Pareto front |
+| P1.1 | Add INT4 and FP8 E4M3 to the model and measure accuracy on the pinned P0 inputs |
+| P1.2 | Implement and synthesize multiplier options M0 through M4 at fixed FP4 precision |
+| P1.3 | Make the accumulator and score conversion width-safe through 43 bits |
+| P1.4 | Measure format-dependent sparsity and the useful structured skip opportunities |
+| P1.5 | Define a per-layer or per-tile format and sparsity selection policy |
+| P1.6 | Measure the complete policy's accuracy, traffic, routed area, timing, and energy Pareto front |
 
-P1.5 comes last because a policy that selects between formats is meaningless until
-each format has a measured cost.
-
-Before P1.3 widens the accumulator, replace `score_scaler`'s current
-`quarter_to_fp32` conversion. Its expression
-`23'(magnitude) << (23-leading)` is valid for today's `ACC_W=14/15`, but a
-43-bit FP8 accumulator can have `leading` up to 42. The 23-bit cast would
-discard high magnitude bits, and `23-leading` would become a negative shift
-count that SystemVerilog interprets as a large unsigned shift, producing a zero
-mantissa. P1.3 needs a width-independent leading-bit normalization with explicit
-round, guard, and sticky handling before any 43-bit configuration is enabled.
-
-## Research boundary
-
-P1 begins with reproduction, not RTL invention: compare the published long
-integer and hybrid implementations with P0's per-block path under the same
-formats. The contribution must come from attention-specific quality and
-per-tile scheduling evidence. A format unit alone, even if smaller, does not
-answer the revised question.
+P1 does not start until P0.7 provides a routed, hold-clean result with qualified
+power. Without that baseline, the primary objective, energy by format, cannot be
+measured.
 
 ## Related
 

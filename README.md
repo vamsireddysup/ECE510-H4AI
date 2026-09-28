@@ -1,28 +1,21 @@
-# Attention-specific FP4 precision co-design
+# FP4 transformer attention accelerator
 
 [![CI](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml)
 
-**Research question:** which numerical format, scale-block granularity, and
-accumulator structure does transformer attention actually need? This project
-answers with real query and key activations and measures whether softmax survives:
-KL divergence, total variation, and top-k agreement, alongside raw score error.
+This repository is the owner's hardware-software co-design program for an FP4
+chip accelerator for transformer attention. The software side provides a Python
+reference model, quantization experiments, softmax-quality metrics, and pinned
+real activation captures. The hardware side provides a parameterized
+SystemVerilog datapath and a Sky130 synthesis and physical-design flow. Format,
+block size, accumulation, and array decisions are made from measurements across
+both sides.
 
-For a reader new to attention, a transformer compares every token's query vector
-with every token's key vector. The matrix product `QK^T` produces those comparison
-scores before softmax turns each row into attention probabilities. This
-repository builds a Sky130 hardware platform for that product using FP4 E2M1
-inputs, one FP32 scale per 16 reduction elements, exact block-local integer
-accumulation, and FP32 output scores.
-
-Two KU Leuven MICAS projects cover precision-scalable MX arithmetic for general
-GEMM: [arXiv:2505.22404](https://arxiv.org/abs/2505.22404) targets robotics
-continual learning, and [arXiv:2511.06313](https://arxiv.org/abs/2511.06313)
-optimizes hybrid integer and FP32 reduction in an 8x8 SNAX integration. Their
-[public SystemVerilog](https://github.com/KULeuven-MICAS/Precision-Scalable_MX)
-spans MX integer and floating-point formats. Neither work is attention-specific
-or evaluates attention distributions. This project's contribution is the link
-from arithmetic and physical cost to softmax quality on pinned transformer
-activations.
+For a reader new to attention, a transformer compares each token's query vector
+with every token's key vector. The matrix product `QK^T` produces those
+comparison scores before softmax turns each row into attention probabilities.
+The active P0 engine computes this matrix using FP4 E2M1 inputs, one FP32 scale
+per 16 reduction elements, exact block-local integer accumulation, and FP32
+output scores.
 
 ```mermaid
 flowchart LR
@@ -33,6 +26,14 @@ flowchart LR
     D --> E[Dense attention scores]
     E -. evaluated in software .-> F[Softmax KL, TV, and top-k agreement]
 ```
+
+## Research program
+
+| Problem | Owner's question | Status |
+| --- | --- | --- |
+| [P0](docs/problem-statements/p0-dense-fp4-matmul.md) | Build dense FP4 `QK^T` matrix multiplication that is accurate, efficient, and physically closed | Active |
+| [P1](docs/problem-statements/p1-format-agile-sparsity.md) | Dynamically select FP4, INT4, or FP8 precision and exploit sparsity by layer and workload to minimize traffic and energy while maintaining accuracy | Next; waits for P0 physical closure |
+| [P2](docs/problem-statements/p2-programmable-accelerator.md) | Dynamically reconfigure compute array, precision, memory allocation, and dataflow across different AI models | Shelved |
 
 ## Results at a glance
 

@@ -49,6 +49,12 @@ naming rules these entries follow, see
 - Added a fixed-input one-thread NumPy CPU baseline at 3.72 measured GFLOP/s,
   replacing the archived CPU timing. It is observed throughput, not a peak.
 
+### Research statement correction
+
+- Restored P0, P1, and P2 as the owner-defined research program and removed
+  external-group positioning from the README and problem statements. P1 remains
+  next but waits for P0.7 hold closure and qualified power.
+
 ### September 2026 repository cleanup
 
 - Tagged the complete pre-cleanup tree as `pre-cleanup-2026-09-28`, then removed

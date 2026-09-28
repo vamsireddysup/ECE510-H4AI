@@ -182,14 +182,6 @@ projection. Reopen a four-engine 4x4 prototype after a shared-K broadcast and
 reorder-buffer RTL plan exists; it is the useful replication point for version
 3 and a smaller physical experiment than eight engines.
 
-This direction follows established clustered and partitionable accelerator
-work: [Simba](https://doi.org/10.1145/3352460.3358302) measures fine-grained
-multi-chip tiling, [Planaria](https://www.microarch.org/micro53/papers/738300a681.pdf)
-fissions an array dynamically, [SIGMA](https://doi.org/10.1109/HPCA47549.2020.00015)
-uses a flexible interconnect for scalable irregular GEMM, and
-[Eyeriss v2](https://arxiv.org/abs/1807.07928) clusters PEs behind a hierarchical
-mesh. They support studying small replicated units; they do not remove this
-design's measured shared-port and mapped-area limits.
 
 ## Related
 

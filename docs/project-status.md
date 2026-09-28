@@ -146,14 +146,10 @@ per-stage table are in [architecture](architecture.md).
 
 ## P1, next: format-agile precision and sparsity
 
-Starts no earlier than P0.4, because measuring the cost of changing format needs a
-settled baseline format and a settled accumulator. Stages, the accumulator-width
-arithmetic, the five-option multiplier study, and the sparsity question are in
+Starts after P0.7 signoff, because energy by format needs a routed, hold-clean
+baseline with qualified power. Stages, the accumulator-width arithmetic, the
+five-option multiplier study, and the sparsity question are in
 [the P1 page](problem-statements/p1-format-agile-sparsity.md).
-
-The closest hybrid and long-integer MX reduction papers and their public RTL
-have been reviewed. They occupy the accumulation thesis, so P1 now targets
-attention-specific quality and per-tile format scheduling.
 
 ## P2, shelved
 

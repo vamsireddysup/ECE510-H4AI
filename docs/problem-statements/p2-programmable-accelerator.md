@@ -14,15 +14,6 @@ to start.
 
 Two reasons, both about scope rather than interest.
 
-The question as written is the thesis of an established sub-field and of every
-commercial NPU. MAERI covers reconfigurable interconnect for arbitrary dataflow,
-Eyeriss v2 covers a flexible on-chip network across layer shapes and sparsity,
-Planaria covers a dynamically fissionable array for multiple tenants, SIGMA covers
-flexible sparse GEMM, and Gemmini argues the opposite case, that this belongs at
-design time in a configurable generator rather than at run time in silicon. A weak
-version of P2, meaning a few configuration registers on a fixed array, would not
-be a contribution.
-
 The current engine is one operation at one precision, with softmax and the V
 multiply on the host, no on-chip memory hierarchy, and no routed physical result.
 "Different AI models" needs a general GEMM engine with a memory hierarchy at
