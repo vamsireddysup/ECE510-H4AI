@@ -1,6 +1,6 @@
 # FP4 transformer attention accelerator
 
-[![CI](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml)
+[![CI](https://github.com/vamsireddysup/FP4-transformer-attention-accelerator/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/vamsireddysup/FP4-transformer-attention-accelerator/actions/workflows/ci.yml)
 
 This repository is the owner's hardware-software co-design program for an FP4
 chip accelerator for transformer attention. The software side provides a Python

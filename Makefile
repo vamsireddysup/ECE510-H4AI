@@ -4,7 +4,7 @@
 
 help:
 	@printf '%s\n' \
-	  'ECE510-H4AI developer commands' \
+	  'FP4 transformer attention accelerator developer commands' \
 	  '' \
 	  '  make doctor          Check required and optional tools' \
 	  '  make check-docs      Check active Markdown structure and links' \
