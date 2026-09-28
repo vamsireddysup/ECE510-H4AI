@@ -84,12 +84,16 @@ module qkt_engine #(
 
     logic [31:0] calc_rows_here, calc_cols_here;
     logic calc_start, row_skip, fill_start;
+    // Tile-position tests against matrix_size are registered alongside
+    // calc_row and calc_col, from their next values, so no 32-bit compare sits
+    // in front of calc_start's fanout. matrix_size is fixed for a command.
+    logic calc_row_in, calc_col_in, calc_col_more;
     assign calc_rows_here = (calc_row + TILE_SIZE <= matrix_size) ?
         TILE_SIZE : matrix_size - calc_row;
     assign calc_cols_here = (calc_col + TILE_SIZE <= matrix_size) ?
         TILE_SIZE : matrix_size - calc_col;
-    assign calc_start = command_active && !calc_busy && calc_row < matrix_size &&
-        calc_col < matrix_size && !acc_valid[calc_acc_bank] &&
+    assign calc_start = command_active && !calc_busy && calc_row_in &&
+        calc_col_in && !acc_valid[calc_acc_bank] &&
         q_valid_in[calc_q_bank] && k_valid[calc_k_bank];
     // The burst fill writes its first beat in the cycle it starts, so a
     // K-reuse tile becomes ready on the same cycle a reloaded tile would.
@@ -97,8 +101,8 @@ module qkt_engine #(
         k_cache_ready && !k_valid[load_k_bank] &&
         fill_row < matrix_size && fill_col < matrix_size;
     // An engine with no tile in this Q row still hands its Q bank back.
-    assign row_skip = command_active && !calc_busy && calc_row < matrix_size &&
-        calc_col >= matrix_size && q_valid_in[calc_q_bank];
+    assign row_skip = command_active && !calc_busy && calc_row_in &&
+        !calc_col_in && q_valid_in[calc_q_bank];
 
     // The shared Q banks are read one cycle ahead into a private register, so
     // the engine-crossing array read is register to register and never shares a
@@ -106,8 +110,7 @@ module qkt_engine #(
     logic [TILE_SIZE*4-1:0] q_row;
     logic q_row_last, q_row_next_bank;
     assign q_row_last = calc_busy && calc_depth == D_HEAD-1;
-    assign q_row_next_bank = q_row_last &&
-        !(calc_col+COL_STRIDE < matrix_size);
+    assign q_row_next_bank = q_row_last && !calc_col_more;
     assign q_rd_bank = (q_row_next_bank || row_skip) ? ~calc_q_bank : calc_q_bank;
     assign q_rd_depth = (calc_start && D_HEAD > 1) ? 32'd1 :
         (calc_busy && calc_depth+1 < D_HEAD) ? calc_depth + 1 : 32'd0;
@@ -287,6 +290,9 @@ module qkt_engine #(
             scale_score_bank <= 0; output_score_bank <= 0;
             calc_busy <= 0; scale_busy <= 0; fill_busy <= 0;
             calc_row <= 0; calc_col <= COL_BASE; calc_depth <= 0;
+            calc_row_in <= matrix_size != 0;
+            calc_col_in <= COL_BASE < matrix_size;
+            calc_col_more <= COL_BASE+COL_STRIDE < matrix_size;
             fill_row <= 0; fill_col <= COL_BASE; fill_beat <= 0;
             scale_launch_index <= 0; scale_result_count <= 0;
             scale_launch_row <= 0; scale_launch_col <= 0;
@@ -341,6 +347,7 @@ module qkt_engine #(
                     q_release[calc_q_bank] <= 1'b1;
                     calc_q_bank <= ~calc_q_bank;
                     calc_row <= calc_row + TILE_SIZE;
+                    calc_row_in <= calc_row + TILE_SIZE < matrix_size;
                 end else if (calc_start) begin
                     calc_busy <= 1'b1; calc_depth <= 1;
                     for (int block = 0; block < BLOCK_COUNT; block++)
@@ -373,12 +380,16 @@ module qkt_engine #(
                         calc_acc_bank <= ~calc_acc_bank;
                         k_valid[calc_k_bank] <= 1'b0;
                         calc_k_bank <= ~calc_k_bank;
-                        if (calc_col+COL_STRIDE < matrix_size)
+                        if (calc_col_more) begin
                             calc_col <= calc_col + COL_STRIDE;
-                        else begin
+                            calc_col_more <= calc_col + 2*COL_STRIDE < matrix_size;
+                        end else begin
                             q_release[calc_q_bank] <= 1'b1;
                             calc_q_bank <= ~calc_q_bank; calc_col <= COL_BASE;
                             calc_row <= calc_row + TILE_SIZE;
+                            calc_row_in <= calc_row + TILE_SIZE < matrix_size;
+                            calc_col_in <= COL_BASE < matrix_size;
+                            calc_col_more <= COL_BASE+COL_STRIDE < matrix_size;
                         end
                     end else calc_depth <= calc_depth + 1;
                 end
@@ -447,6 +458,16 @@ module qkt_engine #(
         scale_busy && score_ready |-> scale_score_bank != output_score_bank;
     endproperty
     assert property (p_score_bank_ownership);
+
+    // The registered tile-position flags must equal the compares they replace.
+    property p_tile_position_flags;
+        @(posedge clk) disable iff (!rst_n)
+        command_active |->
+            calc_row_in == (calc_row < matrix_size) &&
+            calc_col_in == (calc_col < matrix_size) &&
+            calc_col_more == (calc_col + COL_STRIDE < matrix_size);
+    endproperty
+    assert property (p_tile_position_flags);
 
     property p_engine_column_ownership;
         @(posedge clk) disable iff (!rst_n)
