@@ -42,6 +42,16 @@ module qkt_chiplet_top #(
     localparam int TILE_BEATS = (TILE_SIZE*D_HEAD+15)/16;
     localparam int FILL_DEPTHS = (16/TILE_SIZE > 0) ? 16/TILE_SIZE : 1;
     localparam int ENGINE_W = (ENGINES <= 1) ? 1 : $clog2(ENGINES);
+    // A running command has 1 <= matrix_size <= T_MAX, so every quantity
+    // derived from it is sized by T_MAX rather than by the 32-bit register.
+    localparam int SIZE_W = $clog2(T_MAX+1);
+    localparam int POS_W = $clog2(T_MAX+TILE_SIZE+1);
+    localparam int TILE_ROWS_MAX = (T_MAX+TILE_SIZE-1)/TILE_SIZE;
+    localparam int TILE_ROW_W = $clog2(TILE_ROWS_MAX+1);
+    localparam int TILE_TOTAL_W = $clog2(TILE_ROWS_MAX*TILE_ROWS_MAX+1);
+    localparam int SCALE_BEATS_MAX = T_MAX*BLOCK_COUNT;
+    localparam int BEAT_W = $clog2(((SCALE_BEATS_MAX > TILE_BEATS) ?
+        SCALE_BEATS_MAX : TILE_BEATS) + 1);
 
     logic start, done, command_active;
     logic [31:0] matrix_size, tile_count, cycle_count, tile_cycles;
@@ -74,8 +84,12 @@ module qkt_chiplet_top #(
 
     logic [1:0] q_valid;
     logic load_q_bank;
-    logic [31:0] load_beat, cache_tile, input_row, input_col;
-    logic [31:0] send_index, tile_start, tiles_per_row, retire_col;
+    logic [SIZE_W-1:0] cmd_size;
+    logic [BEAT_W-1:0] load_beat;
+    logic [POS_W-1:0] cache_tile, input_row, input_col;
+    logic [31:0] send_index, tile_start;
+    logic [TILE_ROW_W-1:0] tiles_per_row, retire_col;
+    logic [TILE_TOTAL_W-1:0] tiles_left;
     logic [ENGINE_W-1:0] retire_engine, dispatch_engine;
     logic k_cache_ready;
 
@@ -140,15 +154,15 @@ module qkt_chiplet_top #(
             .clk, .rst_n(eng_rst_n[e]), .command_active, .flush(start), .matrix_size,
             .q_valid_in(q_valid),
             .q_wr_valid(s_tvalid && s_tready && frontend == FE_LOAD_Q),
-            .q_wr_bank(load_q_bank), .q_wr_beat(load_beat), .q_wr_data(s_tdata),
+            .q_wr_bank(load_q_bank), .q_wr_beat(32'(load_beat)), .q_wr_data(s_tdata),
             .q_rd_bank(eng_q_rd_bank[e]),
             .q_rd_depth(eng_q_rd_depth[e*32 +: 32]),
             .q_rd_data(eng_q_rd_data[e*TILE_SIZE*4 +: TILE_SIZE*4]),
             .q_release(eng_q_release[e*2 +: 2]),
             .k_ready(eng_k_ready[e]),
             .k_wr_valid(eng_k_wr_valid[e]),
-            .k_wr_last(load_beat+1 == TILE_BEATS),
-            .k_wr_beat(load_beat), .k_wr_data(s_tdata),
+            .k_wr_last(32'(load_beat)+1 == TILE_BEATS),
+            .k_wr_beat(32'(load_beat)), .k_wr_data(s_tdata),
             .k_cache_ready(k_cache_ready),
             .kc_col(eng_kc_col[e*32 +: 32]), .kc_beat(eng_kc_beat[e*32 +: 32]),
             .kc_data(eng_kc_data[
@@ -168,7 +182,7 @@ module qkt_chiplet_top #(
         );
     end
 
-    assign dispatch_engine = ENGINE_W'((input_col/TILE_SIZE) % ENGINES);
+    assign dispatch_engine = ENGINE_W'((32'(input_col)/TILE_SIZE) % ENGINES);
 
     always_comb begin
         s_tready = 1'b0;
@@ -221,6 +235,7 @@ module qkt_chiplet_top #(
             load_beat <= 0; cache_tile <= 0; input_row <= 0; input_col <= 0;
             send_index <= 0; tile_start <= 0;
             tiles_per_row <= 0; retire_col <= 0; retire_engine <= 0;
+            tiles_left <= 0; cmd_size <= 0;
             for (int e = 0; e < ENGINES; e++) q_release_seen[e] <= 2'b00;
         end else begin
             if (command_active) cycle_count <= cycle_count + 1;
@@ -245,7 +260,12 @@ module qkt_chiplet_top #(
                 send_index <= 0; tile_start <= 0;
                 retire_col <= 0; retire_engine <= 0;
                 for (int e = 0; e < ENGINES; e++) q_release_seen[e] <= 2'b00;
-                tiles_per_row <= (matrix_size+TILE_SIZE-1)/TILE_SIZE;
+                // Only a valid size starts a command, so these narrow copies
+                // are exact whenever command_active is set.
+                cmd_size <= SIZE_W'(matrix_size);
+                tiles_per_row <= TILE_ROW_W'((matrix_size+TILE_SIZE-1)/TILE_SIZE);
+                tiles_left <= TILE_TOTAL_W'(TILE_ROW_W'((matrix_size+TILE_SIZE-1)/TILE_SIZE) *
+                    TILE_ROW_W'((matrix_size+TILE_SIZE-1)/TILE_SIZE));
                 if (matrix_size == 0 || matrix_size > T_MAX) begin
                     error_code <= 4'h1; done <= 1'b1; frontend <= FE_DONE;
                 end else begin
@@ -257,16 +277,16 @@ module qkt_chiplet_top #(
                     case (frontend)
                         FE_SCALES: begin
                             for (int lane = 0; lane < 2; lane++) begin
-                                if (load_beat*2+lane < matrix_size*BLOCK_COUNT)
+                                if (load_beat*2+lane < 32'(cmd_size)*BLOCK_COUNT)
                                     sq[(load_beat*2+lane)/BLOCK_COUNT]
                                       [(load_beat*2+lane)%BLOCK_COUNT] <=
                                         s_tdata[32*lane +: 32];
-                                else if (load_beat*2+lane < 2*matrix_size*BLOCK_COUNT)
-                                    sk[(load_beat*2+lane-matrix_size*BLOCK_COUNT)/BLOCK_COUNT]
-                                      [(load_beat*2+lane-matrix_size*BLOCK_COUNT)%BLOCK_COUNT] <=
+                                else if (load_beat*2+lane < 2*32'(cmd_size)*BLOCK_COUNT)
+                                    sk[(load_beat*2+lane-32'(cmd_size)*BLOCK_COUNT)/BLOCK_COUNT]
+                                      [(load_beat*2+lane-32'(cmd_size)*BLOCK_COUNT)%BLOCK_COUNT] <=
                                         s_tdata[32*lane +: 32];
                             end
-                            if (load_beat+1 == matrix_size*BLOCK_COUNT) begin
+                            if (32'(load_beat)+1 == 32'(cmd_size)*BLOCK_COUNT) begin
                                 if (!s_tlast) begin
                                     error_code <= 4'h3; done <= 1; command_active <= 0;
                                 end else begin
@@ -275,7 +295,7 @@ module qkt_chiplet_top #(
                                 end
                             end else if (s_tlast) begin
                                 error_code <= 4'h2; done <= 1; command_active <= 0;
-                            end else load_beat <= load_beat + 1;
+                            end else load_beat <= load_beat + 1'b1;
                         end
                         FE_CACHE_K: begin
                             for (int lane = 0; lane < 16; lane++)
@@ -283,53 +303,53 @@ module qkt_chiplet_top #(
                                     cache_tile*TILE_SIZE+(load_beat*16+lane)/D_HEAD < T_MAX)
                                     k_cache[cache_tile*TILE_SIZE+(load_beat*16+lane)/D_HEAD]
                                            [(load_beat*16+lane)%D_HEAD] <= s_tdata[4*lane +: 4];
-                            if (load_beat+1 == TILE_BEATS) begin
+                            if (32'(load_beat)+1 == TILE_BEATS) begin
                                 if (!s_tlast) begin
                                     error_code <= 4'h3; done <= 1; command_active <= 0;
-                                end else if ((cache_tile+1)*TILE_SIZE >= matrix_size) begin
+                                end else if ((32'(cache_tile)+1)*TILE_SIZE >= 32'(cmd_size)) begin
                                     frontend <= FE_LOAD_Q; load_beat <= 0; cache_tile <= 0;
                                     k_cache_ready <= 1'b1;
                                 end else begin
-                                    cache_tile <= cache_tile + 1; load_beat <= 0;
+                                    cache_tile <= cache_tile + 1'b1; load_beat <= 0;
                                 end
                             end else if (s_tlast) begin
                                 error_code <= 4'h2; done <= 1; command_active <= 0;
-                            end else load_beat <= load_beat + 1;
+                            end else load_beat <= load_beat + 1'b1;
                         end
                         FE_LOAD_Q: begin
                             for (int lane = 0; lane < 16; lane++)
                                 if (load_beat*16+lane < TILE_SIZE*D_HEAD)
                                     q_bank[load_q_bank][(load_beat*16+lane)/D_HEAD]
                                           [(load_beat*16+lane)%D_HEAD] <= s_tdata[4*lane +: 4];
-                            if (load_beat+1 == TILE_BEATS) begin
+                            if (32'(load_beat)+1 == TILE_BEATS) begin
                                 if (!s_tlast) begin
                                     error_code <= 4'h3; done <= 1; command_active <= 0;
                                 end else begin
                                     q_valid[load_q_bank] <= 1'b1;
                                     load_beat <= 0; input_col <= 0;
                                     if (K_REUSE_EN) begin
-                                        if (input_row+TILE_SIZE >= matrix_size) begin
+                                        if (32'(input_row)+TILE_SIZE >= 32'(cmd_size)) begin
                                             frontend <= FE_DONE;
                                         end else begin
-                                            input_row <= input_row + TILE_SIZE;
+                                            input_row <= input_row + POS_W'(TILE_SIZE);
                                             load_q_bank <= ~load_q_bank;
                                         end
                                     end else frontend <= FE_LOAD_K;
                                 end
                             end else if (s_tlast) begin
                                 error_code <= 4'h2; done <= 1; command_active <= 0;
-                            end else load_beat <= load_beat + 1;
+                            end else load_beat <= load_beat + 1'b1;
                         end
                         FE_LOAD_K: begin
-                            if (load_beat+1 == TILE_BEATS) begin
+                            if (32'(load_beat)+1 == TILE_BEATS) begin
                                 if (!s_tlast) begin
                                     error_code <= 4'h3; done <= 1; command_active <= 0;
                                 end else begin
                                     load_beat <= 0;
-                                    if (input_col+TILE_SIZE < matrix_size)
-                                        input_col <= input_col + TILE_SIZE;
-                                    else if (input_row+TILE_SIZE < matrix_size) begin
-                                        input_row <= input_row + TILE_SIZE;
+                                    if (32'(input_col)+TILE_SIZE < 32'(cmd_size))
+                                        input_col <= input_col + POS_W'(TILE_SIZE);
+                                    else if (32'(input_row)+TILE_SIZE < 32'(cmd_size)) begin
+                                        input_row <= input_row + POS_W'(TILE_SIZE);
                                         load_q_bank <= ~load_q_bank;
                                         frontend <= FE_LOAD_Q;
                                     end else begin
@@ -338,7 +358,7 @@ module qkt_chiplet_top #(
                                 end
                             end else if (s_tlast) begin
                                 error_code <= 4'h2; done <= 1; command_active <= 0;
-                            end else load_beat <= load_beat + 1;
+                            end else load_beat <= load_beat + 1'b1;
                         end
                         default: ;
                     endcase
@@ -360,14 +380,15 @@ module qkt_chiplet_top #(
                         tile_count <= tile_count + 1;
                         tile_cycles <= cycle_count - tile_start + 1;
                         tile_start <= cycle_count;
-                        if (retire_col+1 == tiles_per_row) begin
+                        if (retire_col+1'b1 == tiles_per_row) begin
                             retire_col <= 0; retire_engine <= '0;
                         end else begin
-                            retire_col <= retire_col + 1;
+                            retire_col <= retire_col + 1'b1;
                             retire_engine <= (32'(retire_engine)+1 == ENGINES) ?
                                 '0 : retire_engine + 1'b1;
                         end
-                        if (tile_count+1 == tiles_per_row*tiles_per_row) begin
+                        tiles_left <= tiles_left - 1'b1;
+                        if (tiles_left == TILE_TOTAL_W'(1)) begin
                             done <= 1'b1; command_active <= 1'b0;
                         end
                     end else send_index <= send_index + 2;
