@@ -168,6 +168,61 @@ Adding an explicit tile header would require a later protocol version (version
 147,456 cycles, a 12.5% penalty exactly where eight engines need the output
 port. I reject that option for the first prototype.
 
+## Measured replicated-engine results
+
+The replicated RTL now exists. `ENGINES` instantiates that many `qkt_engine`
+blocks under one `qkt_chiplet_top`. Engine `i` owns the output tile columns
+congruent to `i` modulo `ENGINES`, so every engine works on the same Q tile row.
+The table is **measured** at revision `ca8f9fd` with Verilator 5.041, 4x4,
+`D_HEAD=64`, `T_MAX=512`, Bs=16, one score lane, and a continuously ready host.
+Every run produced all 262,144 scores bit-exactly.
+
+| Protocol | Engines | Core cycles | Input beats | Speedup over N=1 | Binding work |
+| --- | ---: | ---: | ---: | ---: | --- |
+| v5 | 1 | 1,050,696 | 266,240 | 1.000x | CALC |
+| v5 | 2 | 526,424 | 266,240 | 1.996x | CALC |
+| v5 | 4 | 266,344 | 266,240 | 3.945x | input |
+| v5 | 8 | 266,344 | 266,240 | 3.945x | input |
+| v5 | 16 | 266,344 | 266,240 | 3.945x | input |
+| v6 | 1 | 1,052,728 | 6,144 | 1.000x | CALC |
+| v6 | 2 | 528,448 | 6,144 | 1.992x | CALC |
+| v6 | 4 | 266,320 | 6,144 | 3.953x | CALC |
+| v6 | 8 | 135,280 | 6,144 | 7.782x | output |
+| v6 | 16 | 135,280 | 6,144 | 7.782x | output |
+
+Both projected limits hold. Version 5 stops improving at four engines because
+the shared 64-bit input port must still accept 266,240 beats. Version 8 engines
+under version 6 reach 135,280 cycles against the 131,072-cycle output floor, and
+sixteen engines do not improve on that, because two FP32 scores per cycle is the
+port's steady ceiling. The reviewed rows are in
+[`data/replicated-engine-measured.csv`](data/replicated-engine-measured.csv).
+
+The earlier 265,216 and 134,194 projections were Bs=32 numbers. The Bs=16
+default adds 1,024 scale beats and three cross-block adds, so its comparable
+projections are 266,240 and 135,224.
+
+### An open model error
+
+The shared-port model reproduces every measured input-beat count exactly and
+remains exact at N=1, but it underestimates every measured N>1 command:
+
+| Configuration | Projected | Measured | Error |
+| --- | ---: | ---: | ---: |
+| v5 N=2 | 526,408 | 526,424 | +16 |
+| v5 N=4, 8, 16 | 266,240 | 266,344 | +104 |
+| v6 N=2 | 528,440 | 528,448 | +8 |
+| v6 N=4 | 266,296 | 266,320 | +24 |
+| v6 N=8, 16 | 135,224 | 135,280 | +56 |
+
+For version 6 at N=2, 4, and 8 the error is exactly `8*(N-1)`, which is
+`(N-1)` times the 8-cycle per-tile output service time. That is consistent with
+the final `N-1` tiles draining serially through the one output port at the end
+of a command, which the model's single fill-and-drain term does not carry. The
+pattern does not continue at N=16, and the version 5 errors do not fit it, so I
+am recording the measurement as the authority and leaving the model unchanged
+rather than fitting a correction I have not derived. `scripts/cycle_model.py`
+prints this error table and still fails only on a single-engine mismatch.
+
 ## Replication recommendation
 
 Do not build eight 4x4 engines under version 3. They have the same projected
@@ -178,9 +233,10 @@ is close to the measured 132,362 cycles of one 16x16 L4 array.
 The bounded 16x16 synthesis investigation later showed that its dynamic
 accumulator ports do not scale through the available Yosys flow. [ADR
 0006](../adr/0006-use-replicated-4x4-engines.md) therefore selects replicated
-4x4 engines as the next RTL and physical prototype. The implementation must
-measure shared-K, arbitration, and reorder-buffer area before the 134,194-cycle
-projection can become a full-design result.
+4x4 engines as the next RTL and physical prototype. Checkpoint 1 of that
+decision is now complete and measured above. Mapped hierarchy area and a routed
+result remain open, so the 4,468,427 um² projection is still the only area
+number for eight engines.
 
 
 ## Related

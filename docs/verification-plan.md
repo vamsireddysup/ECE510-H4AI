@@ -11,9 +11,10 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | Check | Command | Proves | Does not prove |
 | --- | --- | --- | --- |
 | Documentation structure | `make check-docs` | One H1 per active document, every relative link resolves, every document has a `## Related` block and is reachable from `README.md` | That the prose is accurate |
-| RTL lint | `make lint` | Eight parameter sets elaborate clean under `-Wall`, including both protocols, Bs=16, and widened 8x8/16x16 scalers | Functional correctness |
+| RTL lint | `make lint` | Eleven parameter sets elaborate clean under `-Wall`, including both protocols, Bs=16, widened 8x8/16x16 scalers, and `ENGINES=2/4/8` | Functional correctness |
 | Reference model | `make test-model` | The Python FP4 decode, encode, and `QK^T` model agrees with the 256-entry RTL product ROM on all 256 input pairs, and rejects malformed shapes | That the RTL matches the model; the integration test does that |
-| Cycle model | `python3 scripts/cycle_model.py` | The closed-form model in [architecture](architecture.md) reproduces all 24 measured configurations | Anything about a configuration not in its table |
+| Cycle model | `python3 scripts/cycle_model.py` | The closed-form model reproduces all 24 measured single-engine configurations and every input-beat count | Multi-engine cycles; it prints its 8-to-104-cycle error against the eight measured replicated runs |
+| Replicated engines | `ENGINES=N make test-integration ...` | Bit-exact scores and counters at `ENGINES=1/2/4/8/16` for both protocols, including partial engine groups at T=1 and T=7 | Mapped area or routed timing at any engine count |
 | Small integration | `make test-integration` | Everything in the table below, at `D_HEAD=4` and `64`, with host stalls injected on both streams | Large-`T` behavior; sustained throughput |
 | Large integration | `make test-integration-large` | Scores and counters at T=64/128/512, `D_HEAD=64`, continuously ready host | Behavior under stalls |
 | K reuse | `make test-integration-reuse`, `make test-integration-reuse-large` | Protocol version 6 at the same sequence lengths | That its register scratchpad is affordable; see [ADR 0002](adr/0002-k-reload-is-the-default.md) |

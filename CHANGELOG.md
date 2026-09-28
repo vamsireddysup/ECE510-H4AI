@@ -30,6 +30,24 @@ naming rules these entries follow, see
   sequencers connected by two-bank Q, K, accumulator, and score storage. Extracted
   the parameterized score scaler into `rtl/core/score_scaler.sv`.
 
+### Replicated engines
+
+- Extracted the per-engine compute pipeline into `rtl/core/qkt_engine.sv` and
+  added an `ENGINES` parameter. Engine `i` owns the output tile columns
+  congruent to `i` modulo `ENGINES`, so Q broadcasts from one shared bank pair
+  and ordered retirement needs only a round-robin pointer. The AXI block, K
+  cache, and scale storage are shared; K tiles, accumulators, score banks, and
+  the compute and scaling sequencers are private.
+- Changed the K-reuse builds to burst-fill a private K tile from the shared
+  cache during the previous tile's compute instead of reading the cache on every
+  compute cycle. Cycle counts are unchanged.
+- At `ENGINES=1` the design is bit-identical and cycle-identical to the previous
+  top across every suite.
+- Measured T=512 at 4x4 and Bs=16: version 5 falls to 266,344 cycles at four
+  engines and stops there against its 266,240-beat input floor; version 6 falls
+  to 135,280 cycles at eight engines against the 131,072-cycle output floor, and
+  sixteen engines do not improve either. There is no area or routed result.
+
 ### Measurements
 
 - At T=512 and `D_HEAD=64` the overlapped default 4x4 build produces 262,144

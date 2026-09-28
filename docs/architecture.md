@@ -11,13 +11,14 @@ multiplication by V stay on the host.
 
 ## Blocks
 
-The active design is one top plus five arithmetic and control submodules. Everything else in the
+The active design is one top plus six arithmetic and control submodules. Everything else in the
 original datapath is in
 [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md).
 
 | Block | Source | Job |
 | --- | --- | --- |
-| `qkt_chiplet_top` | [`rtl/top/qkt_chiplet_top.sv`](../rtl/top/qkt_chiplet_top.sv) | Stream sequencing, tile storage, the integer dot-product array, and the output packer |
+| `qkt_chiplet_top` | [`rtl/top/qkt_chiplet_top.sv`](../rtl/top/qkt_chiplet_top.sv) | Stream sequencing, shared Q/K/scale storage, engine dispatch, ordered retirement, and the output packer |
+| `qkt_engine` | [`rtl/core/qkt_engine.sv`](../rtl/core/qkt_engine.sv) | One private K tile pair, exact accumulators, score scaling, and score banks |
 | `axi4_lite_ctrl` | [`rtl/interfaces/axi4_lite_ctrl.sv`](../rtl/interfaces/axi4_lite_ctrl.sv) | Control and profiling registers |
 | `score_scaler` | [`rtl/core/score_scaler.sv`](../rtl/core/score_scaler.sv) | Parameterized score-scaling lanes and their six-cycle metadata pipeline |
 | `fp32_mul` | [`rtl/core/fp32_mul.sv`](../rtl/core/fp32_mul.sv) | Three-stage FP32 multiplier, instantiated twice per scaler lane |
@@ -169,6 +170,48 @@ move the binding stage to the 128-cycle output. The measured four-lane result is
 P0.6 therefore keeps the 64-bit port and selects two lanes for 8x8 or four for
 16x16 if either larger array survives physical evaluation.
 
+## Replicated engines
+
+`ENGINES` instantiates that many `qkt_engine` blocks under one top. Its default
+is 1, where the design is bit-identical and cycle-identical to the
+single-engine implementation it replaced.
+
+Work is split by K tile column. Engine `i` owns the output tile columns
+congruent to `i` modulo `ENGINES`, so at any moment every engine is working on
+the same Q tile row. Three consequences follow.
+
+**Q is broadcast.** One shared pair of Q tile banks feeds every engine. A bank
+is handed back to the input frontend only after every engine has released it.
+Splitting by flat tile index would instead put engines on different Q rows and
+need `ENGINES` private Q banks.
+
+**Retirement is a counter, not a reorder buffer.** The output contract emits
+tiles in Q-tile-row order then K-tile-column order, which under this assignment
+is exactly round robin across engines. A retire pointer advances one engine per
+completed tile and restarts at engine 0 on each new Q row, stalling while the
+selected engine's score bank is not valid. Ordering is preserved with no buffer
+and no tile ordinal in the data path, so
+[ADR 0006](adr/0006-use-replicated-4x4-engines.md)'s reorder buffer is not
+required. The restart handles a Q row whose tile-column count is not a multiple
+of `ENGINES`; an engine with no tile in a row hands its Q bank straight back.
+
+**Scale reads mostly collapse.** `sq` is indexed by Q row and is common to all
+engines. Only the `sk` index differs per engine.
+
+| Resource | Placement |
+| --- | --- |
+| `axi4_lite_ctrl`, `k_cache`, `sq`, `sk`, `q_bank`, input dispatcher, retire pointer | Shared once in the top |
+| `k_bank`, `acc_bank`, `score_bank`, the CALC/SCALING sequencers, `score_scaler`, `score_reducer` | Private per engine |
+
+Under K reload the input dispatcher steers each K tile packet to the engine that
+owns its column. Under K reuse each engine burst-fills its private K tile from
+the shared cache while the previous tile computes, rather than reading the cache
+on every compute cycle. A fill takes `ceil(TILE_SIZE*D_HEAD/16)` cycles, the
+same as one K packet, so it hides behind both the Q packet load at command start
+and the `D_HEAD`-cycle dot product afterwards. Average shared-cache read rate is
+`TILE_SIZE*D_HEAD` bits per engine per tile, or 16 bits per cycle per engine at
+4x4 and `D_HEAD=64`.
+
 ## Replicated-engine projection
 
 The cycle model also accepts an engine count. N=1 remains exact against all
@@ -176,7 +219,9 @@ measurements. For N greater than one, private CALC and SCALING work divide acros
 engines while the 64-bit input and output ports remain shared. At T=512, four
 4x4 engines make version 3 input-bound at 265,216 projected cycles; eight do not
 improve it. Version 4 permits eight engines to reach 134,194 projected cycles,
-including startup and drain, near the 131,072-cycle output floor. The
+including startup and drain, near the 131,072-cycle output floor. Measured
+Bs=16 results now confirm both limits and exceed the model by 8 to 104 cycles.
+The
 [replicated-engine study](results/performance.md) gives the derivation,
 area breakdown, and ordering decision.
 

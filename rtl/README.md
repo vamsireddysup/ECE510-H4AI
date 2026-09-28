@@ -16,15 +16,20 @@ score's blocks through `fp32_add.sv`.
 Sky130 timing or power evidence. The [design-space record](../docs/results/performance.md)
 compares them.
 
-`rtl/filelist.f` lists the active top and its five dependencies, and `rtl/`
+`rtl/filelist.f` lists the active top and its six dependencies, and `rtl/`
 contains nothing else that is synthesizable. The superseded `systolic_array`,
 `pe`, `tile_controller`, FP4 multiplier, FP32 adder, and tile/scale buffer
 modules moved to [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md);
 they are kept for comparison and are not on any build path. The retained M4
 submission remains under `archive/`.
 
+[`core/qkt_engine.sv`](core/qkt_engine.sv) is one private compute engine: its
+own K tile banks, exact accumulators, scaling sequencer, and score banks. The
+top instantiates `ENGINES` of them and keeps the AXI block, Q tile banks, K
+cache, scale storage, input dispatcher, and ordered retire pointer shared.
+
 The active top is parameterized by `TILE_SIZE`, `D_HEAD`, `T_MAX`,
-`SCALE_BLOCK_SIZE`, and `SCORE_LANES`.
+`SCALE_BLOCK_SIZE`, `SCORE_LANES`, and `ENGINES`.
 `T_MAX=512` is accepted without truncating the software-written dimension.
 The verified integrated configurations include `TILE_SIZE=4` at `D_HEAD=4/64`
 and `TILE_SIZE=8/16` at `D_HEAD=64`. See

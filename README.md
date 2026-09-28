@@ -46,7 +46,7 @@ passes hold.
 | --- | --- | --- |
 | 4x4, one score lane, T=512 | 1,050,696 cycles; **32.0 ms at 32.8 MHz**, 3.6x slower than CPU | Projected latency from measured RTL simulation and a routed 30.5 ns setup bound; hold fails |
 | 16x16, four score lanes, T=512 | 133,392 cycles; **4.07 ms**, 2.2x faster than CPU | Projected from RTL simulation and the 4x4 period; 16x16 route is blocked |
-| Eight replicated 4x4 engines with K reuse | 134,194 cycles; **4.09 ms** | Projected cycle model; no replicated-engine RTL exists |
+| Eight replicated 4x4 engines with K reuse | 135,280 cycles; **4.13 ms** | Measured RTL simulation; latency projected from the 4x4 period, and the replicated top has no synthesis or route |
 | Selected `Bs=16` precision | **9.70%** relative Frobenius error on pinned real BERT activations | Measured software model |
 | Routed 4x4 physical result | **4.84 mm²** die; DRC and LVS clean | Measured EDA output; hold is -1.2765 ns and power is invalid |
 

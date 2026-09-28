@@ -1,5 +1,29 @@
 # Latest verification
 
+## September 28 replicated-engine checkpoint 1
+
+I extracted the per-engine compute pipeline into `rtl/core/qkt_engine.sv` and
+added an `ENGINES` parameter that defaults to 1. At `ENGINES=1` the design is
+bit-identical and cycle-identical to revision `212161f`: every small, large,
+K-reuse, 8x8, 16x16, and Bs=32 suite reproduces its previous cycle count, and
+`make test-precision-rtl` still reports 1,050,696 cycles with 13.2942637%
+relative Frobenius error and 0.842930886 mean absolute error.
+
+`ENGINES=1/2/4/8/16` all produce bit-exact scores for both protocols. The
+`ENGINES=8` precision run matches the `ENGINES=1` result exactly on the pinned
+T=512 capture. Measured T=512 cycles are 1,050,696 / 526,424 / 266,344 /
+266,344 / 266,344 for version 5 and 1,052,728 / 528,448 / 266,320 / 135,280 /
+135,280 for version 6. Version 5 becomes input-bound at four engines and
+version 6 reaches the output floor at eight, as projected. `make lint` now
+covers eleven parameter sets including `ENGINES=2/4/8`, and `make test` passes.
+
+The cycle model reproduces every input-beat count exactly and stays exact at
+N=1, but underestimates each measured N>1 command by 8 to 104 cycles. That
+error is recorded rather than fitted; see the
+[performance record](performance.md). There is no synthesis, area, or physical
+result at any engine count, so nothing here is a frequency, latency, or energy
+claim.
+
 ## September 28 16x16 synthesis diagnosis
 
 The original 16x16 Bs=16 L4 attempt already used `T_MAX=16`. Its log identifies

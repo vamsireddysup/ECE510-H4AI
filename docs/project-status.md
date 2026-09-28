@@ -82,6 +82,13 @@ measurements are in [performance results](results/performance.md) and
   leakage alone reaches 0.686 mJ per T=512 command, while avoided DRAM energy
   is projected at 0.338 to 0.676 mJ. SRAM needs new routed power or host-link
   evidence before the question reopens.
+- The replicated-engine RTL is implemented and verified in simulation. Work
+  splits by K tile column, so Q is broadcast and ordered retirement needs only a
+  round-robin pointer rather than the reorder buffer ADR 0006 anticipated.
+  Measured T=512 cycles fall from 1,050,696 to 266,344 at four engines under
+  version 5, where the shared input port binds, and from 1,052,728 to 135,280
+  at eight engines under version 6, where the output port binds. See the
+  [measured replication result](results/performance.md).
 - A replicated-engine study derives both shared-port ceilings. Version 3 stops
   improving at four 4x4 engines and 265,216 projected cycles; version 4 permits
   eight engines to reach 134,194 projected cycles. The conservative eight-engine
@@ -112,7 +119,11 @@ Stages and their exit conditions are in
 5. **P0.6, decide the output width from measurement.** Complete. Keep 64 bits;
    widen score scaling first. Two lanes are sufficient at 8x8 and four reach
    the output limit at 16x16.
-6. **P0.7, route the complete top.** Active. The optimized 4x4 route is DRC/LVS
+6. **P0.7, route the complete top.** Active. Checkpoint 1 of
+   [ADR 0006](adr/0006-use-replicated-4x4-engines.md) is complete: the
+   replicated-engine RTL exists, `ENGINES=1` is bit-identical and
+   cycle-identical to the previous top, and `ENGINES=1/2/4/8/16` are bit-exact
+   in simulation. Mapped area and a routed result remain open. The optimized 4x4 route is DRC/LVS
    clean and closes setup at 30.5 ns, but worst multi-corner hold slack is
    -1.2765 ns. It has antenna, slew, and fanout violations, and its dynamic
    power is rejected. The selected 16x16 L4 follow-up remains blocked by accumulator synthesis

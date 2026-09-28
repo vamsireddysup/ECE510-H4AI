@@ -42,6 +42,17 @@ the second is mapped hierarchy area; the third is a routed result. If shared
 storage, arbitration, or reorder area erases the physical advantage, the result
 will be recorded rather than replaced with the older monolithic projection.
 
+## Implementation note, September 2026
+
+Checkpoint 1 is complete and one stated consequence did not survive contact
+with the implementation. Splitting work by K tile column makes the existing
+output order exactly round robin across engines, so a retire pointer preserves
+it and the internal tile ordinal and reorder buffer are not needed. The same
+split makes Q a broadcast from one shared bank pair. Shared K and scale storage
+were implemented as decided. The measured cycle results are in
+[the performance record](../results/performance.md); area and routed timing are
+still open.
+
 ## Related
 
 - [Decision records](README.md)
