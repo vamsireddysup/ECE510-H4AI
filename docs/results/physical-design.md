@@ -185,6 +185,136 @@ drain cycle to 1,049,666. All 16 recorded cycle configurations match the updated
 closed-form model exactly, and the T=512 RTL precision result remains
 14.2346060% relative Frobenius error with every score bit equal to the model.
 
+## P0.7b: the frequency this design actually closes at
+
+The recorded 30.5 ns is a re-STA of a netlist synthesized for 125 ns with the
+OpenLane default `SYNTH_STRATEGY` of `AREA 0`, placed without placement timing
+repair. Nobody asked the tools for speed. P0.7b asks, in six stages: F0 makes a
+run possible, F1 ranks the paths, F2 sweeps synthesis, F3 applies only the RTL
+fixes F1 justifies, F4 sweeps the floorplan, and F5 is one full signoff run
+whose deliverable is the project's first valid dynamic power number. F6 runs
+only if F5 closes.
+
+No wall-clock speedup is claimed at any frequency. At the measured 135,280-cycle
+eight-engine T=512 command, parity with one OpenBLAS thread needs 461 MHz and
+parity with the four-core, eight-thread OpenBLAS run needs 951 MHz. The claim
+this work can support is energy and area per score.
+
+Every run below uses `qkt_chiplet_top` at 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=16,
+one score lane, protocol version 5, and `ENGINES=1` unless its row says
+otherwise, with OpenLane 1.1.1 image
+`sha256:26719ced90c315b8b4ad7b9dc3e9a176991cea4c3f3282660d8d60d0f0cae229`,
+Yosys 0.38, OpenSTA 2.5.0, and Sky130A `bdc9412b3e468c102d01b7cf6337be06ec6e9c9a`.
+Synthesis-only numbers are **measured** on the mapped netlist with ideal clocks
+and no wire parasitics, so they are lower bounds on routed delay.
+
+### F0: making a run possible
+
+The physical configuration could not elaborate the current RTL.
+`VERILOG_FILES` omitted `rtl/core/qkt_engine.sv`, which `rtl/filelist.f` lists,
+and the base `SYNTH_PARAMETERS` had no `ENGINES` and still named the retired
+Bs=32 default. Both are fixed, and `scripts/run_physical.sh` now refuses to run
+if the OpenLane file list and `rtl/filelist.f` differ. `SYNTH_STRATEGY`,
+`SYNTH_SIZING`, `SYNTH_BUFFERING`, `STD_CELL_LIBRARY`, `ENGINES`, and
+`MAX_TRANSITION_CONSTRAINT` are environment overrides in the same style as
+`DIE_AREA`, and the manifest records each one plus the count of uncommitted RTL,
+configuration, and script paths.
+
+`MAX_TRANSITION_CONSTRAINT` is now set explicitly to 0.75 ns, but that changes
+no number. Every recorded run already inherited 0.75 ns from the PDK's
+`sky130_fd_sc_hd/config.tcl`, and the resolved configuration of the optimized
+route shows it, so the SDC's `set_max_transition` guard was true. The slew
+violations have a different cause. In that route's nominal-extraction signoff
+log, **16,212 of 26,861 slew violator lines, 60%, are `INSDIODE1` pins**: antenna
+diodes that global-route antenna repair inserts after the resizer's slew repair
+has already run. F5 has to address that ordering rather than the constraint.
+
+The first proof run then failed at parse. OpenLane's Yosys 0.38 rejects
+`automatic` variable declarations inside procedural blocks, which Verilator
+accepts, so the replicated-engine RTL had never been synthesizable. Revision
+`7048905` replaces both with module-level signals; every score and the T=512
+cycle counts at `ENGINES=1` and `8` for both protocols are unchanged.
+
+The proof run at `7048905`, 10 ns, and the untouched defaults (`AREA 0`,
+sizing off, buffering on) completes synthesis and STA:
+
+| Run | Strategy | Typical WNS | Typical TNS | Cells | Mapped area |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `f0-default-area0-10ns` | AREA 0, sizing 0, buffering 1 | -2.80 ns | -3,331.03 ns | 97,703 | 1,045,707 um² |
+
+That alone supports the reason for reopening P0.7. The previous 58.09 ns mapped
+path belongs to a 225 ns request; asking for 10 ns with the same strategy maps
+the same design to a 12.8 ns typical-corner path.
+
+### F1: the path distribution at 10 ns
+
+Run `f2-p10-delay0` at `7048905` uses `DELAY 0`, `SYNTH_SIZING 1`, and
+`SYNTH_BUFFERING 1` at 10 ns. It maps to 109,182 cells and 1,198,994 um², with
+typical WNS -2.03 ns. `scripts/sta/endpoint_paths.tcl` loads the run's resolved
+configuration, one corner's Liberty file, the netlist, and the project SDC,
+then names the RTL register behind every anonymized Yosys instance by its Q net.
+`scripts/rank_endpoints.py` groups the result by owning block.
+
+The requested top 50 endpoints are uninformative on their own: one register
+class fills them. `acc_bank` alone is 2 banks x 4 blocks x 16 scores x 13 bits,
+1,664 endpoints.
+
+| Corner | Top 50 endpoints | Worst slack | Arrival |
+| --- | --- | ---: | ---: |
+| `tt_025C_1v80` | 50 x `rst_n -> acc_bank` | -2.028 ns | 11.700 ns |
+| `ss_100C_1v60` | 49 x `matrix_size -> acc_bank`, 1 x scaler | -12.204 ns | 21.703 ns |
+
+So I also ranked every block pair by its own worst endpoint across 14,937
+endpoints. The slow corner sets multi-corner setup signoff:
+
+| Rank | Start block -> end block | Worst slack | Arrival | Endpoints |
+| ---: | --- | ---: | ---: | ---: |
+| 1 | `matrix_size` register -> accumulator banks | -12.204 ns | 21.70 ns | 1,017 |
+| 2 | scaler -> scaler (`scaler_acc_col -> s1_exp_sum`) | -11.817 ns | 21.44 ns | 628 |
+| 3 | compute sequencer (`calc_row -> acc_scores`) | -11.524 ns | 21.02 ns | 275 |
+| 4 | output sequencer (`tiles_per_row`) -> AXI `done` | -10.960 ns | 20.46 ns | 65 |
+| 5 | score banks -> scaling sequencer | -10.927 ns | 20.44 ns | 45 |
+| 6 | reducer -> reducer (`s2_sum -> result`) | -10.539 ns | 20.05 ns | 464 |
+| 7 | compute sequencer -> Q storage (`calc_depth -> q_row`) | -10.314 ns | 19.94 ns | 19 |
+| 8 | compute sequencer -> accumulator banks (`calc_depth -> acc_bank`) | -10.044 ns | 19.55 ns | 648 |
+
+At the typical corner the order changes: `rst_n -> acc_bank` is first at
+-2.028 ns, then the scaler at -1.154 ns and `calc_row -> acc_scores` at
+-0.950 ns. The complete table for both corners is in
+[`data/endpoint-ranking-10ns.csv`](data/endpoint-ranking-10ns.csv).
+
+What the top paths are:
+
+- **Rank 1** leaves the `matrix_size` register, passes the two 32-bit compares
+  in `calc_start` (`calc_row < matrix_size`, `calc_col < matrix_size`) by 6.1 ns,
+  and fans out through a buffer tree by 8.1 ns. `calc_start` then selects the K
+  operand index, `k_bank[...][0]` against `k_bank[...][calc_depth]`, so it sits
+  in front of the 64:1 operand mux, decode, multiply, and 13-bit accumulate.
+- **`rst_n`** spends the 2.00 ns maximum input delay, then 6.4 ns in a `buf_1`
+  tree driving fanouts of 27 and 28 at 1.47 and 1.58 ns per stage, and joins
+  the accumulate cone at the same node as rank 1. Its slow-corner worst path is
+  21.01 ns, -11.51 ns slack, only 0.69 ns behind rank 1, so `endpoint_count 1`
+  hides it there. Reset is worst at typical because its 2 ns input delay does
+  not scale with the corner while logic depth does.
+- **Rank 3** is `acc_scores <= calc_rows_here * calc_cols_here`, a 32-bit by
+  32-bit multiply of two values no larger than `TILE_SIZE`. Rank 4 is the same
+  shape: `tile_count+1 == tiles_per_row*tiles_per_row` in the done test.
+- **Rank 2** is the accumulator read mux, `quarter_to_fp32`'s leading-one and
+  shift, and the multiplier's exponent add in one stage.
+- **Rank 8** is the multiply-accumulate itself from `calc_depth`: 64:1 K operand
+  mux, decode, multiply, add. It arrives at 19.55 ns at the slow corner with no
+  control in front of it.
+
+`start` is a registered AXI output, so the flush fanout does not start at a pin
+and the 20% input delay does not apply to it. That delay does apply to `rst_n`.
+
+Two consequences for F3. Reset is justified as the first fix by the typical
+corner and by being 0.69 ns from the slow-corner worst path, but it cannot move
+the slow-corner worst path alone, because `calc_start` enters the same node. And
+rank 8 means that removing every control path still leaves a 19.55 ns
+slow-corner datapath, so reaching 10 ns at signoff would require restructuring
+the operand path, not just cleaning up control.
+
 ## Related
 
 - [Project status](../project-status.md)

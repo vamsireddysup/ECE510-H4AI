@@ -22,7 +22,9 @@ All of them run from the repository root.
 | `capture_transformer_qk.py` | P0.8 documented command | PyTorch 2.8.0+cpu, Transformers 4.56.2, NumPy | deterministic NPZ at the requested path |
 | `bench_cpu.py` | run directly | NumPy | stdout JSON; redirect to `build/cpu-benchmark.json` |
 | `run_synthesis.sh` | run directly as `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE] [BLOCK] [LANES]` | Yosys, Sky130 HD Liberty | `build/synthesis/t<tile>-d<depth>-max<tmax>-reuse<reuse>-sb<block>-sl<lanes>/yosys.log` |
-| `run_physical.sh` | `./scripts/run_physical.sh RUN PERIOD [TILE] [LANES] [MODE]` | Docker, pinned OpenLane image, Sky130 PDK | `build/physical/<run-name>/`, with an absolute die area, generated config, manifest, log, and `runs/full/`; use mode `synthesis` for a reproducible synthesis-only checkpoint |
+| `run_physical.sh` | `./scripts/run_physical.sh RUN PERIOD [TILE] [LANES] [MODE]` | Docker, pinned OpenLane image, Sky130 PDK | `build/physical/<run-name>/`, with an absolute die area, generated config, manifest, log, and `runs/full/`; use mode `synthesis` for a reproducible synthesis-only checkpoint. `ENGINES`, `SYNTH_STRATEGY`, `SYNTH_SIZING`, `SYNTH_BUFFERING`, `STD_CELL_LIBRARY`, and `MAX_TRANSITION_CONSTRAINT` are environment overrides |
+| `sta/endpoint_paths.tcl` | inside the OpenLane image as `sta -exit -no_init`, with `RUN_DIR`, `LIB`, and `PATHS` set | OpenSTA in the pinned image | ranked worst setup endpoints with the RTL register behind each instance |
+| `rank_endpoints.py` | `python3 scripts/rank_endpoints.py STA_OUTPUT [--csv FILE] [--top N]` | Python | endpoints grouped by owning block, plus the worst endpoint per block pair |
 | `sweep_routed_timing.sh` | run after a completed physical run | Docker, pinned OpenLane image, routed netlist and maximum-RC SPEF | `build/physical/<run-name>/timing-sweep.{tcl,log}` with multi-corner setup and hold at each requested period |
 | `clean.sh` | `make clean` | nothing | removes `build/` and `.pytest_cache/` only |
 

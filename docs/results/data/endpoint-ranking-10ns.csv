@@ -1,0 +1,110 @@
+corner,worst_slack_ns,arrival_ns,endpoint_rank,endpoints,start_block,end_block,start_register,end_register,status
+ss_100C_1v60,-12.2037,21.7035,1,1017,AXI matrix_size register,accumulator banks,g_engine[*].u_engine.matrix_size[*],g_engine[*].u_engine.acc_bank[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-11.8174,21.4359,24,628,scaler,scaler,g_engine[*].u_engine.scaler_acc_col[*],g_engine[*].u_engine.u_scaler.g_lane[*].u_scale_q.s1_exp_sum[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-11.5244,21.0206,51,275,compute sequencer,compute sequencer,g_engine[*].u_engine.calc_row[*],g_engine[*].u_engine.acc_scores[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-10.9605,20.4615,234,65,output sequencer,AXI block,tiles_per_row[*],u_ctrl.done,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-10.9496,20.4545,242,1,output sequencer,frontend,tiles_per_row[*],g_engine[*].u_engine.command_active,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-10.9274,20.4373,249,45,score banks,scaling sequencer,g_engine[*].u_engine.scale_score_bank,g_engine[*].u_engine.scale_launch_index[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-10.5392,20.0491,417,464,reducer,reducer,g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].u_add.s2_sum[*],g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].u_add.result[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-10.3143,19.936,545,19,compute sequencer,Q storage,g_engine[*].u_engine.calc_depth[*],g_engine[*].u_engine.q_row[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-10.0442,19.5541,709,648,compute sequencer,accumulator banks,g_engine[*].u_engine.calc_depth[*],g_engine[*].u_engine.acc_bank[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-9.8112,19.3109,955,89,frontend,frontend,input_row[*],input_row[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-8.4759,18.0968,1800,67,anonymous net,score banks,_000000_,g_engine[*].u_engine.score_count[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-8.0452,17.538,2018,124,scaler,reducer,g_engine[*].u_engine.u_scaler.g_lane[*].u_scale_k.s2_product[*],g_engine[*].u_engine.g_score_lane[*].u_reducer.block_result[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-7.6376,15.3876,2086,33,output sequencer,output stream port,g_engine[*].u_engine.rd_index[*],m_tlast,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-7.3771,17.0034,2190,1,output sequencer,anonymous net,g_engine[*].u_engine.rd_index[*],_000001_,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-7.3771,17.0034,2191,1,output sequencer,score banks,g_engine[*].u_engine.rd_index[*],g_engine[*].u_engine.output_score_bank,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-7.1076,16.6074,2246,71,output sequencer,output sequencer,g_engine[*].u_engine.rd_index[*],tile_start[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-6.9917,16.4812,2264,4096,AXI matrix_size register,scale storage,g_engine[*].u_engine.matrix_size[*],sk[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-6.9319,16.5531,3192,8,AXI matrix_size register,compute sequencer,g_engine[*].u_engine.matrix_size[*],g_engine[*].u_engine.calc_depth[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-6.8378,16.3394,3579,54,frontend,AXI block,g_engine[*].u_engine.k_wr_beat[*],u_ctrl.error_code[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-6.2781,15.7213,3719,3,anonymous net,accumulator banks,_000000_,g_engine[*].u_engine.acc_valid[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-6.2419,15.7407,3750,7,AXI matrix_size register,frontend,g_engine[*].u_engine.matrix_size[*],g_engine[*].u_engine.k_wr_beat[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-6.2376,15.8622,3757,1,anonymous net,anonymous net,_000000_,_000000_,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-5.5211,15.0222,4566,21,AXI matrix_size register,output sequencer,g_engine[*].u_engine.matrix_size[*],tiles_per_row[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-5.4531,14.9529,4572,2,anonymous net,scaling sequencer,_000000_,g_engine[*].u_engine.scale_busy,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-5.2567,14.7666,4674,32,AXI matrix_size register,AXI block,g_engine[*].u_engine.matrix_size[*],u_ctrl.compute_cycles[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-4.5581,14.068,6390,31,accumulator banks,AXI block,g_engine[*].u_engine.scale_acc_bank,u_ctrl.scale_cycles[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-3.9022,11.6522,6594,32,anonymous net,output stream port,_000001_,m_tdata[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-3.6269,13.2542,6707,1,score banks,scaler,g_engine[*].u_engine.scale_score_bank,g_engine[*].u_engine.u_scaler.g_lane[*].u_scale_q.valid_in,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-3.2824,12.7862,6736,3,compute sequencer,K storage,g_engine[*].u_engine.calc_depth[*],g_engine[*].u_engine.calc_k_bank,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-2.3659,11.8657,7205,81,AXI port,AXI block,awvalid,u_ctrl.scale_factor_reg[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-2.049,11.6696,7235,256,anonymous net,scaler,_000000_,g_engine[*].u_engine.scaler_q_scale[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-1.9736,11.4733,7335,1797,frontend,K storage,g_engine[*].u_engine.k_wr_beat[*],g_engine[*].u_engine.k_bank[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-1.8322,11.332,7467,32,AXI port,AXI matrix_size register,awvalid,g_engine[*].u_engine.matrix_size[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-1.7803,11.2902,7471,2050,frontend,Q storage,g_engine[*].u_engine.k_wr_beat[*],q_bank[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-1.2227,10.7225,9016,69,AXI port,AXI port,araddr[*],rdata[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-1.1951,10.6996,9030,269,K storage,K storage,g_engine[*].u_engine.fill_beat[*],g_engine[*].u_engine.k_bank[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-0.4364,10.059,10222,3,accumulator banks,scaling sequencer,g_engine[*].u_engine.scale_acc_bank,g_engine[*].u_engine.scale_result_count[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-0.3077,9.935,10320,1,AXI port,command flush,awvalid,g_engine[*].u_engine.flush,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-0.2608,9.7707,10372,14,reducer,scaling sequencer,g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].u_add.valid_out,g_engine[*].u_engine.scale_result_count[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-0.2596,9.8868,10373,8,accumulator banks,scaler,g_engine[*].u_engine.scale_acc_bank,g_engine[*].u_engine.scaler_index_in[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-0.0433,9.5532,10839,22,score banks,AXI block,g_engine[*].u_engine.output_score_bank,u_ctrl.output_stalls[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,-0.0201,9.53,10864,579,frontend,score banks,g_engine[*].u_engine.command_active,g_engine[*].u_engine.score_bank[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,0.1404,9.3695,11199,20,input stream port,AXI block,s_tvalid,u_ctrl.input_beats[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,1.5707,7.9392,12616,445,reset input,score banks,rst_n,g_engine[*].u_engine.score_bank[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,1.9818,7.5281,12855,27,output stream port,AXI block,m_tready,u_ctrl.output_beats[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,2.4755,6.969,13011,5,reset input,scaling sequencer,rst_n,g_engine[*].u_engine.scale_result_count[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.3605,6.2619,13327,63,reset input,AXI block,rst_n,u_ctrl.input_stalls[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.4433,6.1786,13355,2,reset input,Q storage,rst_n,q_release_seen[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.4433,6.1786,13357,16,reset input,K storage,rst_n,g_engine[*].u_engine.fill_beat[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.4987,6.1231,13374,1,reset input,output sequencer,rst_n,tiles_per_row[*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.6014,6.0259,13397,481,reset input,reducer,rst_n,g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].g_delay.delay_pipe[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.6014,6.0259,13838,853,reset input,scaler,rst_n,g_engine[*].u_engine.u_scaler.g_lane[*].index_pipe[*][*],measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.8388,5.7868,14184,2,reset input,AXI port,rst_n,bvalid,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,3.9131,3.8369,14196,1,frontend,input stream port,g_engine[*].u_engine.command_active,s_tready,measured; mapped netlist; no wire parasitics
+ss_100C_1v60,4.4482,3.3018,14275,1,score banks,output stream port,g_engine[*].u_engine.output_score_bank,m_tvalid,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-2.0279,11.6997,1,1214,reset input,accumulator banks,rst_n,g_engine[*].u_engine.acc_bank[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-1.154,10.8585,462,586,scaler,scaler,g_engine[*].u_engine.scaler_acc_col[*],g_engine[*].u_engine.u_scaler.g_lane[*].u_scale_q.s1_exp_sum[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.9498,10.6139,626,268,compute sequencer,compute sequencer,g_engine[*].u_engine.calc_row[*],g_engine[*].u_engine.acc_scores[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.5236,10.1955,970,451,compute sequencer,accumulator banks,g_engine[*].u_engine.calc_depth[*],g_engine[*].u_engine.acc_bank[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.5188,10.1837,1038,65,output sequencer,AXI block,tiles_per_row[*],u_ctrl.done,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.4983,10.1662,1052,1,output sequencer,frontend,tiles_per_row[*],g_engine[*].u_engine.command_active,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.1752,9.847,1314,39,score banks,scaling sequencer,g_engine[*].u_engine.scale_score_bank,g_engine[*].u_engine.scale_launch_index[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.1321,9.7967,1415,89,frontend,frontend,input_row[*],input_row[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.11,9.8194,1437,428,reducer,reducer,g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].u_add.s2_sum[*],g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].u_add.result[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,-0.0291,9.694,1531,19,compute sequencer,Q storage,g_engine[*].u_engine.calc_depth[*],g_engine[*].u_engine.q_row[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,0.2319,7.5181,1817,33,output sequencer,output stream port,g_engine[*].u_engine.rd_index[*],m_tlast,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,0.6534,9.0536,1980,67,anonymous net,score banks,_000000_,g_engine[*].u_engine.score_count[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.2548,8.4522,2147,7,AXI matrix_size register,compute sequencer,g_engine[*].u_engine.matrix_size[*],g_engine[*].u_engine.calc_depth[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.3934,8.3157,2220,1,output sequencer,anonymous net,g_engine[*].u_engine.rd_index[*],_000001_,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.3934,8.3157,2221,1,output sequencer,score banks,g_engine[*].u_engine.rd_index[*],g_engine[*].u_engine.output_score_bank,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.4435,8.2172,2227,124,scaler,reducer,g_engine[*].u_engine.u_scaler.g_lane[*].u_scale_k.s2_product[*],g_engine[*].u_engine.g_score_lane[*].u_reducer.block_result[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.5837,8.1252,2243,4096,AXI matrix_size register,scale storage,g_engine[*].u_engine.matrix_size[*],sk[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.6841,7.9808,3521,69,output sequencer,output sequencer,g_engine[*].u_engine.rd_index[*],tile_start[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.8016,7.8638,3580,13,frontend,AXI block,g_engine[*].u_engine.k_wr_beat[*],u_ctrl.error_code[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.8183,7.8898,3595,3,anonymous net,accumulator banks,_000000_,g_engine[*].u_engine.scale_acc_bank,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.8183,7.8898,3596,1,anonymous net,anonymous net,_000000_,_000000_,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,1.9134,5.8366,3620,32,anonymous net,output stream port,_000001_,m_tdata[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,2.1548,7.5093,4459,7,AXI matrix_size register,frontend,g_engine[*].u_engine.matrix_size[*],g_engine[*].u_engine.k_wr_beat[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,2.227,7.4379,4543,2,anonymous net,scaling sequencer,_000000_,g_engine[*].u_engine.scale_busy,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,2.5574,7.1144,4753,29,AXI matrix_size register,AXI block,g_engine[*].u_engine.matrix_size[*],u_ctrl.compute_cycles[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,2.6432,7.0287,6342,26,accumulator banks,AXI block,g_engine[*].u_engine.scale_acc_bank,u_ctrl.scale_cycles[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,2.8523,6.8126,6431,81,AXI port,AXI block,awvalid,u_ctrl.scale_factor_reg[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,2.9649,6.7004,6468,16,AXI matrix_size register,output sequencer,g_engine[*].u_engine.matrix_size[*],tiles_per_row[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,3.1667,6.5386,6671,8,reset input,compute sequencer,rst_n,g_engine[*].u_engine.acc_col[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,3.2138,6.4511,6684,32,AXI port,AXI matrix_size register,awvalid,g_engine[*].u_engine.matrix_size[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,3.3255,6.3839,6746,1,score banks,scaler,g_engine[*].u_engine.scale_score_bank,g_engine[*].u_engine.u_scaler.g_lane[*].u_scale_q.valid_in,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,3.5168,6.1503,7163,3,compute sequencer,K storage,g_engine[*].u_engine.calc_depth[*],g_engine[*].u_engine.calc_k_bank,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,3.6211,6.0876,7200,256,anonymous net,scaler,_000000_,g_engine[*].u_engine.scaler_q_scale[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,3.6275,6.0374,7216,69,AXI port,AXI port,araddr[*],rdata[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,3.9176,5.7918,7421,1,AXI port,command flush,awvalid,g_engine[*].u_engine.flush,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.0814,5.5905,7459,1282,input stream port,Q storage,s_tvalid,q_bank[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.093,5.5788,7565,35,input stream port,AXI block,s_tvalid,u_ctrl.input_beats[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.1371,5.5347,7632,770,reset input,Q storage,rst_n,q_bank[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.1824,5.4894,8259,47,output stream port,AXI block,m_tready,u_ctrl.output_stalls[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.2064,5.4583,8272,1186,input stream port,K storage,s_tvalid,g_engine[*].u_engine.k_bank[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.3438,5.3209,8772,895,reset input,K storage,rst_n,g_engine[*].u_engine.k_bank[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.4078,5.264,9110,1024,reset input,score banks,rst_n,g_engine[*].u_engine.score_bank[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.4212,5.2866,9116,3,accumulator banks,scaling sequencer,g_engine[*].u_engine.scale_acc_bank,g_engine[*].u_engine.scale_result_count[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.4879,5.2214,9298,8,accumulator banks,scaler,g_engine[*].u_engine.scale_acc_bank,g_engine[*].u_engine.scaler_index_in[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,4.9398,4.732,11886,9,reducer,scaling sequencer,g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].u_add.valid_out,g_engine[*].u_engine.scale_result_count[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.0054,4.6261,12021,16,reset input,scaling sequencer,rst_n,g_engine[*].u_engine.scale_result_count[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.4426,4.2651,12991,99,reset input,AXI block,rst_n,u_ctrl.input_stalls[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.4533,4.2545,13011,895,reset input,scaler,rst_n,g_engine[*].u_engine.u_scaler.g_lane[*].u_scale_q.s2_product[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.4943,4.2124,13049,8,reset input,output sequencer,rst_n,tiles_per_row[*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.5378,4.1716,13127,517,reset input,reducer,rst_n,g_engine[*].u_engine.g_score_lane[*].u_reducer.g_reduce.g_add[*].g_delay.delay_pipe[*][*],measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.6552,2.0948,13990,1,frontend,input stream port,g_engine[*].u_engine.command_active,s_tready,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.692,4.0167,14037,2,reset input,AXI port,rst_n,bvalid,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,5.9902,1.7598,14208,1,score banks,output stream port,g_engine[*].u_engine.output_score_bank,m_tvalid,measured; mapped netlist; no wire parasitics
+tt_025C_1v80,6.3375,3.3299,14679,1,frontend,K storage,g_engine[*].u_engine.command_active,g_engine[*].u_engine.fill_beat[*],measured; mapped netlist; no wire parasitics
