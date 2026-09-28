@@ -37,16 +37,21 @@ flowchart LR
 
 ## Results at a glance
 
-The CPU reference is a 9.016 ms one-thread NumPy observation on the recorded
-host. Period-derived latency uses simulated cycles multiplied by the measured
+The CPU reference is measured on an Intel i5-1145G7. The system NumPy links
+reference Netlib BLAS, which takes 9.06 ms on one thread; an optimized OpenBLAS
+build takes 0.293 ms on one thread and 0.142 ms on four cores for the same
+problem. Period-derived latency uses simulated cycles multiplied by the measured
 4x4 setup-only bound; it is a projection until that configuration routes and
-passes hold.
+passes hold. Against optimized BLAS the CPU wins on wall clock, so the
+[performance record](docs/results/performance.md) states the comparison in full
+rather than quoting a speedup.
 
 | Result | Human-scale value | Evidence |
 | --- | --- | --- |
-| 4x4, one score lane, T=512 | 1,050,696 cycles; **32.0 ms at 32.8 MHz**, 3.6x slower than CPU | Projected latency from measured RTL simulation and a routed 30.5 ns setup bound; hold fails |
-| 16x16, four score lanes, T=512 | 133,392 cycles; **4.07 ms**, 2.2x faster than CPU | Projected from RTL simulation and the 4x4 period; 16x16 route is blocked |
-| Eight replicated 4x4 engines with K reuse | 135,280 cycles; **4.13 ms** | Measured RTL simulation; latency projected from the 4x4 period, and the replicated top has no synthesis or route |
+| 4x4, one score lane, T=512 | 1,050,696 cycles; **32.05 ms at 32.9 MHz** | Projected latency from measured RTL simulation and a routed 30.5 ns setup bound; hold fails |
+| 16x16, four score lanes, T=512 | 133,392 cycles; **4.07 ms** | Projected from RTL simulation and the 4x4 period; 16x16 route is blocked |
+| Eight replicated 4x4 engines with K reuse | 135,280 cycles; **4.13 ms**, 96.9% of the output-port floor | Measured RTL simulation; latency projected from the 4x4 period, and the replicated top has no synthesis or route |
+| CPU, same T=512 problem | **0.293 ms** one thread, **0.142 ms** four cores with OpenBLAS | Measured; 81.29% of the single-core AVX-512 peak |
 | Selected `Bs=16` precision | **9.70%** relative Frobenius error on pinned real BERT activations | Measured software model |
 | Routed 4x4 physical result | **4.84 mm²** die; DRC and LVS clean | Measured EDA output; hold is -1.2765 ns and power is invalid |
 

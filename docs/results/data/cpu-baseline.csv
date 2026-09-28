@@ -1,0 +1,21 @@
+blas,mode,T,d_head,median_ms,measured_gflop_s,fraction_of_single_core_peak,status
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",one-thread,4,64,0.001594,1.2846,0.00912,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",one-thread,16,64,0.00996,3.29,0.02337,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",one-thread,64,64,0.14253,3.6784,0.02613,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",one-thread,128,64,0.565473,3.7087,0.02634,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",one-thread,512,64,9.062487,3.7026,0.0263,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",all-core,4,64,0.001558,1.3141,,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",all-core,16,64,0.009953,3.2921,,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",all-core,64,64,0.144356,3.6319,,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",all-core,128,64,0.567965,3.6924,,measured
+"reference Netlib BLAS 3.12.0, NumPy 1.26.4",all-core,512,64,9.07217,3.6986,,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",one-thread,4,64,0.001011,2.0255,0.01439,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",one-thread,16,64,0.001361,24.0694,0.17095,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",one-thread,64,64,0.00667,78.6007,0.55824,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",one-thread,128,64,0.020829,100.6847,0.71509,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",one-thread,512,64,0.293166,114.4556,0.81289,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",all-core,4,64,0.001192,1.7185,,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",all-core,16,64,0.001566,20.9307,,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",all-core,64,64,0.006947,75.4729,,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",all-core,128,64,0.013995,149.847,,measured
+"OpenBLAS 0.3.34.106.0, NumPy 2.5.3",all-core,512,64,0.142244,235.8929,,measured

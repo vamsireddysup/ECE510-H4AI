@@ -50,13 +50,92 @@ that workload was not runnable in the archived RTL.
 ## CPU baseline and synthesis evidence
 
 `scripts/bench_cpu.py` fixes FP4-derived inputs, seed 510, seven timed trials,
-NumPy 1.26.4, and one requested BLAS thread. The system NumPy build reports
-`blas` without a detectable thread pool, so thread count is an environment
-setting rather than a verified runtime property. On this x86_64 machine, a
-512x64 QK^T using FP32 NumPy matmul had a 9.016 ms median and 3.72 measured GFLOP/s.
-This is an observed implementation throughput, not the CPU peak used in a
-[Roofline model](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/EECS-2008-134.html).
-The benchmark JSON is generated under `build/`.
+warmup, auto-scaled repeats, and a median of trials. The one-thread path is
+unchanged from the original baseline; the host block, the `--all-cores` mode,
+and the theoretical peak are additions, so re-running the one-thread path
+isolates the machine from the method.
+
+### Host
+
+| Item | Value |
+| --- | --- |
+| CPU | 11th Gen Intel Core i5-1145G7 |
+| Cores | 4 physical, 8 logical |
+| Clock | 2.6 GHz nominal, 1.5 GHz sysfs base, 4.4 GHz sysfs maximum |
+| Detected ISA | AVX-512F, AVX-512DQ, AVX2, FMA |
+| Memory | 16.1 GB |
+| OS | Linux 7.0.0-34-generic, Ubuntu 24.04 |
+| Python | 3.12.3 |
+
+### The one-thread claim, resolved
+
+The system NumPy 1.26.4 links `/lib/x86_64-linux-gnu/libblas.so.3`, which is
+Debian's **reference Netlib BLAS 3.12.0**, not OpenBLAS. `threadpool_info()`
+returns an empty list because reference BLAS has no thread pool to query, not
+because detection failed. Reference BLAS is single-threaded by construction, so
+the one-thread claim holds; the `--all-cores` run confirms it empirically,
+measuring 9.0722 ms against 9.0625 ms with no speedup at all.
+
+That resolves the provenance question and exposes a larger one: reference BLAS
+is a weak opponent. I therefore also measured an isolated environment with
+NumPy 2.5.3 and its bundled OpenBLAS 0.3.34.106.0, using the same script,
+inputs, and seed.
+
+### Measured T=512, `D_HEAD=64`
+
+| BLAS | Mode | Median | Measured | Fraction of single-core peak |
+| --- | --- | ---: | ---: | ---: |
+| Reference Netlib 3.12.0 | one thread | 9.0625 ms | 3.703 GFLOP/s | 2.63% |
+| Reference Netlib 3.12.0 | all cores | 9.0722 ms | 3.699 GFLOP/s | not applicable |
+| OpenBLAS 0.3.34.106.0 | one thread | 0.2932 ms | 114.456 GFLOP/s | 81.29% |
+| OpenBLAS 0.3.34.106.0 | all cores, 8 threads | 0.1422 ms | 235.893 GFLOP/s | not applicable |
+
+The previously recorded figure was 9.016 ms and 3.72 GFLOP/s. The refreshed
+one-thread reference-BLAS median is 9.0625 ms and 3.703 GFLOP/s, a 0.5%
+difference, so the host has not materially changed and the old number was
+sound for what it measured. **OpenBLAS on one thread is 30.9x faster than
+that baseline on the identical problem, and 63.7x faster across four cores.**
+
+### The theoretical peak, which is not a baseline
+
+From the detected AVX-512 support and the 4.4 GHz sysfs maximum, one core
+retires 16 FP32 lanes times two FLOPs per fused multiply-add per FMA unit. The
+number of 512-bit FMA issue ports is not detectable from software here, so both
+cases are reported: **140.8 GFLOP/s** with one unit and **281.6 GFLOP/s** with
+two. This is a ceiling. It is never used as the baseline, and it is not a
+[Roofline](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/EECS-2008-134.html)
+ceiling without an explicit memory boundary and measured bandwidth.
+
+Reference BLAS reaches 2.63% of the one-unit peak. OpenBLAS reaches 81.29%,
+which shows the gap is the library rather than the problem shape. Smaller
+sequence lengths do fall away as expected: OpenBLAS measures 54.99% of peak at
+T=64 and 17.15% at T=16, because a reduction depth of only 64 gives the packed
+kernel little to amortize.
+
+The measurement is **warm-cache by construction**. Q, K, and the output buffer
+are reused across every repeat, and the roughly 1.3 MB working set stays
+resident in the 5 MiB L2. That favours the CPU, so this baseline is
+conservative from the accelerator's side.
+
+The reviewed rows are in [`data/cpu-baseline.csv`](data/cpu-baseline.csv); the
+full JSON with host and threadpool provenance is generated under `build/`.
+
+### What this means for the accelerator
+
+Applying the 30.5 ns setup-only bound, which is not a closed clock:
+
+| Configuration | Projected latency | Versus reference BLAS one thread | Versus OpenBLAS one thread | Versus OpenBLAS all cores |
+| --- | ---: | ---: | ---: | ---: |
+| 4x4, one engine, v5 | 32.05 ms | 0.28x | 0.009x | 0.004x |
+| Eight 4x4 engines, v6 | 4.13 ms | 2.20x | 0.071x | 0.035x |
+
+Against a competently optimized BLAS the CPU wins outright on wall clock, by
+14x against the best accelerator configuration on one thread and 29x on four.
+That is the expected outcome for a 32.9 MHz Sky130 part and it should not be
+restated as a win. The defensible comparison for this project is energy and
+area per score, and neither is available yet: the route fails hold and its
+dynamic power is rejected, and the replicated top has no synthesis or route at
+all. No energy claim is made here.
 
 Yosys 0.44 mapped the full top (AXI control, tile storage, integer array, and
 both scale multipliers) to Sky130 HD typical 25 C, 1.80 V standard cells.
