@@ -1,11 +1,34 @@
-# Development plan
+# Project status and development plan
 
-This is the order of work and the evidence each step has to produce. It follows
-the numbered problem statements: P0 is active, P1 is next, P2 is shelved. See
-[problem statements](problem-statements/README.md) for what each one has to prove.
+This is the authoritative status of the active accelerator and the ordered plan
+for completing it. Read this after the root README when you need implementation
+detail, verified milestones, or the next acceptance gate.
 
-CPU speedup is a result to measure, not a design assumption. The retained M4
-package stays unchanged in [`archive/`](../archive/README.md).
+## Current implementation
+
+The active `qkt_chiplet_top` accepts packed 64-bit input packets and computes
+dense attention score matrices from FP4 E2M1 Q and K inputs. The default uses
+one FP32 scale per 16 reduction elements, exact block-local quarter-unit integer
+accumulators, parallel FP32 scale multipliers, and an FP32 cross-block reduction.
+Two banks for Q tiles, K tiles, accumulators, and scores overlap load, compute,
+scale, and output. Protocol version 5 reloads K per output tile; optional version
+6 caches K for a whole command.
+
+The active module list is `rtl/filelist.f`. The retained M4 package is the
+reproducible course baseline, and [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md)
+contains comparison RTL used by one model test. The custom FP32 units round
+finite normal results to nearest even but flush underflows and do not implement
+every IEEE exception or signed-zero rule.
+
+## Verified baseline
+
+The default 4x4 top passes T=1/4/7/8/16 at `D_HEAD=4/64` and T=64/128/512 at
+`D_HEAD=64`, including edge tiles, stalls, malformed packets, reset, and repeated
+commands. At T=512 it produces 262,144 bit-exact scores in 1,050,696 simulated
+core cycles. The optimized complete top routes with 30.5 ns setup timing, while
+hold, antenna, slew, fanout, and valid dynamic power remain open. Detailed
+measurements are in [performance results](results/performance.md) and
+[physical design](results/physical-design.md).
 
 ## Completed and verified
 
@@ -36,7 +59,7 @@ package stays unchanged in [`archive/`](../archive/README.md).
   [ADR 0002](adr/0002-k-reload-is-the-default.md).
 - 8x8 and 16x16 builds pass simulation, and all three tile sizes map through
   full-top Sky130 cell synthesis. See
-  [the design-space record](results/design-space.md).
+  [the design-space record](results/performance.md).
 - A fixed-input one-thread NumPy benchmark is the local software baseline. It is
   observed throughput, not a peak, so it is not a Roofline ceiling.
 - P0.2 initially selected 1x32 FP32 block scales after a 120-point fixed-seed sweep. At
@@ -64,7 +87,7 @@ package stays unchanged in [`archive/`](../archive/README.md).
   eight engines to reach 134,194 projected cycles. The conservative eight-engine
   mapped-area projection is 4,468,427 um² before physical cells, so the next
   second route remains the verified 16x16 L4 top. See the
-  [replication result](results/replicated-engines.md).
+  [replication result](results/performance.md).
 
 ## P0, active: dense FP4 matrix multiplication
 
@@ -152,7 +175,7 @@ negative nominal setup and hold slack.
 
 ## Related
 
-- [Problem statements](problem-statements/README.md)
+- [Research questions](problem-statements/README.md)
 - [Architecture](architecture.md)
 - [Verification plan](verification-plan.md)
 - [Decision records](adr/README.md)

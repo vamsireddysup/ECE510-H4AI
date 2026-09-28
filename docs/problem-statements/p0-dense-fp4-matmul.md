@@ -1,81 +1,34 @@
-# P0: dense FP4 matrix multiplication
+# P0: attention-specific FP4 matrix multiplication
 
-This is the active problem statement. Read it to see what the current engine still
-has to prove and in what order.
+This statement defines the active research question. Implementation status and
+stage tracking live in [project status](../project-status.md).
 
-## The question
+## Research question
 
-Build an accelerator for the dense `Q * K^T` matrix product with FP4 E2M1 inputs,
-exact integer accumulation, and FP32 scores, that is accurate enough to be usable,
-sustains a defensible fraction of its arithmetic peak, and has routed Sky130
-timing and power for one named configuration.
+Which input format, scale-block granularity, and accumulator structure preserve
+transformer attention while minimizing the cost of dense `Q * K^T` on Sky130?
+The result must be judged on real activations by softmax KL divergence, total
+variation, and top-k agreement as well as raw score error.
 
-## What is already done
+## Evidence required
 
-The engine is functionally correct across a wide test surface: T=1/4/7/8/16 at
-`D_HEAD=4` and `64`, T=64/128/512 at `D_HEAD=64`, partial edge tiles, malformed
-packets, reset, repeated commands, backpressure, and AXI4-Lite handshake
-ordering. Protocol versions 3 through 6 and the 8x8 and 16x16 builds also pass.
-A closed-form cycle model reproduces all 24 benchmarked configurations exactly; see
-[architecture](../architecture.md).
+- Bit-exact agreement between the RTL and the selected software arithmetic.
+- Precision sweeps on pinned transformer Q and K activations, with provenance.
+- Sustained full-command cycles and utilization across useful sequence lengths.
+- Routed setup and hold timing, area, design-rule status, and valid power for one
+  named configuration.
+- Clear measured and projected labels for every CPU, cycle, latency, area, and
+  energy comparison.
 
-## The remaining open problems
+## Scope boundary
 
-**Real-activation evidence has an explicit boundary.** P0.8 measures four pinned
-BERT heads across two model sizes and selects the implemented 1x16 FP32 default.
-Other model architectures and downstream tasks remain outside this P0 evidence. See
-[real-activation precision](../results/real-activation-precision.md).
-
-**Register K reuse is closed.** Version 4 cuts host traffic
-2.91x and input beats 51.8x under the block-scale contract, but is 2,032 cycles
-slower because its complete cache fill is command startup. Version 3 occupies
-the 64-bit streams for only 37.75% of its T=512 command, so bandwidth is not its
-measured ceiling. The register scratchpad grows mapped cell area 4.18x at full
-capacity. Its projected slow-corner leakage reaches 0.686 mJ per command against
-0.338 to 0.676 mJ of projected avoided DRAM energy, so
-[ADR 0005](../adr/0005-close-register-k-reuse.md) closes this implementation.
-
-**The complete route is not timing clean.** The optimized 4x4 top is route,
-Magic DRC, KLayout DRC, LVS, and setup clean on a 2200 um die. A fixed-route
-sweep closes setup at 30.5 ns and misses at 30.4 ns, but worst multi-corner hold
-slack is -1.2765 ns. Antenna, slew, and fanout violations remain, and dynamic
-power is invalid. There is therefore still no timing-closed frequency or
-measured total energy for this top. See
-[physical design](../results/physical-design.md).
-The selected 16x16 four-lane follow-up did not get through Yosys memory-priority
-lowering, so accumulator-bank synthesis scalability is also open.
-
-## Stages
-
-| Stage | Work | Exit condition |
-| --- | --- | --- |
-| P0.1 | Repository and documentation hygiene | `make check-docs` passes with the extended checks; no reference to a path that does not exist outside `archive/` |
-| P0.2 | **Complete:** sweep Bs 64/32/16/8/4/2 with FP32 and three E8M0 rules | ADR 0003 initially selected 1x32; P0.8 supersedes it with [ADR 0004](../adr/0004-use-1x16-fp32-scales.md) |
-| P0.3 | **Complete:** overlap load, compute, scale, and output | 99.945% measured 4x4 array activity before the block-scale interface; scaling binds at 8x8/16x16 |
-| P0.4 | **Complete:** implement parameterized block FP32 scales | The 1x16 default and 1x32 compatibility mode are versioned; all T=512 default scores match bit-exactly with 13.29% relative Frobenius error |
-| P0.6 | **Complete:** decide output width from measurement | Keep 64 bits; two scaler lanes move 8x8 to CALC, four move 16x16 to OUTPUT |
-| P0.7 | Route the complete top at the selected configuration | Active: route and setup close; hold, antenna, slew, fanout, and valid dynamic power remain |
-| P0.5 | **Complete:** decide K reuse after P0.7 | [ADR 0005](../adr/0005-close-register-k-reuse.md) closes register reuse and states three reopening conditions |
-| P0.8 | **Complete for the P0 decision:** measure real transformer activations | Four pinned heads across two BERT sizes select 1x16; broader architectures remain future validation |
-
-P0.2 comes before the RTL stages so the interface is not rebuilt twice. P0.3 is
-format-independent, so it does not wait on P0.2.
-P0.7 preceded P0.5 because K reuse has no cycle benefit after overlap. The
-routed leakage and full-capacity area now reject the register implementation;
-valid dynamic power remains a prerequisite for evaluating SRAM.
-
-## Note on stage ordering
-
-[The roadmap](../roadmap.md) previously filed precision under later experiments
-and expected the 64-bit output port to be the next bottleneck. Both are corrected
-here: precision is first, and the stage that binds under overlap at 8x8 and 16x16
-is the scale pipeline, not the output port. The derivation is in
-[architecture](../architecture.md).
+P0 returns dense FP32 attention scores. It excludes masking, softmax hardware,
+the multiplication by V, sparse score semantics, and runtime format selection.
+Those are separate research questions; P1 RTL and P2 remain deferred.
 
 ## Related
 
-- [Problem statements](README.md)
+- [Project status and plan](../project-status.md)
 - [Architecture](../architecture.md)
-- [Development plan](../roadmap.md)
-- [Precision result](../results/precision.md)
-- [Design-space experiment](../results/design-space.md)
+- [Attention precision results](../results/precision.md)
+- [Physical design results](../results/physical-design.md)

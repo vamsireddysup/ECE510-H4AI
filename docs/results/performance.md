@@ -1,10 +1,85 @@
-# Replicated-engine study
+# Performance and design-space results
 
-This study asks whether several small 4x4 engines are a better scaling path than
-one wider array. No replicated RTL exists yet. N=1 cycle rows are measured and
-exact; N greater than one is a projected, ideal arbitration model.
+This record brings the verified single-engine measurements, parameter sweeps,
+and replicated-engine projections together. Read it to compare configurations
+without reconciling stage-coded reports. Each section retains its own provenance
+and measured or projected label.
 
-## Shared-port cycle model
+## Single-engine correctness and simulated cycles
+
+The integration test checks every score against the same exact integer-dot
+software 1x32 FP32 reference bit-exactly. It also checks packet `TLAST`, stable output under
+backpressure, padding, beat and tile counts, malformed packets, reset, and
+repeated commands. P0.3 changes cycle placement only; every numerical score in
+all required suites remains equal to the pre-overlap reference.
+
+| T | D_HEAD | Scores | Tiles | Core cycles | Host stalls |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 4 | 1 | 1 | 18 | Injected |
+| 4 | 4 | 16 | 1 | 49 | Injected |
+| 7 | 4 | 49 | 4 | 99 | Injected |
+| 8 | 4 | 64 | 4 | 123 | Injected |
+| 16 | 4 | 256 | 16 | 403 | Injected |
+| 1 | 64 | 1 | 1 | 159 | Injected |
+| 4 | 64 | 16 | 1 | 199 | Injected |
+| 7 | 64 | 49 | 4 | 389 | Injected |
+| 8 | 64 | 64 | 4 | 404 | Injected |
+| 16 | 64 | 256 | 16 | 1,204 | Injected |
+| 64 | 64 | 4,096 | 256 | 16,577 | None |
+| 128 | 64 | 16,384 | 1,024 | 65,857 | None |
+| 512 | 64 | 262,144 | 16,384 | 1,049,665 | None |
+
+At T=512, input and output beats are 265,216 and 131,072. The run performs
+33,554,432 useful FLOPs and transfers 3,170,304 bytes, for 10.58 FLOP/byte at
+the host-stream boundary. It sustains 0.24974 scores per cycle. The previous
+serial controller took 1,821,184 cycles, so measured
+speedup is 1.735x. The exact model attributes the 1,089 cycles above the
+1,048,576-cycle compute floor to command fill and drain. Array activity is
+99.896% after the format change.
+
+The mathematical payload is 1,089,536 bytes: 32,768 bytes of Q/K FP4, 8,192
+bytes of block scales, and 1,048,576 bytes of FP32 output. Repeated version 3 K
+packets account for most excess traffic. P0.3 overlaps that traffic with compute
+but does not remove it.
+
+The archived 498-cycle compatibility run used `D_HEAD=4` and one 4x4 tile.
+There are 16,384 output tiles in a 512x512 matrix. Its one-value-per-beat
+schedule would transfer about 35.9 MB at `D_HEAD=64`, or about 0.93 FLOP/byte;
+that workload was not runnable in the archived RTL.
+
+## CPU baseline and synthesis evidence
+
+`scripts/bench_cpu.py` fixes FP4-derived inputs, seed 510, seven timed trials,
+NumPy 1.26.4, and one requested BLAS thread. The system NumPy build reports
+`blas` without a detectable thread pool, so thread count is an environment
+setting rather than a verified runtime property. On this x86_64 machine, a
+512x64 QK^T using FP32 NumPy matmul had a 9.016 ms median and 3.72 measured GFLOP/s.
+This is an observed implementation throughput, not the CPU peak used in a
+[Roofline model](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2008/EECS-2008-134.html).
+The benchmark JSON is generated under `build/`.
+
+Yosys 0.44 mapped the full top (AXI control, tile storage, integer array, and
+both scale multipliers) to Sky130 HD typical 25 C, 1.80 V standard cells.
+At `TILE_SIZE=4`, `T_MAX=16`, mapped cell area was 204,039 um² for `D_HEAD=4`
+and 303,141 um² for `D_HEAD=64`. These are synthesis areas only. There is no
+post-route timing, physical area, or power measurement for the active top, so
+no frequency, latency in seconds, energy, or CPU speedup is claimed. The
+archived 15 ns array-only timing report has negative nominal setup and hold
+slack and cannot close this top by inference.
+
+The default `D_HEAD=64` design uses two Q and K tile banks and still reloads K
+for each output tile. Version 4 K reuse and 8x8/16x16 simulation and historical
+mapped synthesis comparisons are compared later in this record.
+Physical K scratchpad banking, post-P0.3 synthesis, SRAM macro fit, and routed
+experiments remain open. FP32 quantization error against
+real transformer activations was unmeasured in this run. The later
+[P0.8 capture](precision.md) selects 1x16. The block layout is
+not OCP MXFP4 because the active scales are FP32 rather than E8M0 as specified in the
+[MX specification](https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf).
+
+
+
+## Replicated-engine shared-port cycle model
 
 For `Nt=(T/B)^2` output tiles and `N` engines, each private engine receives
 `ceil(Nt/N)` tiles. Its CALC and SCALING work therefore fall with N. The input
@@ -42,15 +117,15 @@ fill/drain cycles. Sixteen engines do not improve it.
 | eight 4x4 | 265,216 | 134,194 | v3 input; v4 CALC/output tie |
 | one 16x16 L4 | 132,362 measured | not measured | output |
 
-The generated [full sweep](replicated-engine-model.csv) also covers 8x8 and
+The generated [full sweep](data/replicated-engine-cycles.csv) also covers 8x8 and
 16x16 engines at N=1, 2, 4, 8, and 16 for both protocols. Regenerate it with:
 
 ```bash
 python3 scripts/cycle_model.py \
-  --replication-csv docs/results/replicated-engine-model.csv
+  --replication-csv docs/results/data/replicated-engine-cycles.csv
 ```
 
-## Mapped area breakdown
+## Replicated-engine mapped area breakdown
 
 Revision `1a04b01` was mapped with Yosys 0.44
 `80ba43d26`, the Sky130 HD typical library from Volare revision
@@ -77,9 +152,9 @@ A same-revision 16x16 L4 standalone synthesis did not finish memory-priority
 lowering after 20 minutes and 2.3 GiB, so there is no new comparable 16x16 area.
 The older 1,446,323 um² number predates the overlapping scheduler and block
 scalers and is not silently substituted. The machine-readable
-[area record](p0-b-area.csv) preserves both the result and the gap.
+[area record](data/replicated-engine-area.csv) preserves both the result and the gap.
 
-## Ordering decision
+## Replicated-engine ordering decision
 
 Replication should keep the existing ordered score stream. Each engine bank
 will carry its global tile ordinal, and a shared output arbiter will drain only
@@ -93,7 +168,7 @@ Adding an explicit tile header would require a later protocol version (version
 147,456 cycles, a 12.5% penalty exactly where eight engines need the output
 port. I reject that option for the first prototype.
 
-## Recommendation
+## Replication recommendation
 
 Do not build eight 4x4 engines under version 3. They have the same projected
 265,216 cycles as four engines, while the shared-AXI area projection nearly
@@ -118,7 +193,7 @@ design's measured shared-port and mapped-area limits.
 
 ## Related
 
-- [Results index](README.md)
-- [Critical-path optimization](critical-path.md)
+- [Project status](../project-status.md)
 - [Architecture](../architecture.md)
-- [Development plan](../roadmap.md)
+- [Physical design](physical-design.md)
+- [Results index](README.md)

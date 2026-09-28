@@ -13,7 +13,7 @@ score's blocks through `fp32_add.sv`.
 
 `K_REUSE=1` selects protocol version 6 and a command-level RTL K scratchpad.
 `TILE_SIZE=8` and `16` also pass simulation; none of these variants has routed
-Sky130 timing or power evidence. The [design-space record](../docs/results/design-space.md)
+Sky130 timing or power evidence. The [design-space record](../docs/results/performance.md)
 compares them.
 
 `rtl/filelist.f` lists the active top and its five dependencies, and `rtl/`

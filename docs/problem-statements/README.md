@@ -23,6 +23,6 @@ arithmetic peak, and one named configuration has routed Sky130 timing and power.
 
 ## Related
 
-- [Development plan](../roadmap.md)
+- [Development plan](../project-status.md)
 - [Architecture](../architecture.md)
 - [Documentation index](../README.md)

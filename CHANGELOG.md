@@ -49,6 +49,21 @@ naming rules these entries follow, see
 - Added a fixed-input one-thread NumPy CPU baseline at 3.72 measured GFLOP/s,
   replacing the archived CPU timing. It is observed throughput, not a peak.
 
+### September 2026 repository cleanup
+
+- Tagged the complete pre-cleanup tree as `pre-cleanup-2026-09-28`, then removed
+  unreferenced coursework, generated OpenLane reports, and committed Verilator
+  objects while retaining the reproducible M4 baseline and comparison RTL.
+- Reorganized 34 active Markdown documents into 32 reader-oriented documents.
+  Project status has one owner; performance, precision, and physical evidence each
+  have one prose record; machine-readable artifacts live under
+  `docs/results/data/` with content-based names.
+- Rewrote the root README around attention-specific precision co-design and added
+  a glossary, protocol history, results-at-a-glance table, and explicit reading,
+  running, and contribution paths.
+- Moved the project agent rules to `docs/agent-rules.md`; the root `CODEX.md` is a
+  discovery pointer.
+
 ### Tooling and repository
 
 - Added `make` targets for the reuse and 8x8/16x16 variants, a five-set RTL lint,

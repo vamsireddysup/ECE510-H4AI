@@ -102,4 +102,4 @@ hard-coding 32, while its verified default implements this Bs=32 decision.
 - [Decision records](README.md)
 - [Precision sweep](../results/precision.md)
 - [P0 dense FP4 problem](../problem-statements/p0-dense-fp4-matmul.md)
-- [Development plan](../roadmap.md)
+- [Development plan](../project-status.md)

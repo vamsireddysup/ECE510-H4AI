@@ -19,6 +19,6 @@ and the exact target that was tested.
 
 ## Related
 
-- [Agent rules and commit policy](CODEX.md)
+- [Agent rules and commit policy](docs/agent-rules.md)
 - [Repository layout and documentation contract](docs/repository-layout.md)
 - [Documentation index](docs/README.md)

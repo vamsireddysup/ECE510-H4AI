@@ -33,7 +33,6 @@ MAX_HOPS = 2
 # docs/ is included automatically.
 EXTRA_ACTIVE = [
     "README.md",
-    "CODEX.md",
     "CONTRIBUTING.md",
     "CHANGELOG.md",
     "rtl/README.md",

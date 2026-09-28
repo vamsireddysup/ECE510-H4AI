@@ -1,93 +1,107 @@
-# FP4 QK^T Accelerator Chiplet
+# Attention-specific FP4 precision co-design
 
 [![CI](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/vamsireddysup/ECE510-H4AI/actions/workflows/ci.yml)
 
-I use this repository to develop a Sky130-targeted accelerator for dense
-`Q * K^T` attention scores. The active interface accepts FP4 E2M1 Q/K inputs
-with one FP32 scale per 16 reduction elements and returns FP32 scores. I keep the retained M4 course package in `archive/` as the reproducible
-starting point.
+**Research question:** which numerical format, scale-block granularity, and
+accumulator structure does transformer attention actually need? This project
+answers with real query and key activations and measures whether softmax survives:
+KL divergence, total variation, and top-k agreement, alongside raw score error.
 
-## Current status
+For a reader new to attention, a transformer compares every token's query vector
+with every token's key vector. The matrix product `QK^T` produces those comparison
+scores before softmax turns each row into attention probabilities. This
+repository builds a Sky130 hardware platform for that product using FP4 E2M1
+inputs, one FP32 scale per 16 reduction elements, exact block-local integer
+accumulation, and FP32 output scores.
 
-The default 4x4 engine uses one exact quarter-unit integer dot product per scale
-block, parallel FP32 scale multipliers, and a cross-block FP32 add. Its
-[version 5 stream contract](docs/stream-protocol.md)
-packs 16 FP4 values or two FP32 values per 64-bit beat. It supports partial
-edge tiles, input and output stalls, error status, and repeated commands.
+Two KU Leuven MICAS projects cover precision-scalable MX arithmetic for general
+GEMM: [arXiv:2505.22404](https://arxiv.org/abs/2505.22404) targets robotics
+continual learning, and [arXiv:2511.06313](https://arxiv.org/abs/2511.06313)
+optimizes hybrid integer and FP32 reduction in an 8x8 SNAX integration. Their
+[public SystemVerilog](https://github.com/KULeuven-MICAS/Precision-Scalable_MX)
+spans MX integer and floating-point formats. Neither work is attention-specific
+or evaluates attention distributions. This project's contribution is the link
+from arithmetic and physical cost to softmax quality on pinned transformer
+activations.
 
-| Verified configuration | Result |
-| --- | --- |
-| 4x4, `D_HEAD=4`, T=4 | Original 16/16 numerical case; 49 simulated core cycles with stalls |
-| 4x4, `D_HEAD=64`, T=512 | 262,144/262,144 scores; 1,050,696 simulated cycles with ready host |
-| Host traffic at T=512 | 3,178,496 transferred bytes; 10.56 FLOP/byte |
-| Historical Sky130 mapped area before P0.3, 4x4, `D_HEAD=64`, `T_MAX=16` | 304,468 um²; current banked scheduler not yet remapped |
+```mermaid
+flowchart LR
+    A[FP4 queries and keys] --> B[Exact integer dot products per 16-value block]
+    S[FP32 block scales] --> C[Scale each block]
+    B --> C
+    C --> D[FP32 cross-block sum]
+    D --> E[Dense attention scores]
+    E -. evaluated in software .-> F[Softmax KL, TV, and top-k agreement]
+```
 
-An optional version 6 build caches K for a whole command. At T=512 it lowers
-traffic to 1,097,728 bytes and completes in 1,052,728 cycles. Simulated 8x8 and
-16x16 one-lane builds complete the same workload in 304,288 and 273,728 core
-cycles. Their pre-P0.3 mapped cell areas at `T_MAX=16` are 571,637 and 1,446,323 um².
-Two score lanes reduce 8x8 to 264,336 cycles; four reduce 16x16 to 133,392
-cycles and expose the 64-bit output limit.
-At `T_MAX=512`, the mapped 4x4 standard-cell areas are 1,596,280 um² for
-the default design and 6,672,971 um² for register-based K reuse.
-These variants have not closed full-chip timing or power. The
-[design-space record](docs/results/design-space.md) compares their tradeoffs.
+## Results at a glance
 
-The 512 case contains 16,384 output tiles. These are simulation and synthesis
-results, not measured silicon latency or CPU speedup. The custom FP32
-multiplier still needs wider numerical qualification. See the
-[reviewed measurement](docs/results/packed-engine.md) for test conditions and
-limits.
+The CPU reference is a 9.016 ms one-thread NumPy observation on the recorded
+host. Period-derived latency uses simulated cycles multiplied by the measured
+4x4 setup-only bound; it is a projection until that configuration routes and
+passes hold.
 
-## Run it
+| Result | Human-scale value | Evidence |
+| --- | --- | --- |
+| 4x4, one score lane, T=512 | 1,050,696 cycles; **32.0 ms at 32.8 MHz**, 3.6x slower than CPU | Projected latency from measured RTL simulation and a routed 30.5 ns setup bound; hold fails |
+| 16x16, four score lanes, T=512 | 133,392 cycles; **4.07 ms**, 2.2x faster than CPU | Projected from RTL simulation and the 4x4 period; 16x16 route is blocked |
+| Eight replicated 4x4 engines with K reuse | 134,194 cycles; **4.09 ms** | Projected cycle model; no replicated-engine RTL exists |
+| Selected `Bs=16` precision | **9.70%** relative Frobenius error on pinned real BERT activations | Measured software model |
+| Routed 4x4 physical result | **4.84 mm²** die; DRC and LVS clean | Measured EDA output; hold is -1.2765 ns and power is invalid |
+
+The 30.5 ns number is a routed setup bound, not a timing-closed clock. Antenna,
+slew, fanout, and hold violations remain. See [physical design](docs/results/physical-design.md)
+and [performance results](docs/results/performance.md) for provenance and limits.
+
+## Choose a path
+
+### Five-minute read
+
+1. Read the [glossary](docs/glossary.md).
+2. Read the [architecture](docs/architecture.md) and [attention precision results](docs/results/precision.md).
+3. Check [project status](docs/project-status.md) and the [active research question](docs/problem-statements/p0-dense-fp4-matmul.md).
+
+### Run it
 
 From the repository root:
 
 ```bash
 make doctor
-make test                    # lint, model, small integration suite
-make test-integration-large  # T=64/128/512 at D_HEAD=64
-make test-integration-reuse-large # optional K reuse version 6
-make test-array8-large        # 8x8 simulated sweep
-make test-array16-large       # 16x16 simulated sweep
-make test-precision-rtl       # bit-exact T=512 software/RTL comparison
-make report-sim               # cycle, utilization, and byte CSV
-python3 scripts/bench_cpu.py > build/cpu-benchmark.json
-python3 scripts/eval_precision.py > build/synthetic-precision.json
-./scripts/run_synthesis.sh 4 64 16
+make test
+make test-integration-large
+make test-precision-rtl
+make report-sim
 ```
 
-The CPU benchmark needs NumPy. Sky130 synthesis needs Yosys and the Sky130 HD
-Liberty file; set `SKY130_LIB` if it is not in the local Volare installation.
-`make lint` checks eight parameter sets, including both stream versions at
-`T_MAX=512` and the 8x8/16x16 variants.
-Generated logs and binaries stay under ignored `build/`.
+`make test` checks documentation, eight RTL parameter sets, the Python model,
+and small integration cases. The large integration target runs T=64/128/512.
+Generated binaries and logs stay under ignored `build/`. NumPy dependencies are
+declared in the test extra; Sky130 synthesis and physical design also require the
+PDK and tools listed in the [results record](docs/results/physical-design.md).
 
-## Project map
+### Contribute
 
-Start at the [documentation index](docs/README.md), which lists every document
-and what it is authoritative for. The short path:
+Read [CONTRIBUTING.md](CONTRIBUTING.md), then use the
+[verification plan](docs/verification-plan.md) for the relevant change. The
+[stream contract](docs/stream-protocol.md), [protocol history](docs/protocol-history.md),
+and [decision records](docs/adr/README.md) define compatibility boundaries.
 
-- [Problem statements](docs/problem-statements/README.md): P0 active, P1 next, P2 shelved
-- [Architecture](docs/architecture.md): blocks, dataflow, and the cycle cost model
-- [Stream protocol](docs/stream-protocol.md): packet order, status codes, register map
-- [Verification plan](docs/verification-plan.md): what each check proves, and the gaps
-- [Development plan](docs/roadmap.md) and [decision records](docs/adr/README.md)
-- [Project context](docs/project-context.md) and [repository layout](docs/repository-layout.md)
-- [Latest verification](docs/results/latest-verification.md), [critical-path timing](docs/results/critical-path.md), [replicated engines](docs/results/replicated-engines.md), [design space](docs/results/design-space.md), [synthetic precision](docs/results/precision.md)
-- [Active RTL](rtl/README.md), [testbenches](tb/README.md), [reference model](model/README.md), [scripts](scripts/README.md)
-- [Course archive](archive/README.md) and [superseded RTL](archive/superseded-rtl/README.md)
+## Repository map
 
-P0.4 implements the selected 1x32 FP32 block scales and matches the software
-model bit-exactly. P0.6 keeps the 64-bit output after measuring the score-lane
-crossover at 8x8 and 16x16. The K scratchpad still needs banked storage rather
-than registers. Full-chip Sky130 timing, routing, and power
-will decide whether 8x8 or 16x16 arrays are useful. The stage order and exit
-conditions are in [the P0 plan](docs/problem-statements/p0-dense-fp4-matmul.md).
+- [`rtl/`](rtl/README.md): active synthesizable SystemVerilog
+- [`tb/`](tb/README.md): integration testbench and assertions
+- [`model/`](model/README.md): exact arithmetic and precision reference
+- [`scripts/`](scripts/README.md): reproducible benchmark, model, synthesis, and physical commands
+- [`docs/`](docs/README.md): architecture, status, decisions, and reviewed results
+- [`archive/`](archive/README.md): retained M4 baseline and load-bearing comparison RTL
+
+The current implementation returns dense scores; masking, hardware softmax, V
+multiplication, runtime format selection, P1 RTL, and P2 remain outside the active
+stage.
 
 ## Related
 
 - [Documentation index](docs/README.md)
-- [Problem statements](docs/problem-statements/README.md)
+- [Project status and plan](docs/project-status.md)
 - [Changelog](CHANGELOG.md)
 - [Contribution workflow](CONTRIBUTING.md)

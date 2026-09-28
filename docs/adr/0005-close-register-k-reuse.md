@@ -95,6 +95,6 @@ states the evidence needed to reconsider it.
 
 - [Decision records](README.md)
 - [Physical-design result](../results/physical-design.md)
-- [Design-space experiment](../results/design-space.md)
-- [Replicated-engine study](../results/replicated-engines.md)
-- [Development plan](../roadmap.md)
+- [Design-space experiment](../results/performance.md)
+- [Replicated-engine study](../results/performance.md)
+- [Development plan](../project-status.md)

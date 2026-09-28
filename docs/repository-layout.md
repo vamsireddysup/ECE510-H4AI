@@ -9,7 +9,7 @@ For the migration that produced this layout, see [`CHANGELOG.md`](../CHANGELOG.m
 ```text
 .
 ├── README.md              entry point: what this is, verified status, how to run
-├── CODEX.md               agent rules, permissions, conventions
+├── CODEX.md               one-line pointer to docs/agent-rules.md
 ├── CONTRIBUTING.md        human workflow
 ├── CHANGELOG.md           engineering history
 ├── LICENSE                Apache-2.0
@@ -24,7 +24,7 @@ For the migration that produced this layout, see [`CHANGELOG.md`](../CHANGELOG.m
 ├── scripts/               reproducible entry points behind the Makefile
 ├── config/                synthesis and physical-design configuration
 ├── docs/                  architecture, interface, plans, and reviewed results
-└── archive/               coursework snapshots, superseded RTL, old experiments
+└── archive/               retained M4 baseline and superseded RTL
 ```
 
 ## Rules
@@ -51,7 +51,8 @@ release assets, not Git history.
 ## Naming
 
 Root-level conventional files keep their uppercase names: `README.md`,
-`CODEX.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`. Every other Markdown
+`CODEX.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`. The root `CODEX.md` is
+a discovery pointer; its rules live in [`agent-rules.md`](agent-rules.md). Every other Markdown
 file is kebab-case, including everything under `docs/`. Directory READMEs are
 `README.md` at any depth.
 
@@ -86,7 +87,7 @@ No adjective without a number. Write "3.41x fewer core cycles", not
 
 Every result says whether it is measured or projected, and a measured result
 carries its commit, parameters, tool versions, and corner. This rule is also in
-[`CODEX.md`](../CODEX.md) and applies to every file in `docs/results/`.
+[`agent-rules.md`](agent-rules.md) and applies to every file in `docs/results/`.
 
 Never write "this becomes" or "for consistency" in place of a derivation. Show
 the arithmetic, or write that the number is not known.
@@ -98,9 +99,15 @@ Commands are copy-pasteable and name the directory they run from.
 
 Tables compare rows. A one-row table is a paragraph.
 
+## Repository rename note
+
+The current repository name is hardcoded only in the CI badge URL on line 3 of
+the root [`README.md`](../README.md). Rename that URL when the GitHub repository
+is renamed; relative repository links require no change.
+
 ## Related
 
 - [Documentation index](README.md)
 - [Contribution workflow](../CONTRIBUTING.md)
-- [Agent rules](../CODEX.md)
+- [Agent rules](agent-rules.md)
 - [Changelog](../CHANGELOG.md)

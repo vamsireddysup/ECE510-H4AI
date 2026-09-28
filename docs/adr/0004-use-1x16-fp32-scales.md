@@ -27,7 +27,7 @@ improves all four softmax metrics over Bs=64 in all four captures. Bs=32 fails
 that rule in two captures. This is evidence for the engineering default rather
 than a universal accuracy guarantee. Capture hashes, model revisions, tools,
 complete sweeps, and raw-score metrics are in the
-[real-activation result](../results/real-activation-precision.md).
+[real-activation result](../results/precision.md).
 
 ## Cost
 
@@ -87,6 +87,6 @@ assumption and then measure the four-block scaler and reducer physically.
 ## Related
 
 - [Decision records](README.md)
-- [Real-activation precision](../results/real-activation-precision.md)
+- [Real-activation precision](../results/precision.md)
 - [ADR 0003](0003-fp32-scales-with-32-element-blocks.md)
-- [Development plan](../roadmap.md)
+- [Development plan](../project-status.md)

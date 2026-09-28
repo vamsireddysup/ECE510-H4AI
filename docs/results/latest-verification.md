@@ -1,5 +1,20 @@
 # Latest verification
 
+## September 28 repository and documentation verification
+
+The pre-cleanup tree is preserved by annotated tag
+`pre-cleanup-2026-09-28`. The archive cleanup retains the M4 source/test baseline
+and superseded LUT used by the model tests. `make baseline` still produces 16/16
+correct scores with the known historical `DONE=NO` limitation, and all 29 model
+tests pass.
+
+The documentation reorganization moves all 16 small data artifacts under
+`docs/results/data/`, and the precision provenance test regenerates the selected
+records from their new paths. Active Markdown count falls from 34 to 32 while
+adding a glossary and protocol history. `make check-docs` passes 33 checked files,
+including two retained archive READMEs, with every active page at most two links
+from the root README.
+
 ## September 27 Bs=16 default
 
 The default stream contract is now version 5 with one FP32 scale per 16
@@ -15,7 +30,7 @@ compatibility suite, and `make test-precision-rtl` pass. The precision run
 compares all 262,144 scores bit-for-bit and measures 13.2942637% relative
 Frobenius error and 0.842930886 mean absolute error against the pinned FP32
 reference. The reviewed rows are in
-[`p0-8-bs16-simulation.csv`](p0-8-bs16-simulation.csv).
+[`data/bs16-default-simulation.csv`](data/bs16-default-simulation.csv).
 
 ## September 27 optimized route
 
@@ -53,7 +68,7 @@ scale reads, and 58.09 ns after replacing the linear leading-bit scan. The
 worst mapped path is now synchronous reset logic. The optional accumulator-read
 pipeline stage was not added because the first three steps crossed the 68 ns
 mapped target. These values do not establish routed timing; full provenance is
-in the [critical-path record](critical-path.md).
+in the [critical-path record](physical-design.md).
 
 The local tools are Verilator 5.041 development revision
 v5.040-196-g63f5f5c32, Python 3.12.3, pytest 7.4.4, OpenLane 1.1.1,
@@ -68,7 +83,7 @@ N=1, 2, 4, and 8; the shared input port binds at N=4. Version 4 reaches 134,194
 cycles at N=8. A same-revision hierarchical Yosys 0.44 mapping measures the
 complete 4x4 L1 hierarchy at 565,736 um². The 16x16 L4 comparison did not finish
 memory-priority lowering in 20 minutes and 2.3 GiB, so no area was claimed for
-it. See the [replicated-engine study](replicated-engines.md).
+it. See the [replicated-engine study](performance.md).
 
 ## September 24 P0.4 and P0.6 record
 
@@ -98,7 +113,7 @@ These are RTL simulation results; no clock constraint or PDK applies.
 This historical run used an explicit regression ceiling of 1,049,665 core cycles.
 The scale-prefetch stage raised the current ceiling to 1,049,666.
 The machine-readable reviewed subset is
-[`p0-4-p0-6-simulation.csv`](p0-4-p0-6-simulation.csv).
+[`data/block-scale-lane-sweep.csv`](data/block-scale-lane-sweep.csv).
 
 ## Default block-scale measurements
 

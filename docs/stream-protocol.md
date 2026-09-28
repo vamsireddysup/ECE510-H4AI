@@ -104,7 +104,8 @@ integration test checks it on every command.
 
 ## Related
 
+- [Protocol version history](protocol-history.md)
 - [Architecture](architecture.md)
-- [Project context](project-context.md)
+- [Project context](project-status.md)
 - [Verification plan](verification-plan.md)
 - [Documentation index](README.md)

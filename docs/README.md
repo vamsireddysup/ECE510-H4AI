@@ -1,56 +1,46 @@
 # Documentation
 
-Every active document is listed here, with the one thing it is authoritative for.
-If two documents seem to own the same fact, this table decides. The retained
-[M4 package](../archive/coursework/project/m4/README.md) is the course baseline.
+This index gives each active document one job and three reading paths. The root
+[README](../README.md) is the five-minute project overview.
 
-## Start here
-
-| Document | Authoritative for |
-| --- | --- |
-| [Problem statements](problem-statements/README.md) | Which problem is active, and what each has to prove |
-| [Architecture](architecture.md) | Blocks, dataflow, and the cycle cost model |
-| [Stream protocol](stream-protocol.md) | Packet order, packing, status codes, and the AXI register map |
-| [Project context](project-context.md) | Current design, archived baseline, and open limits |
-
-## Plans and conventions
+## Understand the project
 
 | Document | Authoritative for |
 | --- | --- |
-| [Development plan](roadmap.md) | Completed work and the next measured experiments |
-| [Verification plan](verification-plan.md) | What each check proves, and the gaps |
-| [Repository layout](repository-layout.md) | Directory layout, naming, and the documentation contract |
-| [Decision records](adr/README.md) | Decisions that are expensive to reverse |
-| [Agent rules](../CODEX.md) | Workflow, commit policy, and verification expectations |
-| [Contribution workflow](../CONTRIBUTING.md) | How a change gets made |
+| [Glossary](glossary.md) | Attention, number-format, and hardware terms |
+| [Project status and plan](project-status.md) | Current implementation, completed evidence, and next gates |
+| [Architecture](architecture.md) | Blocks, dataflow, and exact cycle model |
+| [Research questions](problem-statements/README.md) | P0, deferred P1, and shelved P2 scope |
 
-## Measurements
+## Build or change it
 
 | Document | Authoritative for |
 | --- | --- |
-| [Results index](results/README.md) | Which record owns which number, and where logs land |
-| [Packed engine result](results/packed-engine.md) | Per-configuration correctness, cycles, traffic, CPU baseline, synthesis scope |
-| [Design-space experiment](results/design-space.md) | K reuse, 8x8 and 16x16 sweeps, mapped areas, SRAM candidates |
-| [Synthetic precision](results/precision.md) | Block-scale sweep, softmax agreement, and the P0.2 evidence |
-| [Latest verification](results/latest-verification.md) | The most recent command run and its tool versions |
+| [Stream protocol](stream-protocol.md) | Current packet order, packing, counters, errors, and register map |
+| [Protocol history](protocol-history.md) | Compatibility meaning of versions 1 through 6 |
+| [Verification plan](verification-plan.md) | What every check proves and the remaining gaps |
+| [Repository layout](repository-layout.md) | Directory, naming, documentation, and rename conventions |
+| [Agent rules](agent-rules.md) | Automated workflow, commit policy, and result provenance |
+| [Contribution workflow](../CONTRIBUTING.md) | Human change workflow |
+
+## Review the evidence
+
+| Document | Authoritative for |
+| --- | --- |
+| [Results index](results/README.md) | Prose records, machine-readable data, and generated output locations |
+| [Performance and design space](results/performance.md) | Correctness, cycles, traffic, CPU comparison, array scaling, and replication |
+| [Attention precision](results/precision.md) | Synthetic and pinned-activation score and softmax metrics |
+| [Physical design](results/physical-design.md) | Constraint sweep, routed timing, signoff, and critical-path attribution |
+| [Latest verification](results/latest-verification.md) | Most recent commands and tool versions |
+| [Decision records](adr/README.md) | Decisions expensive to reverse |
 
 ## Directory notes
 
-| Document | Covers |
-| --- | --- |
-| [Active RTL](../rtl/README.md) | What is synthesizable and what the parameters mean |
-| [Testbenches](../tb/README.md) | What the integration test covers and how to run it |
-| [Reference model](../model/README.md) | The Python FP4 numerics the RTL is checked against |
-| [Scripts](../scripts/README.md) | What each script needs and where it writes |
-| [Archive](../archive/README.md) | Coursework, superseded RTL, and old experiments |
-| [M4 package](../archive/coursework/project/m4/README.md) | The historical submission and its reproduction |
-
-## Conventions in one line each
-
-Generated output goes under ignored `build/`. Reviewed summaries are committed in
-[`docs/results/`](results/README.md). Large release outputs go in GitHub release
-assets. Every number says whether it is measured or projected. No adjective without
-a number. The full contract is in [repository layout](repository-layout.md).
+- [Active RTL](../rtl/README.md)
+- [Integration testbench](../tb/README.md)
+- [Reference model](../model/README.md)
+- [Scripts](../scripts/README.md)
+- [Archive](../archive/README.md)
 
 ## Related
 

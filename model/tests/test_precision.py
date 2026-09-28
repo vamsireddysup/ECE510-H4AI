@@ -20,10 +20,10 @@ from scripts.eval_precision import (
 from model.qkt_model import fp4_encode, qkt
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PRECISION_JSON = REPO_ROOT / "docs/results/p0-2-precision.json"
+PRECISION_JSON = REPO_ROOT / "docs/results/data/synthetic-precision-sweep.json"
 PRECISION_MARKDOWN = REPO_ROOT / "docs/results/precision.md"
-ACTIVATION_CAPTURE = REPO_ROOT / "docs/results/p0-8-bert-tiny-layer0-head0.npz"
-ACTIVATION_JSON = REPO_ROOT / "docs/results/p0-8-real-activation-precision.json"
+ACTIVATION_CAPTURE = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0.npz"
+ACTIVATION_JSON = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0-precision.json"
 
 
 def test_e8m0_rounding_rules() -> None:

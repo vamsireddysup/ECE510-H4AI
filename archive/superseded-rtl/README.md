@@ -38,5 +38,5 @@ is load-bearing for the test suite even though no RTL instantiates it.
 ## Related
 
 - [Active RTL](../../rtl/README.md)
-- [Project context](../../docs/project-context.md)
+- [Project context](../../docs/project-status.md)
 - [Archive index](../README.md)

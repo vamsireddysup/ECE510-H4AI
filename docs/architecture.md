@@ -4,7 +4,7 @@ This describes how the active `qkt_chiplet_top` computes `Q * K^T`, and what eac
 phase of its state machine costs in cycles. Read it before changing the datapath
 or the tile schedule. For the wire-level contract and the register map, see
 [stream protocol](stream-protocol.md). For what has been measured, see
-[the packed engine result](results/packed-engine.md).
+[the packed engine result](results/performance.md).
 
 The engine computes dense attention scores only. Masking, softmax, and the
 multiplication by V stay on the host.
@@ -177,7 +177,7 @@ engines while the 64-bit input and output ports remain shared. At T=512, four
 4x4 engines make version 3 input-bound at 265,216 projected cycles; eight do not
 improve it. Version 4 permits eight engines to reach 134,194 projected cycles,
 including startup and drain, near the 131,072-cycle output floor. The
-[replicated-engine study](results/replicated-engines.md) gives the derivation,
+[replicated-engine study](results/performance.md) gives the derivation,
 area breakdown, and ordering decision.
 
 ## Known limits
@@ -200,9 +200,9 @@ timing-closed frequency, latency in seconds, or energy figure. See the
 - [Stream protocol and register map](stream-protocol.md)
 - [ADR 0001: why the accumulator is exact integer](adr/0001-exact-integer-accumulation.md)
 - [ADR 0002: why K reload is the default](adr/0002-k-reload-is-the-default.md)
-- [Project context](project-context.md)
-- [Development plan](roadmap.md)
-- [Replicated-engine study](results/replicated-engines.md)
-- [Design-space experiment](results/design-space.md)
-- [Packed engine result](results/packed-engine.md)
+- [Project context](project-status.md)
+- [Development plan](project-status.md)
+- [Replicated-engine study](results/performance.md)
+- [Design-space experiment](results/performance.md)
+- [Packed engine result](results/performance.md)
 - [Documentation index](README.md)
