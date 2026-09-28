@@ -21,7 +21,7 @@ cp "$repo_root/tb/integration/tb_qkt_chiplet.cpp" "$work_dir/tb_qkt_chiplet.cpp"
         --build -Wall -Wno-fatal \
         -CFLAGS "-DTEST_B=4 -DTEST_D=64 -DTEST_TMAX=512 -DTEST_SCALE_BLOCK=16 -DTEST_LARGE -DTEST_PRECISION" \
         -GTILE_SIZE=4 -GD_HEAD=64 -GT_MAX=512 -GK_REUSE=0 \
-        -GSCALE_BLOCK_SIZE=16 -GSCORE_LANES=1 \
+        -GSCALE_BLOCK_SIZE=16 -GSCORE_LANES=1 -GENGINES="${ENGINES:-1}" \
         -o tb_qkt_chiplet --Mdir obj --top-module qkt_chiplet_top
 ) > "$build_dir/build.log" 2>&1
 "$work_dir/obj/tb_qkt_chiplet" "$capture" | tee "$build_dir/run.log"

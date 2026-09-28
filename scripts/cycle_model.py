@@ -111,32 +111,41 @@ def replication_bounds(
 
 
 # Measured on master with Verilator 5.041 and a continuously ready host.
-# (label, seq, tile, depth, k_reuse, block size, score lanes, cycles, beats)
+# (label, seq, tile, depth, k_reuse, block size, score lanes, engines,
+#  cycles, beats)
 MEASURED = [
-    ("v3 4x4 T=64", 64, 4, 64, False, 32, 1, 16_578, 4_480),
-    ("v3 4x4 T=128", 128, 4, 64, False, 32, 1, 65_858, 17_152),
-    ("v3 4x4 T=512", 512, 4, 64, False, 32, 1, 1_049_666, 265_216),
-    ("v4 4x4 T=64", 64, 4, 64, True, 32, 1, 16_818, 640),
-    ("v4 4x4 T=128", 128, 4, 64, True, 32, 1, 66_354, 1_280),
-    ("v4 4x4 T=512", 512, 4, 64, True, 32, 1, 1_051_698, 5_120),
-    ("v3 8x8 L1 T=64", 64, 8, 64, False, 32, 1, 5_024, 2_432),
-    ("v3 8x8 L1 T=128", 128, 8, 64, False, 32, 1, 19_360, 8_960),
-    ("v3 8x8 L1 T=512", 512, 8, 64, False, 32, 1, 304_288, 134_144),
-    ("v3 16x16 L1 T=64", 64, 16, 64, False, 32, 1, 4_704, 1_408),
-    ("v3 16x16 L1 T=128", 128, 16, 64, False, 32, 1, 17_600, 4_864),
-    ("v3 16x16 L1 T=512", 512, 16, 64, False, 32, 1, 273_728, 68_608),
-    ("v3 8x8 L2 T=512", 512, 8, 64, False, 32, 2, 263_306, 134_144),
-    ("v3 8x8 L4 T=512", 512, 8, 64, False, 32, 4, 263_290, 134_144),
-    ("v3 16x16 L2 T=512", 512, 16, 64, False, 32, 2, 142_656, 68_608),
-    ("v3 16x16 L4 T=512", 512, 16, 64, False, 32, 4, 132_362, 68_608),
-    ("v5 4x4 T=64", 64, 4, 64, False, 16, 1, 16_712, 4_608),
-    ("v5 4x4 T=128", 128, 4, 64, False, 16, 1, 66_120, 17_408),
-    ("v5 4x4 T=512", 512, 4, 64, False, 16, 1, 1_050_696, 266_240),
-    ("v6 4x4 T=64", 64, 4, 64, True, 16, 1, 16_952, 768),
-    ("v6 4x4 T=128", 128, 4, 64, True, 16, 1, 66_616, 1_536),
-    ("v6 4x4 T=512", 512, 4, 64, True, 16, 1, 1_052_728, 6_144),
-    ("v5 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 264_336, 135_168),
-    ("v5 16x16 L4 T=512", 512, 16, 64, False, 16, 4, 133_392, 69_632),
+    ("v3 4x4 T=64", 64, 4, 64, False, 32, 1, 1, 16_578, 4_480),
+    ("v3 4x4 T=128", 128, 4, 64, False, 32, 1, 1, 65_858, 17_152),
+    ("v3 4x4 T=512", 512, 4, 64, False, 32, 1, 1, 1_049_666, 265_216),
+    ("v4 4x4 T=64", 64, 4, 64, True, 32, 1, 1, 16_818, 640),
+    ("v4 4x4 T=128", 128, 4, 64, True, 32, 1, 1, 66_354, 1_280),
+    ("v4 4x4 T=512", 512, 4, 64, True, 32, 1, 1, 1_051_698, 5_120),
+    ("v3 8x8 L1 T=64", 64, 8, 64, False, 32, 1, 1, 5_024, 2_432),
+    ("v3 8x8 L1 T=128", 128, 8, 64, False, 32, 1, 1, 19_360, 8_960),
+    ("v3 8x8 L1 T=512", 512, 8, 64, False, 32, 1, 1, 304_288, 134_144),
+    ("v3 16x16 L1 T=64", 64, 16, 64, False, 32, 1, 1, 4_704, 1_408),
+    ("v3 16x16 L1 T=128", 128, 16, 64, False, 32, 1, 1, 17_600, 4_864),
+    ("v3 16x16 L1 T=512", 512, 16, 64, False, 32, 1, 1, 273_728, 68_608),
+    ("v3 8x8 L2 T=512", 512, 8, 64, False, 32, 2, 1, 263_306, 134_144),
+    ("v3 8x8 L4 T=512", 512, 8, 64, False, 32, 4, 1, 263_290, 134_144),
+    ("v3 16x16 L2 T=512", 512, 16, 64, False, 32, 2, 1, 142_656, 68_608),
+    ("v3 16x16 L4 T=512", 512, 16, 64, False, 32, 4, 1, 132_362, 68_608),
+    ("v5 4x4 T=64", 64, 4, 64, False, 16, 1, 1, 16_712, 4_608),
+    ("v5 4x4 T=128", 128, 4, 64, False, 16, 1, 1, 66_120, 17_408),
+    ("v5 4x4 T=512", 512, 4, 64, False, 16, 1, 1, 1_050_696, 266_240),
+    ("v6 4x4 T=64", 64, 4, 64, True, 16, 1, 1, 16_952, 768),
+    ("v6 4x4 T=128", 128, 4, 64, True, 16, 1, 1, 66_616, 1_536),
+    ("v6 4x4 T=512", 512, 4, 64, True, 16, 1, 1, 1_052_728, 6_144),
+    ("v5 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 1, 264_336, 135_168),
+    ("v5 16x16 L4 T=512", 512, 16, 64, False, 16, 4, 1, 133_392, 69_632),
+    ("v5 4x4 N=2", 512, 4, 64, False, 16, 1, 2, 526_424, 266_240),
+    ("v5 4x4 N=4", 512, 4, 64, False, 16, 1, 4, 266_344, 266_240),
+    ("v5 4x4 N=8", 512, 4, 64, False, 16, 1, 8, 266_344, 266_240),
+    ("v5 4x4 N=16", 512, 4, 64, False, 16, 1, 16, 266_344, 266_240),
+    ("v6 4x4 N=2", 512, 4, 64, True, 16, 1, 2, 528_448, 6_144),
+    ("v6 4x4 N=4", 512, 4, 64, True, 16, 1, 4, 266_320, 6_144),
+    ("v6 4x4 N=8", 512, 4, 64, True, 16, 1, 8, 135_280, 6_144),
+    ("v6 4x4 N=16", 512, 4, 64, True, 16, 1, 16, 135_280, 6_144),
 ]
 
 
@@ -175,17 +184,29 @@ def main() -> int:
     )
     args = parser.parse_args()
     failures = 0
-    print(f"{'configuration':16} {'model':>10} {'measured':>10} {'beats':>9} {'meas':>9}")
-    for (label, seq, tile, depth, reuse, block_size, score_lanes,
+    engine_errors: list[tuple[str, int, int]] = []
+    print(f"{'configuration':20} {'model':>10} {'measured':>10} {'beats':>9} {'meas':>9}")
+    for (label, seq, tile, depth, reuse, block_size, score_lanes, engines,
          want_cycles, want_beats) in MEASURED:
         got_cycles = core_cycles(
-            seq, tile, depth, reuse, block_size, score_lanes
+            seq, tile, depth, reuse, block_size, score_lanes, engines
         )
         got_beats = input_beats(seq, tile, depth, reuse, block_size)
         ok = got_cycles == want_cycles and got_beats == want_beats
-        failures += not ok
-        print(f"{label:16} {got_cycles:>10,} {want_cycles:>10,} "
+        # The shared-port model is the accepted N=1 contract. N>1 rows are
+        # reported with their error instead, because the model does not yet
+        # account for serialized multi-engine drain; see docs/results/performance.md.
+        if engines == 1:
+            failures += not ok
+        else:
+            engine_errors.append((label, got_cycles, want_cycles))
+        print(f"{label:20} {got_cycles:>10,} {want_cycles:>10,} "
               f"{got_beats:>9,} {want_beats:>9,}{'' if ok else '   MISMATCH'}")
+
+    print("\nReplicated-engine model error (open finding):")
+    for label, projected, measured in engine_errors:
+        print(f"  {label:14} projected {projected:>9,} "
+              f"measured {measured:>9,} error {measured-projected:+,}")
 
     print("\nPer-tile service times at D_HEAD=64:")
     for tile in (4, 8, 16):
@@ -220,7 +241,7 @@ def main() -> int:
         print(f"\n{failures} configuration(s) do not match. "
               "Either the scheduler changed or docs/architecture.md is stale.")
         return 1
-    print("\nAll measured configurations reproduced exactly.")
+    print("\nAll single-engine configurations reproduced exactly.")
     return 0
 
 
