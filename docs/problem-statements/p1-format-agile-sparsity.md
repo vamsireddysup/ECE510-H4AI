@@ -75,7 +75,7 @@ energy reduction after metadata and control costs.
 
 Before a 43-bit FP8 accumulator is enabled, replace `score_scaler`'s current
 `quarter_to_fp32` conversion. Its expression
-`23'(magnitude) << (23-leading)` is valid for today's `ACC_W=14/15`, but a
+`23'(magnitude) << (23-leading)` is valid for today's `ACC_W=13/14`, but a
 43-bit accumulator can have `leading` up to 42. The cast would discard high bits,
 and `23-leading` would become a negative shift count interpreted as a large
 unsigned shift. P1 needs width-independent normalization with explicit round,
