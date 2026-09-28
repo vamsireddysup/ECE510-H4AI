@@ -145,11 +145,10 @@ module qkt_engine #(
     logic [SCALER_LANES*32-1:0] scaler_prefetch_q_scale;
     logic [SCALER_LANES*32-1:0] scaler_prefetch_k_scale;
     logic [SCALER_LANES*INDEX_W-1:0] scaler_prefetch_index;
-    logic [SCORE_LANES*TILE_INDEX_W-1:0] scaler_prefetch_row;
-    logic [SCORE_LANES*TILE_INDEX_W-1:0] scaler_prefetch_col;
-    logic [SCORE_LANES*TILE_INDEX_W-1:0] scaler_acc_row;
-    logic [SCORE_LANES*TILE_INDEX_W-1:0] scaler_acc_col;
-    logic signed [SCALER_LANES*ACC_W-1:0] scaler_acc;
+    // The accumulator is read in the prefetch cycle and registered with the
+    // scales, so the first multiplier stage starts from a register rather than
+    // from the accumulator read mux.
+    logic signed [SCALER_LANES*ACC_W-1:0] scaler_prefetch_acc, scaler_acc;
     logic [SCALER_LANES*32-1:0] scaler_q_scale, scaler_k_scale, scaler_result;
     logic [SCALER_LANES*INDEX_W-1:0] scaler_index_in, scaler_result_index;
     logic [SCORE_LANES-1:0] reduced_valid;
@@ -206,10 +205,8 @@ module qkt_engine #(
             localparam int FLAT_LANE = LANE_BASE+block;
             assign scaler_prefetch_valid[FLAT_LANE] =
                 scale_launch && score_lane < scale_launch_count;
-            assign scaler_acc[FLAT_LANE*ACC_W +: ACC_W] =
-                acc_bank[scale_acc_bank][block]
-                    [scaler_acc_row[score_lane*TILE_INDEX_W +: TILE_INDEX_W]]
-                    [scaler_acc_col[score_lane*TILE_INDEX_W +: TILE_INDEX_W]];
+            assign scaler_prefetch_acc[FLAT_LANE*ACC_W +: ACC_W] =
+                acc_bank[scale_acc_bank][block][lane_row][lane_col];
             assign scaler_prefetch_q_scale[FLAT_LANE*32 +: 32] =
                 sq_data[FLAT_LANE*32 +: 32];
             assign scaler_prefetch_k_scale[FLAT_LANE*32 +: 32] =
@@ -217,10 +214,6 @@ module qkt_engine #(
             assign scaler_prefetch_index[FLAT_LANE*INDEX_W +: INDEX_W] =
                 lane_index;
         end
-        assign scaler_prefetch_row[
-            score_lane*TILE_INDEX_W +: TILE_INDEX_W] = lane_row;
-        assign scaler_prefetch_col[
-            score_lane*TILE_INDEX_W +: TILE_INDEX_W] = lane_col;
         score_reducer #(.BLOCK_COUNT(BLOCK_COUNT), .INDEX_W(INDEX_W)) u_reducer (
             .clk, .rst_n,
             .block_valid(scaler_result_valid[LANE_BASE +: BLOCK_COUNT]),
@@ -247,15 +240,13 @@ module qkt_engine #(
             scaler_q_scale <= '0;
             scaler_k_scale <= '0;
             scaler_index_in <= '0;
-            scaler_acc_row <= '0;
-            scaler_acc_col <= '0;
+            scaler_acc <= '0;
         end else begin
             scaler_launch_valid <= scaler_prefetch_valid;
             scaler_q_scale <= scaler_prefetch_q_scale;
             scaler_k_scale <= scaler_prefetch_k_scale;
             scaler_index_in <= scaler_prefetch_index;
-            scaler_acc_row <= scaler_prefetch_row;
-            scaler_acc_col <= scaler_prefetch_col;
+            scaler_acc <= scaler_prefetch_acc;
         end
     end
 
