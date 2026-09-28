@@ -74,7 +74,11 @@ module qkt_engine #(
     logic load_k_bank, calc_q_bank, calc_k_bank;
     logic calc_acc_bank, scale_acc_bank, scale_score_bank, output_score_bank;
     logic calc_busy, scale_busy, fill_busy;
-    logic [31:0] calc_row, calc_col, calc_depth;
+    // calc_depth never exceeds D_HEAD, so it is only as wide as that needs.
+    localparam int DEPTH_W = $clog2(D_HEAD+1);
+    localparam int DEPTH_INDEX_W = (D_HEAD <= 1) ? 1 : $clog2(D_HEAD);
+    logic [31:0] calc_row, calc_col;
+    logic [DEPTH_W-1:0] calc_depth;
     logic [31:0] fill_row, fill_col, fill_beat;
     logic [31:0] acc_row [0:1], acc_col [0:1];
     logic [TILE_COUNT_W-1:0] acc_cols [0:1];
@@ -109,11 +113,13 @@ module qkt_engine #(
     // path with decode, multiply, and accumulate.
     logic [TILE_SIZE*4-1:0] q_row;
     logic q_row_last, q_row_next_bank;
-    assign q_row_last = calc_busy && calc_depth == D_HEAD-1;
+    assign q_row_last = calc_busy && calc_depth == DEPTH_W'(D_HEAD-1);
     assign q_row_next_bank = q_row_last && !calc_col_more;
     assign q_rd_bank = (q_row_next_bank || row_skip) ? ~calc_q_bank : calc_q_bank;
+    // While busy, calc_depth is 1 through D_HEAD-1, so "calc_depth+1 < D_HEAD"
+    // is exactly "not the last depth".
     assign q_rd_depth = (calc_start && D_HEAD > 1) ? 32'd1 :
-        (calc_busy && calc_depth+1 < D_HEAD) ? calc_depth + 1 : 32'd0;
+        (calc_busy && !q_row_last) ? 32'(calc_depth + 1'b1) : 32'd0;
     assign k_ready = command_active && !k_valid[load_k_bank];
     assign kc_col = fill_col;
     assign kc_beat = fill_start ? 32'd0 : fill_beat;
@@ -356,13 +362,14 @@ module qkt_engine #(
                     /* verilator lint_off BLKLOOPINIT */
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
-                            acc_bank[calc_acc_bank][calc_depth/SCALE_BLOCK_SIZE][i][j] <=
+                            acc_bank[calc_acc_bank][32'(calc_depth)/SCALE_BLOCK_SIZE][i][j] <=
                                 acc_bank[calc_acc_bank]
-                                        [calc_depth/SCALE_BLOCK_SIZE][i][j] +
+                                        [32'(calc_depth)/SCALE_BLOCK_SIZE][i][j] +
                                 ACC_W'(decode(q_row[4*i +: 4]) *
-                                       decode(k_bank[calc_k_bank][j][calc_depth]));
+                                       decode(k_bank[calc_k_bank][j]
+                                           [calc_depth[DEPTH_INDEX_W-1:0]]));
                     /* verilator lint_on BLKLOOPINIT */
-                    if (calc_depth == D_HEAD-1) begin
+                    if (q_row_last) begin
                         calc_busy <= 1'b0; acc_valid[calc_acc_bank] <= 1'b1;
                         acc_row[calc_acc_bank] <= calc_row;
                         acc_col[calc_acc_bank] <= calc_col;
@@ -382,7 +389,7 @@ module qkt_engine #(
                             calc_col_in <= COL_BASE < matrix_size;
                             calc_col_more <= COL_BASE+COL_STRIDE < matrix_size;
                         end
-                    end else calc_depth <= calc_depth + 1;
+                    end else calc_depth <= calc_depth + 1'b1;
                 end
 
                 // Scaling sequencer drains completed accumulator banks in order.
