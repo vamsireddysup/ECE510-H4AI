@@ -220,8 +220,8 @@ engines while the 64-bit input and output ports remain shared. At T=512, four
 4x4 engines make version 3 input-bound at 265,216 projected cycles; eight do not
 improve it. Version 4 permits eight engines to reach 134,194 projected cycles,
 including startup and drain, near the 131,072-cycle output floor. Measured
-Bs=16 results now confirm both limits and exceed the model by 8 to 104 cycles.
-The
+Bs=16 results confirm both limits, and the model reproduces them exactly
+once effective engine count and trailing retirement are derived. The
 [replicated-engine study](results/performance.md) gives the derivation,
 area breakdown, and ordering decision.
 

@@ -60,14 +60,27 @@ def core_cycles(
         # Version 3 transfers a distinct K tile for every output tile.
         work["LOAD_K"] = tile_total * stages["LOAD_K"]
     fill_drain = sum(stages.values()) - max(stages.values())
-    engine_path = startup + max(work.values()) + fill_drain
+    beats = input_beats(seq, tile, depth, k_reuse, block_size)
 
-    # Q loads are hidden at N=1 but share the same input port as K. Once engines
-    # consume tiles quickly enough, total accepted input beats are the hard floor.
-    return max(
-        engine_path,
-        input_beats(seq, tile, depth, k_reuse, block_size),
-    )
+    # Effective engine count saturates where private work stops exceeding the
+    # shared floor. Past that crossover an added engine changes nothing, so
+    # N=16 is measurably the same configuration as the crossover point.
+    shared_floor = max(work["OUTPUT"], work.get("LOAD_K", 0), beats)
+    private_total = tile_total * max(stages["CALC"], stages["SCALING"])
+    crossover = max(1, ceil(private_total / shared_floor))
+    active = min(engine_count, crossover)
+
+    # The trailing active-1 tiles cannot retire together: they queue behind
+    # whichever single shared per-tile service is longer, the output port or,
+    # under K reload, the input port.
+    shared_service = max(stages["OUTPUT"], stages.get("LOAD_K", 0))
+    stagger = shared_service * (active - 1)
+    engine_path = startup + max(work.values()) + fill_drain + stagger
+
+    # When the shared input port binds, it stays busy until the final K packet,
+    # and that last tile still drains through every stage after its load.
+    input_path = beats + sum(stages.values()) - stages.get("LOAD_K", 0)
+    return max(engine_path, input_path)
 
 
 def input_beats(
@@ -184,7 +197,6 @@ def main() -> int:
     )
     args = parser.parse_args()
     failures = 0
-    engine_errors: list[tuple[str, int, int]] = []
     print(f"{'configuration':20} {'model':>10} {'measured':>10} {'beats':>9} {'meas':>9}")
     for (label, seq, tile, depth, reuse, block_size, score_lanes, engines,
          want_cycles, want_beats) in MEASURED:
@@ -193,20 +205,9 @@ def main() -> int:
         )
         got_beats = input_beats(seq, tile, depth, reuse, block_size)
         ok = got_cycles == want_cycles and got_beats == want_beats
-        # The shared-port model is the accepted N=1 contract. N>1 rows are
-        # reported with their error instead, because the model does not yet
-        # account for serialized multi-engine drain; see docs/results/performance.md.
-        if engines == 1:
-            failures += not ok
-        else:
-            engine_errors.append((label, got_cycles, want_cycles))
+        failures += not ok
         print(f"{label:20} {got_cycles:>10,} {want_cycles:>10,} "
               f"{got_beats:>9,} {want_beats:>9,}{'' if ok else '   MISMATCH'}")
-
-    print("\nReplicated-engine model error (open finding):")
-    for label, projected, measured in engine_errors:
-        print(f"  {label:14} projected {projected:>9,} "
-              f"measured {measured:>9,} error {measured-projected:+,}")
 
     print("\nPer-tile service times at D_HEAD=64:")
     for tile in (4, 8, 16):
@@ -241,7 +242,7 @@ def main() -> int:
         print(f"\n{failures} configuration(s) do not match. "
               "Either the scheduler changed or docs/architecture.md is stale.")
         return 1
-    print("\nAll single-engine configurations reproduced exactly.")
+    print("\nAll measured configurations reproduced exactly.")
     return 0
 
 

@@ -280,27 +280,53 @@ The earlier 265,216 and 134,194 projections were Bs=32 numbers. The Bs=16
 default adds 1,024 scale beats and three cross-block adds, so its comparable
 projections are 266,240 and 135,224.
 
-### An open model error
+### Closing the model
 
-The shared-port model reproduces every measured input-beat count exactly and
-remains exact at N=1, but it underestimates every measured N>1 command:
+The model now reproduces all 32 measured configurations exactly, including
+every replicated run, and `scripts/cycle_model.py` fails on any mismatch again.
+Two terms were missing, both derived rather than fitted.
 
-| Configuration | Projected | Measured | Error |
-| --- | ---: | ---: | ---: |
-| v5 N=2 | 526,408 | 526,424 | +16 |
-| v5 N=4, 8, 16 | 266,240 | 266,344 | +104 |
-| v6 N=2 | 528,440 | 528,448 | +8 |
-| v6 N=4 | 266,296 | 266,320 | +24 |
-| v6 N=8, 16 | 135,224 | 135,280 | +56 |
+**Effective engines saturate.** Past the point where per-engine private work
+stops exceeding the shared floor, an added engine changes nothing. The model
+computes that crossover instead of assuming it:
 
-For version 6 at N=2, 4, and 8 the error is exactly `8*(N-1)`, which is
-`(N-1)` times the 8-cycle per-tile output service time. That is consistent with
-the final `N-1` tiles draining serially through the one output port at the end
-of a command, which the model's single fill-and-drain term does not carry. The
-pattern does not continue at N=16, and the version 5 errors do not fit it, so I
-am recording the measurement as the authority and leaving the model unchanged
-rather than fitting a correction I have not derived. `scripts/cycle_model.py`
-prints this error table and still fails only on a single-engine mismatch.
+```text
+crossover = ceil(tiles * max(CALC, SCALING) / max(OUTPUT work, K reload work, input beats))
+active    = min(engines, crossover)
+```
+
+At 4x4, T=512, Bs=16 this gives 8 for version 6, where 1,048,576 cycles of CALC
+work meets the 131,072-cycle output floor, and 4 for version 5, where the
+266,240-beat input floor binds first. N=16 is therefore measurably the same
+configuration as N=8 under version 6 and as N=4 under version 5, which is what
+the runs show.
+
+**The trailing tiles retire serially.** The last `active - 1` tiles queue behind
+whichever single shared per-tile service is longer:
+
+```text
+stagger = max(OUTPUT, LOAD_K) * (active - 1)
+```
+
+Version 6 fills K off a private path, so only the 8-cycle output port staggers
+it and the term is `8*(active-1)`: 8, 24, 56, 56 for N=2, 4, 8, 16. Version 6 is
+exactly your derivation. Version 5 also loads each K tile through the shared
+input port at 16 cycles per tile, which dominates, so its term is
+`16*(active-1)` and gives 16 at N=2.
+
+**Input-bound commands carry a load tail.** Your version 5 hypothesis was right
+in mechanism but needed a separate term rather than an extension of the stagger.
+When the input port binds it stays busy until the final K packet, and that last
+tile still has to drain through every stage after its load:
+
+```text
+input path = input beats + sum(stages) - LOAD_K
+```
+
+At 4x4 Bs=16 that tail is `CALC 64 + SCALING 32 + OUTPUT 8 = 104` cycles on top
+of 266,240 beats, which is the measured 266,344 at N=4, 8, and 16. It is a
+constant because all three are the same input-bound configuration. The term
+applies at N=1 too and does not bind in any single-engine row.
 
 ## Replication recommendation
 

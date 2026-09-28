@@ -17,10 +17,9 @@ T=512 capture. Measured T=512 cycles are 1,050,696 / 526,424 / 266,344 /
 version 6 reaches the output floor at eight, as projected. `make lint` now
 covers eleven parameter sets including `ENGINES=2/4/8`, and `make test` passes.
 
-The cycle model reproduces every input-beat count exactly and stays exact at
-N=1, but underestimates each measured N>1 command by 8 to 104 cycles. That
-error is recorded rather than fitted; see the
-[performance record](performance.md). There is no synthesis, area, or physical
+The cycle model reproduces all 32 measured configurations exactly, including
+every replicated run, after adding a derived engine-saturation crossover and a
+trailing-retirement term; see the [performance record](performance.md). There is no synthesis, area, or physical
 result at any engine count, so nothing here is a frequency, latency, or energy
 claim.
 
