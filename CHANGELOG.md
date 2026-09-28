@@ -68,8 +68,9 @@ naming rules these entries follow, see
 These items came from the original reorganization plan, which has been retired in
 favour of [`docs/repository-layout.md`](docs/repository-layout.md).
 
-- Moved coursework, codefests, and old experiments under `archive/`, leaving only
-  the active project at the repository root.
+- Initially moved coursework, codefests, and old experiments under `archive/`;
+  the September 2026 cleanup later retained only the load-bearing M4 baseline,
+  superseded RTL, small provenance notes, and smoke-test source files.
 - Created the active `rtl/`, `tb/`, `model/`, and `scripts/` trees from the M4
   sources without changing module logic, and made `rtl/filelist.f` the single
   compile-order manifest.

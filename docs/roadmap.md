@@ -4,8 +4,8 @@ This is the order of work and the evidence each step has to produce. It follows
 the numbered problem statements: P0 is active, P1 is next, P2 is shelved. See
 [problem statements](problem-statements/README.md) for what each one has to prove.
 
-CPU speedup is a result to measure, not a design assumption. The M1-M4 snapshots
-stay unchanged in [`archive/`](../archive/README.md).
+CPU speedup is a result to measure, not a design assumption. The retained M4
+package stays unchanged in [`archive/`](../archive/README.md).
 
 ## Completed and verified
 

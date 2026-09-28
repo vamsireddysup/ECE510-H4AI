@@ -20,8 +20,8 @@ compares them.
 contains nothing else that is synthesizable. The superseded `systolic_array`,
 `pe`, `tile_controller`, FP4 multiplier, FP32 adder, and tile/scale buffer
 modules moved to [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md);
-they are kept for comparison and are not on any build path. The historical M1-M4
-submissions remain untouched in `archive/`.
+they are kept for comparison and are not on any build path. The retained M4
+submission remains under `archive/`.
 
 The active top is parameterized by `TILE_SIZE`, `D_HEAD`, `T_MAX`,
 `SCALE_BLOCK_SIZE`, and `SCORE_LANES`.

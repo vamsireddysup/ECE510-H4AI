@@ -4,8 +4,8 @@
 
 I use this repository to develop a Sky130-targeted accelerator for dense
 `Q * K^T` attention scores. The active interface accepts FP4 E2M1 Q/K inputs
-with one FP32 scale per 16 reduction elements and returns FP32 scores. I keep the M1-M4 coursework
-snapshots in `archive/` unchanged.
+with one FP32 scale per 16 reduction elements and returns FP32 scores. I keep the retained M4 course package in `archive/` as the reproducible
+starting point.
 
 ## Current status
 

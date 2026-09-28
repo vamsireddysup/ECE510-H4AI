@@ -1,2 +1,0 @@
-design,tool,cells,flops,critical_path_stages,clock_period_ns,library,note
-crossbar_mac,yosys-0.65-yowasp,4318,90,34,4.0,generic,no-abc-no-sky130-mapping

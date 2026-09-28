@@ -1,9 +1,8 @@
 # Documentation
 
 Every active document is listed here, with the one thing it is authoritative for.
-If two documents seem to own the same fact, this table decides. The M1-M4
-documents under [`archive/`](../archive/README.md) are course snapshots and stay
-unchanged.
+If two documents seem to own the same fact, this table decides. The retained
+[M4 package](../archive/coursework/project/m4/README.md) is the course baseline.
 
 ## Start here
 

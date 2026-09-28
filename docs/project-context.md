@@ -3,8 +3,8 @@
 I use this repository for a Sky130-targeted FP4 E2M1 QK^T accelerator. The
 active top computes dense FP32 scores with FP32 Q and K scales per 16 reduction
 elements. It does
-not include masking, softmax, or the multiplication by V. M1-M4 course work in
-`archive/` remains a historical snapshot.
+not include masking, softmax, or the multiplication by V. The retained M4 course
+package in `archive/` remains the historical baseline.
 
 ## Active implementation
 

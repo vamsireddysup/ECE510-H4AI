@@ -10,7 +10,7 @@ repository-wide changes.
 
 ## Source-of-truth policy
 
-- Treat `archive/coursework/project/m1/` through `m4/` as historical snapshots.
+- Treat `archive/coursework/project/m4/` as the retained historical snapshot.
 - Treat `rtl/` as the active source of truth.
 - Treat `archive/coursework/project/m4/src/` as the untouched course reference.
 - Do not edit duplicated milestone RTL to implement new features.

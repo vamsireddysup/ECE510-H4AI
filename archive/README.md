@@ -1,36 +1,33 @@
 # Archive
 
-This directory holds material I keep for the record but do not build. Read it to
-find a coursework submission, a superseded module, or an old experiment. Nothing
-here is on the active build path; the active design is under
-[`rtl/`](../rtl/README.md).
+This directory keeps the small historical subset that active checks or project
+provenance still use. The active design is under [`rtl/`](../rtl/README.md).
 
 ## Contents
 
-| Path | What it is |
-| --- | --- |
-| [`superseded-rtl/`](superseded-rtl/README.md) | The nine modules the packed-stream engine replaced, kept for comparison |
-| `coursework/project/m1/` through `m4/` | The original M1-M4 submissions, unchanged |
-| [`coursework/project/m4/`](coursework/project/m4/README.md) | The final course package and its reproduction instructions |
-| `coursework/codefest/cf01/` through `cf09/` | Weekly course exercises |
-| `coursework/project/` loose files | `heilmeier.md`, `algorithm_notes.md`, `scope_assessment.md`, `remaining_tasks.md`, and the early `hdl/` prototype |
-| `coursework/project/upgrade_archive/` | Superseded upgrade experiments predating the active tree |
-| `experiments/smoke_test/` | The original Verilator environment check |
+| Path | What it is | Why it remains |
+| --- | --- | --- |
+| [`superseded-rtl/`](superseded-rtl/README.md) | Nine modules replaced by the packed-stream engine | The model test reads `fp4_mul_lut.sv`, and the active architecture records use the older modules for comparison |
+| [`coursework/project/m4/`](coursework/project/m4/README.md) | Final course submission, report, source, testbench, and recorded results | `make baseline` rebuilds `m4/src/` with `m4/tb/tb_top.cpp`; the package documents the starting point |
+| `coursework/project/` loose files | Early algorithm, scope, and research notes | Small provenance records for the M4 project |
+| `experiments/smoke_test/adder4.v` and `tb_adder4.cpp` | Original Verilator environment check source | The two source files explain the experiment without retaining generated objects |
 
-`.gitignore` also reserves `archive/local/` and `archive/reference/` for untracked
+The M1 through M3 snapshots, weekly codefests, pre-active upgrade copy, early HDL
+prototype, and committed Verilator object directory were removed on September
+28, 2026. The annotated tag `pre-cleanup-2026-09-28` preserves the complete tree
+before that cleanup. Git history still contains every removed blob.
+
+`.gitignore` reserves `archive/local/` and `archive/reference/` for untracked
 local tooling and reference material. Neither is present in a fresh clone.
 
-## Why the coursework stays unchanged
+## Reading the M4 record
 
-The M1-M4 directories are the submitted record. I do not edit them to fix a
-mistake found later; I state the correction in the active documents instead. Two
-corrections that matter when reading them: the archived 498-cycle result used
-`D_HEAD=4` and one tile, and the archived 512 projection counted 262,144 output
-tiles where a 512x512 matrix has 16,384 at `TILE_SIZE=4`. Both are recorded in
-[project context](../docs/project-context.md).
+The archived 498-cycle result used `D_HEAD=4` and one tile. Its 512 projection
+counted 262,144 output tiles where a 512x512 matrix has 16,384 at
+`TILE_SIZE=4`. Active result documents carry the corrected interpretation.
 
 ## Related
 
-- [Project context](../docs/project-context.md)
 - [Documentation index](../docs/README.md)
 - [Active RTL](../rtl/README.md)
+- [Packed-engine result](../docs/results/packed-engine.md)

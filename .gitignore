@@ -18,17 +18,5 @@ obj_dir/
 # Local reference material
 /archive/reference/
 
-# Codefest-generated products
-archive/coursework/codefest/cf04/hdl/sim_A
-archive/coursework/codefest/cf04/hdl/sim_B
-archive/coursework/codefest/cf04/hdl/sim_correct
-archive/coursework/codefest/cf04/cocotb_mac/sim_build/
-archive/coursework/codefest/cf04/cocotb_mac/results.xml
-
-# OpenLane/Yosys run products; curated reports remain tracked
-archive/coursework/project/m3/runs/RUN_*/
-archive/coursework/project/m3/runs/*.log
-archive/coursework/project/m3/runs/synth_out.v
-archive/coursework/project/m3/openlane1/runs/
-archive/coursework/project/m3/runs/*.v
+# Historical M4 OpenLane products regenerated locally
 archive/coursework/project/m4/openlane/runs/
