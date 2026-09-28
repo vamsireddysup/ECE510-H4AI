@@ -1,0 +1,16 @@
+run,git_revision,period_ns,synth_strategy,synth_sizing,synth_buffering,cells,mapped_area_um2,tt_worst_slack_ns,tt_worst_arrival_ns,ss_worst_slack_ns,ss_worst_arrival_ns,tt_min_period_ns,ss_min_period_ns,status
+f2-p20-area-0,432cc19,20.0,AREA 0,1,1,97703,1044646.9,2.9314,16.7404,-12.1398,31.6497,17.069,32.14,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p15-area-0,432cc19,15.0,AREA 0,1,1,97703,1044649.4,-1.0686,15.7404,-17.1398,31.6497,16.069,32.14,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p12-area-0,e173101,12.0,AREA 0,1,1,97703,1045209.9,-1.4667,13.1385,-15.3051,26.815,13.467,27.305,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p10-area-0,e173101,10.0,AREA 0,1,1,97703,1045706.7,-2.8041,12.4761,-16.6643,26.1744,12.804,26.664,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p8-area-0,e173101,8.0,AREA 0,1,1,97703,1045706.7,-4.8041,12.4761,-18.6643,26.1744,12.804,26.664,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p20-delay-0,432cc19,20.0,DELAY 0,1,1,109182,1198105.3,2.9565,16.7153,-10.5141,30.014,17.044,30.514,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p15-delay-0,e173101,15.0,DELAY 0,1,1,109182,1198105.3,-1.0435,15.7154,-15.5141,30.014,16.044,30.514,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p12-delay-0,e173101,12.0,DELAY 0,1,1,109182,1198236.7,-1.5347,13.2065,-13.8423,25.3422,13.535,25.842,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p10-delay-0,e173101,10.0,DELAY 0,1,1,109182,1198993.7,-2.0279,11.6997,-12.2037,21.7035,12.028,22.204,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p8-delay-0,e173101,8.0,DELAY 0,1,1,109182,1200353.7,-2.9549,10.6267,-12.5933,20.2118,10.955,20.593,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p20-delay-2,432cc19,20.0,DELAY 2,1,1,109816,1180462.2,3.3862,16.3232,-8.8711,28.4984,16.614,28.871,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p15-delay-2,e173101,15.0,DELAY 2,1,1,109816,1180462.2,-0.6138,15.3232,-13.8711,28.4984,15.614,28.871,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p12-delay-2,e173101,12.0,DELAY 2,1,1,109816,1180522.2,-1.8867,13.5585,-13.8906,25.3904,13.887,25.891,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p10-delay-2,e173101,10.0,DELAY 2,1,1,109816,1181042.7,-2.1019,11.7737,-13.2277,22.7275,12.102,23.228,measured; mapped netlist; ideal clock; no wire parasitics
+f2-p8-delay-2,e173101,8.0,DELAY 2,1,1,109816,1182869.5,-3.1167,10.7886,-13.6206,21.1204,11.117,21.621,measured; mapped netlist; ideal clock; no wire parasitics

@@ -315,6 +315,69 @@ rank 8 means that removing every control path still leaves a 19.55 ns
 slow-corner datapath, so reaching 10 ns at signoff would require restructuring
 the operand path, not just cleaning up control.
 
+### F2: synthesis strategy and period sweep
+
+`scripts/sweep_synthesis.sh` ran the requested grid, periods 20, 15, 12, 10, and
+8 ns crossed with `AREA 0`, `DELAY 0`, and `DELAY 2`, with `SYNTH_SIZING 1` and
+`SYNTH_BUFFERING 1`, four runs at a time. RTL and configuration are identical at
+the two recorded revisions, `432cc19` and `e173101`; each manifest's one dirty
+path is the new, untracked sweep or collection script. `scripts/collect_synthesis.py`
+reads cells and area from the Yosys report and reruns the F1 STA script for the
+worst path at the typical and slow corners.
+
+Two properties of OpenLane 1.1.1's `synth.tcl` shape how the grid reads:
+
+- **`SYNTH_SIZING` has no effect when `SYNTH_BUFFERING` is 1.** The ABC fine-tune
+  step is `buffer; upsize; dnsize` when buffering is on and only falls back to
+  `upsize; dnsize` for sizing when it is off. The data agrees: F0 with sizing 0
+  and the 10 ns `AREA 0` point here both map to 1,045,707 um².
+- **The period saturates at both ends.** At `AREA 0`, the 8 ns and 10 ns runs
+  produced byte-identical netlists, and 15 ns and 20 ns are identical at the slow
+  corner in every strategy. The period only steers ABC between roughly 10 and
+  15 ns.
+
+Arrival alone misleads here. Typical-corner arrival at 15 and 20 ns differs by
+exactly 1.0 ns in every strategy, which is `0.20 x 5 ns` of input delay on a
+port-started path. I therefore compare the period-independent minimum period,
+`period - worst slack`, which agrees at 15 and 20 ns wherever the netlist does.
+
+| Strategy | Target | Cells | Mapped area | Area vs `AREA 0`, 10 ns | Typical min. period | Slow min. period | Slow vs `AREA 0`, 10 ns |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `AREA 0` | 20 ns | 97,703 | 1,044,647 um² | -0.10% | 17.069 ns | 32.140 ns | +20.54% |
+| `AREA 0` | 15 ns | 97,703 | 1,044,649 um² | -0.10% | 16.069 ns | 32.140 ns | +20.54% |
+| `AREA 0` | 12 ns | 97,703 | 1,045,210 um² | -0.05% | 13.467 ns | 27.305 ns | +2.40% |
+| `AREA 0` | 10 ns | 97,703 | 1,045,707 um² | 0.00% | 12.804 ns | 26.664 ns | 0.00% |
+| `AREA 0` | 8 ns | 97,703 | 1,045,707 um² | 0.00% | 12.804 ns | 26.664 ns | 0.00% |
+| `DELAY 0` | 20 ns | 109,182 | 1,198,105 um² | +14.57% | 17.044 ns | 30.514 ns | +14.44% |
+| `DELAY 0` | 15 ns | 109,182 | 1,198,105 um² | +14.57% | 16.044 ns | 30.514 ns | +14.44% |
+| `DELAY 0` | 12 ns | 109,182 | 1,198,237 um² | +14.59% | 13.535 ns | 25.842 ns | -3.08% |
+| `DELAY 0` | 10 ns | 109,182 | 1,198,994 um² | +14.66% | 12.028 ns | 22.204 ns | -16.73% |
+| `DELAY 0` | 8 ns | 109,182 | 1,200,354 um² | +14.79% | 10.955 ns | 20.593 ns | -22.77% |
+| `DELAY 2` | 20 ns | 109,816 | 1,180,462 um² | +12.89% | 16.614 ns | 28.871 ns | +8.28% |
+| `DELAY 2` | 15 ns | 109,816 | 1,180,462 um² | +12.89% | 15.614 ns | 28.871 ns | +8.28% |
+| `DELAY 2` | 12 ns | 109,816 | 1,180,522 um² | +12.89% | 13.887 ns | 25.891 ns | -2.90% |
+| `DELAY 2` | 10 ns | 109,816 | 1,181,043 um² | +12.94% | 12.102 ns | 23.228 ns | -12.89% |
+| `DELAY 2` | 8 ns | 109,816 | 1,182,870 um² | +13.12% | 11.117 ns | 21.621 ns | -18.91% |
+
+The machine-readable record is [`data/synthesis-sweep.csv`](data/synthesis-sweep.csv).
+
+**Choice.** The slow corner sets multi-corner setup signoff, and along its
+frontier the knee is not reached inside this grid. From the best `AREA 0`
+point, `DELAY 2` at 8 ns buys 18.91% of period for 13.12% of area, and `DELAY 0`
+at 8 ns buys 22.77% for 14.79%. The last step, `DELAY 0` from 10 ns to 8 ns,
+costs 0.11% of area for 7.26% of period. At the typical corner the same move from
+`AREA 0` to `DELAY 0` is almost exactly one to one, 14.4% of period for 14.8% of
+area, so that corner puts the knee at the strategy change itself. I select
+**`DELAY 0` with an 8 ns synthesis target**. A tighter target might still help
+at the slow corner; I did not widen the grid to find out.
+
+Two limits on what this establishes. These are mapped netlists with ideal clocks
+and no wires, so routed paths will be longer. And the synthesis target is not
+the placement-and-route constraint: asking the resizer to repair a netlist that
+maps at 20.6 ns slow against an 8 ns constraint would recreate the earlier
+nonconvergent repair on thousands of endpoints. The F4 and F5 constraint will be
+set from the post-F3 slow-corner result and recorded with its derivation.
+
 ## Related
 
 - [Project status](../project-status.md)
