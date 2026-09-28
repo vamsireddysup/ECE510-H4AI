@@ -19,6 +19,9 @@ module qkt_engine #(
 
     // Shared Q tile banks.
     input logic [1:0] q_valid_in,
+    input logic q_wr_valid, q_wr_bank,
+    input logic [31:0] q_wr_beat,
+    input logic [63:0] q_wr_data,
     output logic q_rd_bank,
     output logic [31:0] q_rd_depth,
     input logic [TILE_SIZE*4-1:0] q_rd_data,
@@ -97,8 +100,17 @@ module qkt_engine #(
     assign row_skip = command_active && !calc_busy && calc_row < matrix_size &&
         calc_col >= matrix_size && q_valid_in[calc_q_bank];
 
-    assign q_rd_bank = calc_q_bank;
-    assign q_rd_depth = calc_start ? 32'd0 : calc_depth;
+    // The shared Q banks are read one cycle ahead into a private register, so
+    // the engine-crossing array read is register to register and never shares a
+    // path with decode, multiply, and accumulate.
+    logic [TILE_SIZE*4-1:0] q_row;
+    logic q_row_last, q_row_next_bank;
+    assign q_row_last = calc_busy && calc_depth == D_HEAD-1;
+    assign q_row_next_bank = q_row_last &&
+        !(calc_col+COL_STRIDE < matrix_size);
+    assign q_rd_bank = (q_row_next_bank || row_skip) ? ~calc_q_bank : calc_q_bank;
+    assign q_rd_depth = (calc_start && D_HEAD > 1) ? 32'd1 :
+        (calc_busy && calc_depth+1 < D_HEAD) ? calc_depth + 1 : 32'd0;
     assign k_ready = command_active && !k_valid[load_k_bank];
     assign kc_col = fill_col;
     assign kc_beat = fill_start ? 32'd0 : fill_beat;
@@ -251,6 +263,22 @@ module qkt_engine #(
           score_bank[output_score_bank][rd_index+1] : 32'h0),
          score_bank[output_score_bank][rd_index]} : 64'h0;
 
+    // Depth 0 of a row can be written in the same cycle q_valid is set, which a
+    // plain array read would miss, so that one nibble per row is snooped off the
+    // write beat instead. Both the beat and the lane are compile-time constants.
+    always_ff @(posedge clk) begin
+        if (!rst_n) q_row <= '0;
+        else begin
+            for (int row = 0; row < TILE_SIZE; row++) begin
+                if (q_rd_depth == 0 && q_wr_valid && q_wr_bank == q_rd_bank &&
+                    q_wr_beat == (row*D_HEAD)/16)
+                    q_row[4*row +: 4] <= q_wr_data[4*((row*D_HEAD)%16) +: 4];
+                else
+                    q_row[4*row +: 4] <= q_rd_data[4*row +: 4];
+            end
+        end
+    end
+
     always_ff @(posedge clk) begin
         if (!rst_n || flush) begin
             k_valid <= 0; acc_valid <= 0; score_valid <= 0;
@@ -322,7 +350,7 @@ module qkt_engine #(
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
                             acc_bank[calc_acc_bank][0][i][j] <=
-                                ACC_W'(decode(q_rd_data[4*i +: 4]) *
+                                ACC_W'(decode(q_row[4*i +: 4]) *
                                        decode(k_bank[calc_k_bank][j][0]));
                     /* verilator lint_on BLKLOOPINIT */
                 end else if (calc_busy) begin
@@ -332,7 +360,7 @@ module qkt_engine #(
                             acc_bank[calc_acc_bank][calc_depth/SCALE_BLOCK_SIZE][i][j] <=
                                 acc_bank[calc_acc_bank]
                                         [calc_depth/SCALE_BLOCK_SIZE][i][j] +
-                                ACC_W'(decode(q_rd_data[4*i +: 4]) *
+                                ACC_W'(decode(q_row[4*i +: 4]) *
                                        decode(k_bank[calc_k_bank][j][calc_depth]));
                     /* verilator lint_on BLKLOOPINIT */
                     if (calc_depth == D_HEAD-1) begin

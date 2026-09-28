@@ -24,6 +24,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Physical constraint sweep](data/physical-constraint-sweep.csv) | Floorplan, timing, and signoff outcomes |
 | [Critical-path attribution](data/critical-path-attribution.csv) | Mapped path, slack, cells, and area after each timing change |
 | [Replicated-engine cycles](data/replicated-engine-cycles.csv) | Engine-count sweeps for protocols v3/v4 and tile sizes 4/8/16 |
+| [Output format sweep](data/output-format-sweep.csv) | FP32, FP16, and BF16 output scores across the four pinned captures |
 | [CPU baseline](data/cpu-baseline.csv) | Reference-BLAS and OpenBLAS medians, throughput, and fraction of peak |
 | [Replicated-engine measurements](data/replicated-engine-measured.csv) | Measured engine-count cycles, beats, and model error |
 | [Replicated-engine area](data/replicated-engine-area.csv) | Mapped hierarchy and conservative replication projections |

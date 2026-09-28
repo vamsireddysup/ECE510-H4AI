@@ -198,6 +198,27 @@ of `ENGINES`; an engine with no tile in a row hands its Q bank straight back.
 **Scale reads mostly collapse.** `sq` is indexed by Q row and is common to all
 engines. Only the `sk` index differs per engine.
 
+### Shared-read register boundaries
+
+The shared Q banks are read one cycle ahead into a private per-engine register,
+so the engine-crossing array read is register to register and no longer shares a
+combinational path with decode, multiply, and accumulate. The read address is a
+counter, so this costs no cycles; depth 0 of a row can be written in the same
+cycle `q_valid` is set, and that one nibble per row is snooped off the write beat
+at a compile-time-constant beat and lane.
+
+The shared `sq` and `sk` reads already terminate in the existing scale-prefetch
+register. Between the last register and the array index there is one adder,
+`acc_row + lane_row`, and at the default one score lane the lane term is zero.
+The array mux is therefore already register to register, and adding a further
+stage would cost a scaling drain cycle without shortening that path. What
+replication does add is read-port fanout: `ENGINES` simultaneous indexed reads of
+the same `T_MAX x BLOCK_COUNT` storage. That is a storage banking or replication
+question rather than a register boundary question, and mapped timing at
+checkpoint 2 is the right evidence for deciding it. I have not changed it on
+speculation, because the previous critical-path work was driven by measured
+mapped timing.
+
 | Resource | Placement |
 | --- | --- |
 | `axi4_lite_ctrl`, `k_cache`, `sq`, `sk`, `q_bank`, input dispatcher, retire pointer | Shared once in the top |

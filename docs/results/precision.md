@@ -229,8 +229,76 @@ python3 scripts/eval_precision.py \
   --npz docs/results/data/bert-tiny-layer1-head0.npz
 ```
 
+## Output score format
+
+The replicated engine is bound by the 64-bit output port, which carries two FP32
+scores per cycle ([ADR 0007](../adr/0007-fix-eight-replicated-engines.md)). A
+16-bit score would carry four per beat and halve the T=512 output floor from
+131,072 to 65,536 cycles with no extra pins. Whether that is acceptable is a
+softmax-quality question, so I measured it.
+
+These are **measured software-model results**. Each row keeps the selected
+Bs=16 FP32 scale format and quantizes the finished score after the FP32 scale
+multiply and cross-block sum, which is exactly where the RTL would do it. FP16
+uses NumPy's round-to-nearest-even cast; BF16 truncates the low 16 mantissa bits
+with round-to-nearest, ties to even.
+
+| Capture | Output | Mean KL | Mean TV | Top-1 | Top-5 | Rel. Frobenius |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| tiny L0 H0 | FP32 | 0.010546 | 0.057213 | 89.26% | 88.95% | 9.696% |
+|  | FP16 | 0.010546 | 0.057213 | 89.26% | 88.98% | 9.696% |
+|  | BF16 | 0.010579 | 0.057288 | 89.26% | 88.91% | 9.698% |
+| tiny L1 H0 | FP32 | 0.040114 | 0.103282 | 87.70% | 97.50% | 5.807% |
+|  | FP16 | 0.040103 | 0.103266 | 87.70% | 97.50% | 5.807% |
+|  | BF16 | 0.040289 | 0.103635 | 87.89% | 97.46% | 5.810% |
+| tiny L1 H1 | FP32 | 0.039442 | 0.103476 | 87.50% | 97.50% | 5.798% |
+|  | FP16 | 0.039440 | 0.103463 | 87.50% | 97.50% | 5.798% |
+|  | BF16 | 0.039374 | 0.103385 | 87.89% | 97.50% | 5.800% |
+| small L3 H0 | FP32 | 0.019438 | 0.064586 | 94.14% | 89.45% | 12.521% |
+|  | FP16 | 0.019435 | 0.064561 | 94.14% | 89.49% | 12.521% |
+|  | BF16 | 0.019518 | 0.064774 | 93.75% | 89.30% | 12.523% |
+
+FP16 output does not change top-1 agreement on any of the four captures. Its
+largest KL change is 0.000011 and its largest top-5 change is 0.04 percentage
+points, in both directions. Relative Frobenius error is unchanged to five
+decimal places. BF16 costs more, as its eight mantissa bits predict: KL rises by
+up to 0.3% relative, top-5 falls by up to 0.05 points, and top-1 moves by up to
+0.39 points in both directions.
+
+Range is not a concern on these captures. The largest absolute reference score
+is 182.99, against 65,504 for the largest finite FP16 value, so there is about
+358x of headroom. A longer sequence, a larger head dimension, or an unscaled
+model could reduce that, so a real FP16 output mode would need its own range
+check rather than inheriting this one.
+
+This is a measurement, not a recommendation. It does not close the port-width
+option and it does not by itself justify a protocol version. What it does
+establish is that output-score width is **not** blocked by softmax quality at
+FP16 on this evidence, so a future protocol revision has a measured basis to
+consider it. Reproduce with:
+
+```bash
+python3 scripts/eval_precision.py \
+  --npz docs/results/data/bert-tiny-layer0-head0.npz --output-formats
+```
+
+The reviewed rows are in
+[`data/output-format-sweep.csv`](data/output-format-sweep.csv).
+
+### What it would be worth
+
+Halving the output floor would take the measured eight-engine T=512 command from
+135,280 cycles toward roughly 69,744 cycles, keeping the same 4,208 cycles of
+startup, fill, and drain. At the 30.5 ns setup-only bound that is about 2.13 ms
+instead of 4.13 ms. Against the refreshed CPU baseline in the
+[performance record](performance.md) that is still 7.3x slower than one OpenBLAS
+thread at 0.2932 ms and 15.0x slower than four cores at 0.1422 ms. A narrower
+score format is therefore worth having for traffic and for the port, but it does
+not change the conclusion that this part does not win on wall clock.
+
 ## Related
 
 - [ADR 0004: use 1x16 FP32 scales](../adr/0004-use-1x16-fp32-scales.md)
+- [ADR 0007: fix eight replicated engines](../adr/0007-fix-eight-replicated-engines.md)
 - [Reference model](../../model/README.md)
 - [Results index](README.md)

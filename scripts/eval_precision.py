@@ -16,6 +16,9 @@ MAGNITUDES = np.array([0, .5, 1, 1.5, 2, 3, 4, 6], dtype=np.float32)
 HALF_UNITS = np.array([0, 1, 2, 3, 4, 6, 8, 12], dtype=np.int32)
 BLOCK_SIZES = (64, 32, 16, 8, 4, 2)
 SCALE_TYPES = ("FP32", "E8M0-floor", "E8M0-nearest", "E8M0-ceil")
+# Output score formats. The engine emits FP32 today; the narrower formats fit
+# four scores in one 64-bit beat instead of two.
+OUTPUT_FORMATS = ("FP32", "FP16", "BF16")
 
 
 def render_t512_table(metrics: list[dict[str, float | int | str]]) -> str:
@@ -89,6 +92,20 @@ def quantize_blocks(
     return half_units, scales, clip_count
 
 
+def quantize_output(scores: np.ndarray, output_format: str) -> np.ndarray:
+    """Round finished FP32 scores to a narrower output format, ties to even."""
+    if output_format == "FP32":
+        return scores
+    if output_format == "FP16":
+        return scores.astype(np.float16).astype(np.float32)
+    if output_format == "BF16":
+        bits = scores.astype(np.float32).view(np.uint32)
+        # Round to nearest, ties to even, on the low 16 mantissa bits.
+        bias = np.uint32(0x7FFF) + ((bits >> np.uint32(16)) & np.uint32(1))
+        return ((bits + bias) & np.uint32(0xFFFF0000)).view(np.float32)
+    raise ValueError(f"unknown output format: {output_format}")
+
+
 def softmax(scores: np.ndarray) -> np.ndarray:
     shifted = scores.astype(np.float64) - np.max(scores, axis=1, keepdims=True)
     exponentials = np.exp(shifted)
@@ -96,7 +113,8 @@ def softmax(scores: np.ndarray) -> np.ndarray:
 
 
 def evaluate(
-    q: np.ndarray, k: np.ndarray, block_size: int = 64, scale_type: str = "FP32"
+    q: np.ndarray, k: np.ndarray, block_size: int = 64, scale_type: str = "FP32",
+    output_format: str = "FP32",
 ) -> dict[str, float | int | str]:
     if q.ndim != 2 or k.shape != q.shape or q.shape[1] == 0:
         raise ValueError("q and k must have the same nonempty T x D shape")
@@ -119,6 +137,7 @@ def evaluate(
         block_scores *= q_scale[:, block, None]
         block_scores *= k_scale[None, :, block]
         fp4_scores += block_scores
+    fp4_scores = quantize_output(fp4_scores, output_format)
 
     fp32_scores = q @ k.T
     difference = fp4_scores.astype(np.float64) - fp32_scores.astype(np.float64)
@@ -164,12 +183,33 @@ def evaluate(
     }
 
 
+def evaluate_output_format(
+    q: np.ndarray, k: np.ndarray, block_size: int, scale_type: str,
+    output_format: str,
+) -> dict[str, float | int | str]:
+    """Label an evaluation with its output format without changing the
+    committed scale-format record shape."""
+    row = evaluate(q, k, block_size, scale_type, output_format)
+    scores_per_beat = {"FP32": 2, "FP16": 4, "BF16": 4}[output_format]
+    return {
+        **row,
+        "output_format": output_format,
+        "output_bits_per_score": 32 if output_format == "FP32" else 16,
+        "scores_per_64_bit_beat": scores_per_beat,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--npz", type=Path, help="Pinned Q/K capture with q and k arrays")
     parser.add_argument("--sizes", type=int, nargs="+", default=[4, 16, 64, 128, 512])
     parser.add_argument("--depth", type=int, default=64)
     parser.add_argument("--seed", type=int, default=510)
+    parser.add_argument(
+        "--output-formats", action="store_true",
+        help="sweep FP32, FP16, and BF16 output scores at one block size",
+    )
+    parser.add_argument("--block-size", type=int, default=16)
     args = parser.parse_args()
     if args.npz:
         with np.load(args.npz) as capture:
@@ -183,12 +223,19 @@ def main() -> None:
             generator.standard_normal((size, args.depth), dtype=np.float32),
         ) for size in args.sizes]
         source = {"source": "synthetic_normal", "seed": args.seed}
-    metrics = [
-        evaluate(q, k, block_size, scale_type)
-        for q, k in matrices
-        for block_size in BLOCK_SIZES if block_size <= q.shape[1]
-        for scale_type in SCALE_TYPES
-    ]
+    if args.output_formats:
+        metrics = [
+            evaluate_output_format(q, k, args.block_size, "FP32", output_format)
+            for q, k in matrices
+            for output_format in OUTPUT_FORMATS
+        ]
+    else:
+        metrics = [
+            evaluate(q, k, block_size, scale_type)
+            for q, k in matrices
+            for block_size in BLOCK_SIZES if block_size <= q.shape[1]
+            for scale_type in SCALE_TYPES
+        ]
     print(json.dumps({**source, "numpy_version": np.__version__, "metrics": metrics}, indent=2))
 
 

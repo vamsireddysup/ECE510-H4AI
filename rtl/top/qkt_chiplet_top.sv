@@ -127,6 +127,8 @@ module qkt_chiplet_top #(
         ) u_engine (
             .clk, .rst_n, .command_active, .flush(start), .matrix_size,
             .q_valid_in(q_valid),
+            .q_wr_valid(s_tvalid && s_tready && frontend == FE_LOAD_Q),
+            .q_wr_bank(load_q_bank), .q_wr_beat(load_beat), .q_wr_data(s_tdata),
             .q_rd_bank(eng_q_rd_bank[e]),
             .q_rd_depth(eng_q_rd_depth[e*32 +: 32]),
             .q_rd_data(eng_q_rd_data[e*TILE_SIZE*4 +: TILE_SIZE*4]),
