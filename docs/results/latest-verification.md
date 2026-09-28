@@ -1,5 +1,31 @@
 # Latest verification
 
+## September 28 baseline, model, and output-format run
+
+I refreshed the CPU baseline with host provenance, closed the cycle model,
+registered the shared Q read, and measured narrower output scores.
+
+The one-thread benchmark path is unchanged, so its re-run isolates the machine:
+9.0625 ms against the recorded 9.016 ms. The previously unverified thread claim
+is resolved. System NumPy 1.26.4 links reference Netlib BLAS 3.12.0, which has
+no thread pool to detect and does not thread at all; the new `--all-cores` run
+measures 9.0722 ms, confirming it. An isolated NumPy 2.5.3 with OpenBLAS
+0.3.34.106.0 runs the same problem in 0.2932 ms on one thread, 81.29% of the
+single-core AVX-512 peak, and 0.1422 ms across four cores.
+
+The cycle model now reproduces all 32 measured configurations exactly and fails
+on any mismatch again. Two derived terms were added: an engine-saturation
+crossover and a trailing-retirement stagger, plus an input-bound load tail.
+
+Registering the shared Q read changed no score and no cycle count at any engine
+count or tile size; `make test`, every large suite at `ENGINES=1/2/4/8/16`, the
+8x8 and 16x16 large suites, the Bs=32 suite, and `make test-precision-rtl` at
+`ENGINES=1` and `ENGINES=8` all reproduce their recorded values.
+
+The output-format sweep quantizes finished scores to FP16 and BF16 across all
+four pinned captures. FP16 changes no capture's top-1 agreement. This is a
+software measurement; no RTL implements a 16-bit score.
+
 ## September 28 replicated-engine checkpoint 1
 
 I extracted the per-engine compute pipeline into `rtl/core/qkt_engine.sv` and

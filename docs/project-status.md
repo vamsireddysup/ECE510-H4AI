@@ -82,6 +82,18 @@ measurements are in [performance results](results/performance.md) and
   leakage alone reaches 0.686 mJ per T=512 command, while avoided DRAM energy
   is projected at 0.338 to 0.676 mJ. SRAM needs new routed power or host-link
   evidence before the question reopens.
+- [ADR 0007](adr/0007-fix-eight-replicated-engines.md) fixes eight engines and
+  protocol version 6 as the replication design point. The output port's
+  131,072-cycle floor equals per-engine CALC work at exactly eight engines, the
+  measured `ENGINES=16` command is identical to `ENGINES=8`, and version 5
+  cannot reach the floor at any engine count.
+- A measured output-format sweep shows FP16 scores change no capture's top-1
+  agreement, so halving the output floor is not blocked by softmax quality. See
+  [attention precision results](results/precision.md).
+- The CPU baseline is refreshed with full host provenance. The system NumPy
+  links reference Netlib BLAS at 9.0625 ms and 2.63% of the single-core peak;
+  OpenBLAS runs the same problem in 0.2932 ms on one thread. Against an
+  optimized BLAS the CPU wins on wall clock, so no speedup is claimed.
 - The replicated-engine RTL is implemented and verified in simulation. Work
   splits by K tile column, so Q is broadcast and ordered retirement needs only a
   round-robin pointer rather than the reorder buffer ADR 0006 anticipated.

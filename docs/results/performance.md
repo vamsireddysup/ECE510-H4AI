@@ -328,6 +328,20 @@ of 266,240 beats, which is the measured 266,344 at N=4, 8, and 16. It is a
 constant because all three are the same input-bound configuration. The term
 applies at N=1 too and does not bind in any single-engine row.
 
+## The eight-engine ceiling
+
+The 64-bit output port carries two FP32 scores per cycle, so the T=512 floor is
+`262,144 / 2 = 131,072` cycles. Per-engine CALC work is `16,384 * 64 / N`, which
+equals that floor at exactly eight engines: 262,144 at N=4, 131,072 at N=8,
+65,536 at N=16, and 8,192 at N=128. Engines past the eighth add arithmetic that
+idles waiting for the port, so the return is zero rather than diminishing.
+
+Measured `ENGINES=8` is 135,280 cycles, 96.90% of the floor, and `ENGINES=16`
+measures the same 135,280. No larger sweep was run.
+[ADR 0007](../adr/0007-fix-eight-replicated-engines.md) fixes eight engines and
+protocol version 6 as the design point and records why version 5 cannot reach
+the floor at any engine count: its 266,240 input beats already exceed 131,072.
+
 ## Replication recommendation
 
 Do not build eight 4x4 engines under version 3. They have the same projected

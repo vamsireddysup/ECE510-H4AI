@@ -48,6 +48,22 @@ naming rules these entries follow, see
   to 135,280 cycles at eight engines against the 131,072-cycle output floor, and
   sixteen engines do not improve either. There is no area or routed result.
 
+### Baseline, model, and measurement
+
+- Refreshed the CPU baseline with a host block, an optional all-core mode, and
+  the theoretical single-core peak. The one-thread path is unchanged. System
+  NumPy links reference Netlib BLAS, which has no thread pool and reaches 2.63%
+  of the single-core AVX-512 peak; OpenBLAS runs the same T=512 problem in
+  0.2932 ms on one thread and 0.1422 ms on four cores.
+- Closed the cycle model for replicated engines by deriving the engine
+  saturation crossover, the trailing-retirement stagger, and the input-bound
+  load tail. All 32 measured configurations reproduce exactly and any mismatch
+  fails again.
+- Registered the shared Q tile read into a private per-engine register, with the
+  same-cycle depth-0 write snooped off the beat. No score or cycle changed.
+- Added an output-format sweep to `scripts/eval_precision.py`. FP16 scores
+  change no pinned capture's top-1 agreement; BF16 costs slightly more.
+
 ### Measurements
 
 - At T=512 and `D_HEAD=64` the overlapped default 4x4 build produces 262,144
