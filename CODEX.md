@@ -126,6 +126,15 @@ Updated 2026-09-29 by Codex.
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
+- **Prior art is reviewed for the two nearest papers.**
+  [docs/related-work.md](docs/related-work.md) now carries a full-text review
+  and corrects three claims the abstract-level version got wrong. Net effect:
+  per-block FP4/INT4 is **not** a strong novelty track, since MixFP4 already
+  publishes the mechanism, the scale-sign-bit encoding, and 3.1% tensor-core
+  area; and softmax-metric evaluation is table stakes, not a differentiator.
+  What survives is the open-PDK priced co-design, the maintained bit-exactness,
+  and the specific finding that searched E4M3 is both more accurate and 4.89x
+  smaller than FP32 scales.
 - **Exact next step.** Resume the stopped LibreLane global-route checkpoint
   described in the newest handoff, then replace the FP32 scale path with the
   ADR 0008 searched-E4M3 scaler.
@@ -190,6 +199,37 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5) — verified the Codex handoff; corrected prior art
+
+**Verified Codex's work independently**, per the cross-agent rule. `make test`
+passes and `scripts/check_cycle_model.py` re-simulates **32 of 32** recorded
+configurations exactly on the block-streaming RTL at `bb85cde`. The M1 and M2
+claims in this file hold.
+
+**Done.** Full-text review of the two nearest papers, extracted locally with
+`pdftotext` because the fetcher could not decompress them. It corrected three
+things the abstract-level page had wrong, all recorded in
+`docs/related-work.md`:
+
+- Shift-Accumulate Attention's product is **exact** with respect to its
+  quantized operands, not approximate. It changes the key format to signed
+  power-of-two to get shifts, costing +0.15 perplexity against INT8, and has
+  **no ASIC**: CUDA kernels plus a cost model for a hypothetical `DS4A`
+  instruction. Our E2M1 shift-add needs no format change and is measured in
+  Sky130, which is the real distinction.
+- It **does** report attention-distribution KL and top-8 overlap, so
+  softmax-metric evaluation is not a differentiator for us.
+- MixFP4 covers **activations**, reports **3.1% tensor-core area and 1.5%
+  power**, selects FP4-or-INT4 by a crest factor with a 2.224 threshold, and
+  encodes the flag in the **sign bit of the E4M3 block scale**. Novelty track 2
+  is therefore largely published, which agrees with the M1 measurement that
+  adaptive selection loses top-1 and regresses on the larger capture.
+
+**Verified.** `make test` passes; 39 documentation files check.
+
+**In flight.** The resumed `m2-block-stream-grt-30ns` global-route run; see
+the entry below for how to check it.
 
 ### 2026-09-29 — Codex — M2 physical checkpoint stopped for handoff
 
