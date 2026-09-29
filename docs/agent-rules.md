@@ -108,7 +108,7 @@ tests and their cell-area results are recorded in `results/performance.md`.
 reports softmax agreement, raw-score error, clipping, storage, and projected
 FP32 adds. Protocol versions 5 and 6 implement ADR 0004's 1x16 FP32 format with
 a parameterized block size and score lanes; versions 3 and 4 retain 1x32
-compatibility. Four pinned BERT heads across two model sizes support that
+compatibility. Four pinned BERT heads and two SmolLM2 decoder heads support that
 choice. `make test-precision-rtl` compares all default 1x16 T=512 scores
 bit-exactly.
 `make report-sim` derives useful bytes, wire bytes, arithmetic intensity, and

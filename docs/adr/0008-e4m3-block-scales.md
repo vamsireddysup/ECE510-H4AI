@@ -30,6 +30,13 @@ Two measurements, both across all four pinned BERT captures at Bs=16, in
 The searched E4M3 rule improves mean KL on each of the four captures
 individually, not only on the mean.
 
+Two later out-of-sample SmolLM2 decoder captures retain the decision. Against
+FP32, searched E4M3 lowers mean KL from 0.05416 to 0.04668, mean TV from 0.10688
+to 0.10027, relative Frobenius error from 10.75% to 9.70%, and raises mean
+top-1 from 79.30% to 82.32% and top-5 from 73.83% to 79.10%. The deeper head's
+top-1 alone falls by 1.36 points, so the evidence does not support a universal
+per-head improvement claim. E8M0-UOS remains worse on every decoder aggregate.
+
 **Cost.** One score lane's scaling path, mapped to Sky130 HD with Yosys 0.44 at
 `ACC_W=13` and flattened:
 

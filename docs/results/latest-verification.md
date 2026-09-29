@@ -1,5 +1,17 @@
 # Latest verification
 
+## September 29 decoder validation
+
+Two 512x64 post-RoPE Q/K heads were captured from the first and last layers of
+SmolLM2-135M at pinned model revision
+`93efa2f097d58c2a74874c7e644dbc9b0cee75a2`. The isolated environment used
+Python 3.12.3, PyTorch 2.8.0+cpu, Transformers 4.56.2, and NumPy 1.26.4.
+Searched E4M3 improves decoder-mean KL from 0.05416 to 0.04668 and top-1 from
+79.30% to 82.32% against FP32. Preprocessing and FP4/INT4 choices differ by
+layer. At tau=4 the exponent bound finds no complete 4x4 tile in either head.
+The model suite regenerates all 44 validation rows and verifies both capture
+hashes and embedded provenance.
+
 ## September 29 exponent-bound study
 
 A conservative sign-and-exponent interval bound was measured on all four pinned

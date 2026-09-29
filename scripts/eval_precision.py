@@ -875,6 +875,10 @@ def main() -> None:
         help="measure safe sign-and-exponent score and whole-tile skipping",
     )
     parser.add_argument(
+        "--decoder-validation-study", action="store_true",
+        help="run every M1 arithmetic study on pinned decoder captures",
+    )
+    parser.add_argument(
         "--captures", type=Path, nargs="+",
         help="multiple pinned Q/K captures for the preprocessing study",
     )
@@ -900,7 +904,37 @@ def main() -> None:
             generator.standard_normal((size, args.depth), dtype=np.float32),
         ) for size in args.sizes]
         source = {"source": "synthetic_normal", "seed": args.seed}
-    if args.exponent_bound_study:
+    if args.decoder_validation_study:
+        if not args.captures:
+            raise ValueError("--decoder-validation-study requires --captures")
+        metrics = []
+        for index, (q, k) in enumerate(matrices):
+            capture_source = str(args.captures[index])
+            metrics.extend({
+                **evaluate_scale_study(q, k, args.block_size, scale_type),
+                "study": "scale", "source": capture_source,
+            } for scale_type in SCALE_STUDY_TYPES)
+            metrics.extend({
+                **evaluate_preprocessing(
+                    q, k, preprocessing, args.block_size, "E4M3-search"
+                ),
+                "study": "preprocessing", "source": capture_source,
+            } for preprocessing in PREPROCESSING_TYPES)
+            metrics.extend({
+                **evaluate_element_formats(q, k, element_format, args.block_size),
+                "study": "element_format", "source": capture_source,
+            } for element_format in ELEMENT_FORMATS)
+            metrics.extend({
+                **evaluate_accumulation_order(
+                    q, k, order, args.block_size, "E4M3-search"
+                ),
+                "study": "accumulation_order", "source": capture_source,
+            } for order in ACCUMULATION_ORDERS)
+            metrics.extend({
+                **evaluate_exponent_bound(q, k, tau, args.block_size),
+                "study": "exponent_bound", "source": capture_source,
+            } for tau in EXPONENT_BOUND_TAUS)
+    elif args.exponent_bound_study:
         if not args.captures and not args.npz:
             raise ValueError("--exponent-bound-study requires --npz or --captures")
         metrics = [

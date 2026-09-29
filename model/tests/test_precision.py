@@ -13,7 +13,9 @@ from scripts.eval_precision import (
     BLOCK_SIZES,
     EXPONENT_BOUND_TAUS,
     SCALE_TYPES,
+    SCALE_STUDY_TYPES,
     evaluate,
+    evaluate_scale_study,
     evaluate_preprocessing,
     evaluate_element_formats,
     evaluate_accumulation_order,
@@ -37,6 +39,7 @@ PREPROCESSING_JSON = REPO_ROOT / "docs/results/data/preprocessing-study.json"
 ELEMENT_FORMAT_JSON = REPO_ROOT / "docs/results/data/element-format-study.json"
 ACCUMULATION_JSON = REPO_ROOT / "docs/results/data/accumulation-order-study.json"
 EXPONENT_BOUND_JSON = REPO_ROOT / "docs/results/data/exponent-bound-study.json"
+DECODER_VALIDATION_JSON = REPO_ROOT / "docs/results/data/decoder-validation-study.json"
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -224,6 +227,52 @@ def test_exponent_bound_study_matches_committed_json() -> None:
                 **evaluate_exponent_bound(q, k, tau, 16),
                 "source": source["source"],
             })
+    for actual, recorded in zip(regenerated, committed["metrics"], strict=True):
+        assert actual.keys() == recorded.keys()
+        for key in actual:
+            if isinstance(actual[key], float):
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)
+            else:
+                assert actual[key] == recorded[key]
+
+
+def test_decoder_validation_matches_committed_json() -> None:
+    """Tie both decoder heads and every M1 arithmetic probe to one record."""
+    committed = json.loads(DECODER_VALIDATION_JSON.read_text())
+    regenerated = []
+    for source in committed["captures"]:
+        path = REPO_ROOT / source["source"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == source["sha256"]
+        with np.load(path, allow_pickle=False) as capture:
+            q, k = capture["q"], capture["k"]
+            assert q.shape == k.shape == (512, 64)
+            assert capture["model"].item() == "HuggingFaceTB/SmolLM2-135M"
+            assert capture["revision"].item() == (
+                "93efa2f097d58c2a74874c7e644dbc9b0cee75a2"
+            )
+            assert capture["numpy_version"].item() == "1.26.4"
+            assert capture["torch_version"].item() == "2.8.0+cpu"
+            assert capture["transformers_version"].item() == "4.56.2"
+        regenerated.extend({
+            **evaluate_scale_study(q, k, 16, scale_type),
+            "study": "scale", "source": source["source"],
+        } for scale_type in SCALE_STUDY_TYPES)
+        regenerated.extend({
+            **evaluate_preprocessing(q, k, preprocessing, 16, "E4M3-search"),
+            "study": "preprocessing", "source": source["source"],
+        } for preprocessing in ("none", "k-center", "hadamard", "k-center+hadamard"))
+        regenerated.extend({
+            **evaluate_element_formats(q, k, element_format, 16),
+            "study": "element_format", "source": source["source"],
+        } for element_format in ("FP4", "INT4", "adaptive"))
+        regenerated.extend({
+            **evaluate_accumulation_order(q, k, order, 16, "E4M3-search"),
+            "study": "accumulation_order", "source": source["source"],
+        } for order in ("sequential", "tree"))
+        regenerated.extend({
+            **evaluate_exponent_bound(q, k, tau, 16),
+            "study": "exponent_bound", "source": source["source"],
+        } for tau in EXPONENT_BOUND_TAUS)
     for actual, recorded in zip(regenerated, committed["metrics"], strict=True):
         assert actual.keys() == recorded.keys()
         for key in actual:

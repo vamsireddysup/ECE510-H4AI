@@ -12,6 +12,7 @@ import zipfile
 
 import numpy as np
 import torch
+import transformers
 from transformers import AutoModel, AutoTokenizer
 
 MODEL = "google/bert_uncased_L-2_H-128_A-2"
@@ -59,17 +60,61 @@ def main() -> None:
     )
     if encoded["input_ids"].shape != (1, 512):
         raise ValueError("fixture must produce exactly 512 tokens")
-    if not 0 <= args.layer < len(model.encoder.layer):
+    if hasattr(model, "encoder") and hasattr(model.encoder, "layer"):
+        layers = model.encoder.layer
+        attention = layers[args.layer].attention.self if 0 <= args.layer < len(layers) else None
+        query_projection = "query"
+        key_projection = "key"
+        apply_rotary = False
+    elif (
+        model.config.model_type == "opt"
+        and hasattr(model, "decoder") and hasattr(model.decoder, "layers")
+    ):
+        # OPT uses learned absolute positions, so q_proj/k_proj are the Q/K
+        # values before the standard 1/sqrt(head_width) attention temperature.
+        layers = model.decoder.layers
+        attention = layers[args.layer].self_attn if 0 <= args.layer < len(layers) else None
+        query_projection = "q_proj"
+        key_projection = "k_proj"
+        apply_rotary = False
+    elif (
+        model.config.model_type == "llama"
+        and hasattr(model, "layers")
+    ):
+        layers = model.layers
+        attention = layers[args.layer].self_attn if 0 <= args.layer < len(layers) else None
+        query_projection = "q_proj"
+        key_projection = "k_proj"
+        apply_rotary = True
+    else:
+        raise ValueError(
+            "capture supports BERT encoders plus OPT and Llama decoders"
+        )
+    if attention is None:
         raise ValueError("capture layer is out of range")
-    attention = model.encoder.layer[args.layer].attention.self
     captured: dict[str, torch.Tensor] = {}
 
-    def capture_attention_input(module, inputs) -> None:  # type: ignore[no-untyped-def]
-        hidden = inputs[0]
-        captured["query"] = module.query(hidden)
-        captured["key"] = module.key(hidden)
+    def capture_attention_input(module, inputs, kwargs) -> None:  # type: ignore[no-untyped-def]
+        hidden = inputs[0] if inputs else kwargs["hidden_states"]
+        query = getattr(module, query_projection)(hidden)
+        key = getattr(module, key_projection)(hidden)
+        if apply_rotary:
+            shape = (*hidden.shape[:-1], -1, module.head_dim)
+            query = query.view(shape).transpose(1, 2)
+            key = key.view(shape).transpose(1, 2)
+            cosine, sine = kwargs["position_embeddings"]
+            cosine, sine = cosine.unsqueeze(1), sine.unsqueeze(1)
 
-    hook = attention.register_forward_pre_hook(capture_attention_input)
+            def rotate_half(values: torch.Tensor) -> torch.Tensor:
+                half = values.shape[-1] // 2
+                return torch.cat((-values[..., half:], values[..., :half]), dim=-1)
+
+            query = query * cosine + rotate_half(query) * sine
+            key = key * cosine + rotate_half(key) * sine
+        captured["query"] = query
+        captured["key"] = key
+
+    hook = attention.register_forward_pre_hook(capture_attention_input, with_kwargs=True)
     with torch.no_grad():
         model(**encoded)
     hook.remove()
@@ -79,8 +124,14 @@ def main() -> None:
     head_width = model.config.hidden_size // head_count
     if not 0 <= args.head < head_count or head_width != 64:
         raise ValueError("capture requires an in-range 64-element attention head")
-    q = query.reshape(512, head_count, head_width)[:, args.head, :]
-    k = key.reshape(512, head_count, head_width)[:, args.head, :]
+    if apply_rotary:
+        key_head_count = model.config.num_key_value_heads
+        key_group = head_count // key_head_count
+        q = query[0, args.head]
+        k = key[0, args.head // key_group]
+    else:
+        q = query.reshape(512, head_count, head_width)[:, args.head, :]
+        k = key.reshape(512, head_count, head_width)[:, args.head, :]
     arrays = {
         "q": q.cpu().numpy().astype("<f4"),
         "k": k.cpu().numpy().astype("<f4"),
@@ -91,7 +142,9 @@ def main() -> None:
         "layer": np.asarray(args.layer, dtype="<u4"),
         "head": np.asarray(args.head, dtype="<u4"),
         "text_sha256": np.asarray(hashlib.sha256(text_bytes).hexdigest()),
+        "numpy_version": np.asarray(np.__version__),
         "torch_version": np.asarray(torch.__version__),
+        "transformers_version": np.asarray(transformers.__version__),
     }
     write_npz(args.output, arrays)
     print(f"capture={args.output}")

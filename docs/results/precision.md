@@ -142,10 +142,67 @@ using the embedding output directly would only be correct for layer 0.
 | [`tiny-layer1-head1`](data/bert-tiny-layer1-head1.npz) | `30b0a37ccaaa32f332884b96992754e246e48c5f` | 1/1 | `710b50924f90017326266c00890d4d74772385ebffebc88684b4b4e23b3898f0` |
 | [`small-layer3-head0`](data/bert-small-layer3-head0.npz) | `387825ce42dbb39b87911cdf8e383ee3b25184f8` | 3/0 | `a570bdcd67bd967c316bdf69b182028c066074446f6b96132d8618969a0b2b63` |
 
+Two out-of-sample decoder captures use the first and last layers of
+`HuggingFaceTB/SmolLM2-135M`, revision
+`93efa2f097d58c2a74874c7e644dbc9b0cee75a2`. It has 64-element query and
+grouped-query key heads. The script captures Q and K after rotary position
+embedding, and maps query head 0 to its shared key head 0. Capturing the linear
+projections before rotation would not reproduce the attention scores.
+
+| Capture | Layer/head | SHA-256 |
+| --- | ---: | --- |
+| [`SmolLM2 layer0 head0`](data/smollm2-135m-layer0-head0.npz) | 0/0 | `1efcf1dd2a61af6a1b4a894c02d1a67ba396963c31fe6c057f0850df3056f6bf` |
+| [`SmolLM2 layer29 head0`](data/smollm2-135m-layer29-head0.npz) | 29/0 | `9281431b211843f235d66e9e6fe4a65e7f5caaa4589b40230c4d67165a634f8c` |
+
 Capture tools were Python 3.12.3, PyTorch 2.8.0+cpu, and Transformers 4.56.2.
 The sweep used NumPy 1.26.4 and the same quantizer and metrics as the synthetic
 P0.2 record. The complete [machine-readable sweep](data/bert-tiny-layer0-head0-precision.json)
 contains every Bs 64/32/16/8/4/2 and scale-type combination.
+
+The decoder captures were produced in an isolated `uv` environment with those
+same versions and NumPy 1.26.4. Their combined 44-row validation record is
+[`data/decoder-validation-study.json`](data/decoder-validation-study.json).
+
+## Decoder out-of-sample validation
+
+The two SmolLM2 heads retain the M1 scale decision. Searched E4M3 improves every
+reported mean against FP32; E8M0-UOS is worse. These are **measured software
+model results** at Bs=16.
+
+| Capture | Scale | Mean KL | Mean TV | Top-1 | Top-5 | Rel. Frobenius |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| layer 0 head 0 | FP32 | 0.00507 | 0.03845 | 71.29% | 77.30% | 7.26% |
+|  | **E4M3-search** | **0.00349** | **0.03204** | **78.71%** | **84.69%** | **6.69%** |
+|  | E8M0-UOS | 0.00747 | 0.04751 | 64.65% | 76.60% | 10.61% |
+| layer 29 head 0 | FP32 | 0.10326 | 0.17531 | **87.30%** | 70.35% | 14.25% |
+|  | **E4M3-search** | **0.08987** | **0.16851** | 85.94% | **73.52%** | **12.71%** |
+|  | E8M0-UOS | 0.16932 | 0.23074 | 76.56% | 68.48% | 17.75% |
+
+The deeper head is a useful limit on the aggregate claim: searched E4M3 improves
+KL, TV, top-5, and raw-score error there, but loses 1.36 top-1 points. The scale
+decision still holds because it beats the current FP32 default on mean metrics
+and improves both decoder heads on four of five reported measures; it is not a
+claim of universal per-head improvement.
+
+The other M1 conclusions become more clearly layer-dependent. K centering cuts
+mean decoder KL from 0.04668 to 0.01625 and raises top-1 from 82.32% to 85.06%,
+despite its mixed BERT result. Adaptive FP4/INT4 cuts mean KL to 0.03829 and
+raises top-1 to 83.40%, selecting INT4 for 42.21% of blocks, while the earlier
+small-BERT capture still regresses. A tree reduction again changes score bits
+but no top-k result.
+
+The conservative exponent bound does not transfer: at tau=4 it safely covers
+only 0.0069% and 0.0305% of scores in the two decoder heads and no complete 4x4
+tile. This rejects fixed exponent-bound skipping as a general P0 feature. Any
+later version needs a learned or layer-selected policy and new evidence.
+
+Reproduce the validation record with:
+
+```bash
+python3 scripts/eval_precision.py --decoder-validation-study --captures \
+  docs/results/data/smollm2-135m-layer0-head0.npz \
+  docs/results/data/smollm2-135m-layer29-head0.npz
+```
 
 ## First activation sweep
 

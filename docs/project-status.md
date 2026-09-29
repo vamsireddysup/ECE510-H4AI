@@ -158,6 +158,11 @@ The exponent-only bound is also measured. At a four-logit margin it safely
 identifies 28.83% of scores and 8.66% of complete 4x4 tiles on average with no
 top-k change, but it requires a row maximum and coverage varies from zero to
 18.38% of tiles by capture. It remains a later experiment rather than M2 scope.
+Two post-RoPE SmolLM2 decoder heads validate the arithmetic choices out of
+sample. Searched E4M3 retains better aggregate softmax and raw-score metrics
+than FP32 and E8M0. Preprocessing and adaptive FP4/INT4 remain layer-dependent.
+The exponent bound covers no complete 4x4 decoder tile at tau=4, so fixed
+exponent-bound skipping is rejected as a general P0 feature.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep

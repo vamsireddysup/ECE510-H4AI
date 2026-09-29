@@ -19,7 +19,7 @@ All of them run from the repository root.
 | `summarize_sim.py` | `make report-sim` | Python 3.10+ | `build/integration/summary.csv`, read from every `build/integration/*/run.log` |
 | `cycle_model.py` | run directly | Python 3.10+ | stdout only; exits non-zero if the model no longer matches all 32 measured configurations |
 | `eval_precision.py` | run directly | NumPy | stdout JSON for block-scale, output-format, scale-format, or preprocessing studies selected by flags |
-| `capture_transformer_qk.py` | P0.8 documented command | PyTorch 2.8.0+cpu, Transformers 4.56.2, NumPy | deterministic NPZ at the requested path |
+| `capture_transformer_qk.py` | P0.8/M1 documented command | PyTorch 2.8.0+cpu, Transformers 4.56.2, NumPy | deterministic BERT, OPT, or post-RoPE Llama Q/K NPZ at the requested path |
 | `bench_cpu.py` | run directly | NumPy | stdout JSON; redirect to `build/cpu-benchmark.json` |
 | `run_scaler_probe.sh` | `./scripts/run_scaler_probe.sh [ACC_W]` | Yosys, Sky130 HD Liberty | mapped Sky130 area of one score lane's scaling path for each block-scale format, as `build/scaler-probe/scaler-probe.csv` |
 | `run_synthesis.sh` | run directly as `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE] [BLOCK] [LANES]` | Yosys, Sky130 HD Liberty | `build/synthesis/t<tile>-d<depth>-max<tmax>-reuse<reuse>-sb<block>-sl<lanes>/yosys.log` |

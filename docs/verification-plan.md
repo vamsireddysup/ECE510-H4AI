@@ -23,7 +23,7 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | Simulation summary | `make report-sim` | Cycles, array utilization, useful and wire bytes, and arithmetic intensity, derived from accepted-beat logs | Anything not in a `build/integration/*/run.log` |
 | Archived baseline | `make baseline`, `make baseline-strict` | The untouched M4 sources still reproduce their recorded numeric result | Anything about the active top |
 | Synthetic precision | `python3 scripts/eval_precision.py` and `make test-model` | The 120-point block-scale sweep, committed JSON, and rendered T=512 table reproduce at the pinned NumPy version | Error on real transformer activations; see [precision](results/precision.md) |
-| Real-activation precision | `python3 scripts/eval_precision.py --npz CAPTURE` and `make test-model` | Four pinned BERT heads across two models and every recorded scale row reproduce from committed inputs | Accuracy across architectures and downstream tasks |
+| Real-activation precision | `python3 scripts/eval_precision.py --npz CAPTURE` and `make test-model` | Four BERT and two SmolLM2 heads, their hashes, and every recorded M1 validation row reproduce from committed inputs | Accuracy across architectures and downstream tasks |
 | RTL precision | `make test-precision-rtl` | Every score at pinned seed-510 T=512 is bit-exact with the software 1x16 FP32 path, and its raw-score error matches | IEEE behavior outside the finite-normal values in that capture |
 | CPU baseline | `python3 scripts/bench_cpu.py [--all-cores]` | Observed NumPy throughput on fixed inputs, with host, BLAS, thread-pool, and warm-cache provenance, and the measured fraction of a stated theoretical peak | A CPU peak, and therefore not a Roofline ceiling; the peak it prints is a ceiling, never the baseline |
 | Scaler format cost | `./scripts/run_scaler_probe.sh` | Mapped Sky130 area of one score lane's scaling path per scale format, from RTL checked bit-exact against a double-precision reference | Routed area, timing, or energy of any format |
@@ -67,9 +67,9 @@ simulation checks rather than a formal proof.
 There is no formal verification. `sby` is listed as optional in `make doctor` and
 has not been used.
 
-Four pinned BERT heads across two model sizes have real-activation precision
-evidence. They support the 1x16 engineering default but do not establish
-accuracy across model architectures or downstream tasks.
+Four pinned BERT heads and two pinned SmolLM2 decoder heads have real-activation
+precision evidence. They support the current engineering decisions but do not
+establish accuracy across model architectures or downstream tasks.
 
 The physical check has routed named configurations, but frequency and power are
 claimable only when its setup, hold, slew, fanout, antenna, DRC, and LVS gates

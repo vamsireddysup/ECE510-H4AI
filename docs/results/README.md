@@ -9,7 +9,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | Record | Owns |
 | --- | --- |
 | [Performance and design space](performance.md) | Correctness, cycles, traffic, CPU baseline, array and replication comparisons |
-| [Attention precision](precision.md) | Synthetic and four pinned BERT activation sweeps |
+| [Attention precision](precision.md) | Synthetic plus six pinned BERT and SmolLM2 activation sweeps |
 | [Physical design](physical-design.md) | Complete-top routes, timing and floorplan sweeps, signoff, and critical-path attribution |
 | [Latest verification](latest-verification.md) | Most recent command run and tool versions |
 
@@ -35,11 +35,12 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Element-format study](data/element-format-study.json) | Fixed FP4, fixed INT4, and reconstruction-selected blocks under searched E4M3 scales |
 | [Accumulation-order study](data/accumulation-order-study.json) | Sequential and balanced-tree FP32 cross-block reductions |
 | [Exponent-bound study](data/exponent-bound-study.json) | Safe sign-and-exponent score and 4x4 tile skip coverage at five logit margins |
+| [Decoder validation study](data/decoder-validation-study.json) | All five M1 arithmetic probes on two pinned SmolLM2 decoder heads |
 | [Output format sweep](data/output-format-sweep.csv) | FP32, FP16, and BF16 output scores across the four pinned captures |
 | [CPU baseline](data/cpu-baseline.csv) | Reference-BLAS and OpenBLAS medians, throughput, and fraction of peak |
 | [Replicated-engine measurements](data/replicated-engine-measured.csv) | Measured engine-count cycles, beats, and model error |
 | [Replicated-engine area](data/replicated-engine-area.csv) | Mapped hierarchy and conservative replication projections |
-| [Pinned BERT captures and sweeps](precision.md#transformer-activation-captures) | Four `.npz` captures, their SHA-256 values, and four JSON records |
+| [Pinned activation captures and sweeps](precision.md#transformer-activation-captures) | Six BERT and SmolLM2 `.npz` captures, their SHA-256 values, and generated records |
 
 ## Generated output
 
