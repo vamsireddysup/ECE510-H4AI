@@ -6,6 +6,18 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-09-29 — Codex — M1 exponent-bound result
+
+**Done.** Added a conservative score upper bound that keeps operand signs and
+power-of-two magnitude intervals but performs no mantissa multiplication. At a
+four-logit margin it safely covers 28.83% of scores and 8.66% of 4x4 tiles on
+average, removing 0.049% and 0.00011% of probability mass. Top-1 and top-5 are
+unchanged, but tile coverage spans zero to 18.38% by capture and a row-maximum
+pass is assumed, so no RTL is selected.
+
+**Verification.** The model suite regenerates all 20 rows and asserts bound
+safety. Next is two modern decoder captures with `D_HEAD=64`.
+
 ### 2026-09-29 — Codex — M1 exponent-bound start
 
 **Started.** Confirmed clean synchronized `master` at `800c2eb`, read the

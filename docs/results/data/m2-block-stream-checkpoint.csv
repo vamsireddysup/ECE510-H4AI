@@ -1,0 +1,10 @@
+flow,revision,stage,metric,value,unit,status
+wire-free-yosys,bb85cde,mapped,cell_count,53137,cells,measured
+wire-free-yosys,bb85cde,mapped,cell_area,257922.368,um2,measured
+librelane-3.0.14,bb85cde,synthesis,instance_area,711946.5632,um2,measured intermediate
+librelane-3.0.14,bb85cde,pre-cts-sta,minimum_period,45.41,ns,measured intermediate
+librelane-3.0.14,bb85cde,pre-cts-sta,maximum_frequency,22.02,MHz,derived intermediate
+librelane-3.0.14,bb85cde,detailed-placement,stdcell_count,113610,cells,measured intermediate
+librelane-3.0.14,bb85cde,detailed-placement,instance_area,840606,um2,measured intermediate
+librelane-3.0.14,bb85cde,detailed-placement,core_utilization,26.4554,percent,measured intermediate
+librelane-3.0.14,bb85cde,detailed-placement,estimated_wire_length,3296870,um,measured intermediate

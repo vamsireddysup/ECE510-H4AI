@@ -54,8 +54,7 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: Codex, 2026-09-29. Implementing the M2 block-streaming
-accumulator.
+No agent active. Last handoff: Codex, 2026-09-29.
 
 ## Current state
 
@@ -64,9 +63,9 @@ Updated 2026-09-29 by Codex.
 - **Branch and commit.** `master`, pushed to
   `vamsireddysup/FP4-transformer-attention-accelerator`. CI and `make test`
   pass.
-- **Last integrated synthesis.** The 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=16,
-  one-lane/one-engine shift/add top maps to 82,388 cells and 257,530.74 um2 at
-  `4e877b4`; the same-flow generic baseline is 85,701 cells and 257,649.61 um2.
+- **Last integrated synthesis.** The M2 block-streaming 4x4 top at `bb85cde`
+  maps to 53,137 cells and 257,922.37 um2. The pre-M2 shift/add checkpoint was
+  82,388 cells and 257,530.74 um2 in the same wire-free flow.
 - **Active plan.** The research-backed roadmap, milestones M0 to M4, is in
   [docs/project-status.md](docs/project-status.md#roadmap-milestones-m0-to-m4).
   M0 and M1 are complete. The next milestone is **M2, P0 physical closure**.
@@ -126,8 +125,9 @@ Updated 2026-09-29 by Codex.
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step.** Map and route the block-streaming checkpoint, then replace
-  the FP32 scale path with the ADR 0008 searched-E4M3 scaler.
+- **Exact next step.** Resume the stopped LibreLane global-route checkpoint
+  described in the newest handoff, then replace the FP32 scale path with the
+  ADR 0008 searched-E4M3 scaler.
 
 ### Gotchas
 
@@ -189,6 +189,23 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M2 physical checkpoint stopped for handoff
+
+**Stopped cleanly at the owner's five-minute boundary.** Same-flow wire-free
+synthesis maps `bb85cde` to 53,137 cells and 257,922.37 um2: 29,251 fewer cells
+than pre-M2, with area 0.15% higher because the FP32 adder remains. A LibreLane
+3.0.14 run completed synthesis, global placement, repair, and detailed
+placement, then was interrupted during CTS. Pre-CTS minimum period is 45.41 ns;
+there is no routing or signoff result yet.
+
+**Resume.** Evidence is in ignored
+`build/librelane/m2-block-stream-grt-30ns/`. Re-run
+`SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-block-stream-grt-30ns 30 global-route`
+for a clean completed checkpoint. The values already obtained are committed in
+`docs/results/data/m2-block-stream-checkpoint.csv`. All RTL verification was
+completed and pushed in `bb85cde`; only documentation from this physical
+checkpoint is in the handoff commit.
 
 ### 2026-09-29 — Codex — M2 block streaming implemented
 
@@ -269,15 +286,3 @@ tau=4.
 **Verification.** The model suite checks both capture hashes and embedded model,
 revision, and tool versions, then regenerates all 44 rows. Next is the
 three-way multiplier cost probe and its ADR.
-
-### 2026-09-29 — Codex — M1 exponent-bound result
-
-**Done.** Added a conservative score upper bound that keeps operand signs and
-power-of-two magnitude intervals but performs no mantissa multiplication. At a
-four-logit margin it safely covers 28.83% of scores and 8.66% of 4x4 tiles on
-average, removing 0.049% and 0.00011% of probability mass. Top-1 and top-5 are
-unchanged, but tile coverage spans zero to 18.38% by capture and a row-maximum
-pass is assumed, so no RTL is selected.
-
-**Verification.** The model suite regenerates all 20 rows and asserts bound
-safety. Next is two modern decoder captures with `D_HEAD=64`.

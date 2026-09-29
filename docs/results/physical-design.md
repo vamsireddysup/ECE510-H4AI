@@ -1,5 +1,29 @@
 # P0.7 complete-top physical design
 
+## M2 block-streaming checkpoint, stopped at CTS
+
+Revision `bb85cde` was mapped in the same wire-free Yosys/Sky130 flow as the
+pre-M2 shift/add checkpoint. Cell count falls from 82,388 to 53,137, while
+mapped cell area changes from 257,530.74 to 257,922.37 um2 (+0.15%). The large
+cell-count reduction confirms that the tile-wide accumulator and its read mux
+were removed; the retained FP32 adder keeps total mapped area essentially flat.
+
+A LibreLane 3.0.14 global-route checkpoint was then started at 30 ns with an
+8 ns synthesis target and the 1,800 um square floorplan. The owner requested a
+handoff before the run could finish, so it was stopped during CTS. Synthesis,
+global placement, design repair, and detailed placement completed. Pre-CTS STA
+reported a 45.41 ns minimum period (22.02 MHz). Detailed placement contained
+113,610 standard cells, 840,606 um2 of instances at 26.46% core utilization,
+and 3,296,870 um estimated wire length. These are intermediate values: there is
+no global-route congestion, setup/hold signoff, DRC, LVS, antenna, or power
+result from this stopped run.
+
+The resumable evidence is under ignored
+`build/librelane/m2-block-stream-grt-30ns/`. Re-run
+`SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-block-stream-grt-30ns 30 global-route`
+to replace it cleanly. Reviewed checkpoint values are in
+[`data/m2-block-stream-checkpoint.csv`](data/m2-block-stream-checkpoint.csv).
+
 This record holds the first complete-top Sky130 routes and the constraint and
 floorplan attempts that led to them. These are **measured EDA outputs**, not
 silicon measurements. P0.7 established a routable floorplan and moved the
