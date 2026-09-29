@@ -207,6 +207,19 @@ integration suites all pass.
 
 **Next.** M0 step 1, as in "Current state".
 
+### 2026-09-29 — Codex — reconciled concurrent M0 result
+
+**Reconciled.** Commit `513c728` appeared while Codex held the lock. Claude's
+post-handoff process recorded the same completed M0 run Codex was reviewing.
+Codex discarded its duplicate uncommitted CSV and documentation edits, reviewed
+Claude's commit, and retained its single authoritative result. The protocol now
+requires a lock and `HEAD` recheck immediately before every commit, and assigns
+recording responsibility for handed-off background runs to the receiving agent.
+
+**Verified.** The M0 result matches the final LibreLane metrics: clean detailed
+route, Magic and KLayout DRC, LVS, and antenna checks; setup WNS -2.0313 ns,
+hold WNS -0.0605 ns, 5,061 slew violations, and 145 capacitance violations.
+M0 is complete and M1 preprocessing is next.
 
 ## Related
 

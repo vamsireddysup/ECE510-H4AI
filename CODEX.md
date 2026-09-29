@@ -83,7 +83,8 @@ Updated 2026-09-29 by Codex.
   ciel 2.6.1, Sky130 `8afc8346a57fe1ab7934ba5a6056ea8b43078e71` in `~/.ciel`,
   image `ghcr.io/librelane/librelane:3.0.14`). Its smoke test passes. The old
   OpenLane 1.1.1 image stays for reproducing recorded results.
-- **Uncommitted.** Nothing.
+- **Uncommitted.** The multiplier probe is ready to commit; its reviewed result
+  and ADR are the next separate step.
 - **M1 scale-format decision is made.** [ADR 0008](docs/adr/0008-e4m3-block-scales.md)
   selects searched E4M3 block scales: better than FP32 on every softmax metric
   across all four captures **and** 4.89x smaller in the mapped scaling path,
@@ -115,9 +116,7 @@ Updated 2026-09-29 by Codex.
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step.** M1 item 6 under "Picking this up": synthesize the current
-  multiplier, exact E2M1 shift-add, and retained product-ROM alternatives, then
-  close the choice in an ADR.
+- **Exact next step.** Record the multiplier probe result and close M1 in an ADR.
 
 ### Gotchas
 
@@ -179,6 +178,17 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M1 multiplier probe implementation
+
+**Done.** Added an isolated three-way FP4 multiplier probe and runner. Yosys SAT
+proves the E2M1 shift/add result equals the current decode/multiply result for
+all 256 input pairs. Same-library mapping measures 872.09 um2 for the current
+integer path, 381.62 um2 for shift/add, and 228.97 um2 for the archived FP32
+product ROM. The ROM has a different output and accumulation contract.
+
+**Verification.** The probe reruns successfully with Yosys 0.44 and Sky130 HD,
+and Verilator lint passes. Next is the reviewed result record and decision ADR.
 
 ### 2026-09-29 — Codex — M1 decoder validation
 
@@ -255,17 +265,3 @@ four capture hashes. Next is per-block FP4 versus INT4.
 handoff and rules, and claimed the lock. The atomic task is K channel-mean
 centering and Hadamard rotation across all four pinned captures, behind a new
 precision-study flag that does not change existing record shapes.
-
-### 2026-09-29 — Codex — reconciled concurrent M0 result
-
-**Reconciled.** Commit `513c728` appeared while Codex held the lock. Claude's
-post-handoff process recorded the same completed M0 run Codex was reviewing.
-Codex discarded its duplicate uncommitted CSV and documentation edits, reviewed
-Claude's commit, and retained its single authoritative result. The protocol now
-requires a lock and `HEAD` recheck immediately before every commit, and assigns
-recording responsibility for handed-off background runs to the receiving agent.
-
-**Verified.** The M0 result matches the final LibreLane metrics: clean detailed
-route, Magic and KLayout DRC, LVS, and antenna checks; setup WNS -2.0313 ns,
-hold WNS -0.0605 ns, 5,061 slew violations, and 145 capacitance violations.
-M0 is complete and M1 preprocessing is next.
