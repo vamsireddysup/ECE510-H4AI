@@ -54,8 +54,8 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: Codex, 2026-09-29. Claude stopped on 2026-09-29 on the owner's
-"credits are getting over"; Codex is following "Exact next step" below.
+Active agent: none. Codex completed the repository review and M0 reconciliation
+on 2026-09-29. The next agent starts with M1 preprocessing below.
 
 ## Current state
 
@@ -173,6 +173,18 @@ recording responsibility for handed-off background runs to the receiving agent.
 route, Magic and KLayout DRC, LVS, and antenna checks; setup WNS -2.0313 ns,
 hold WNS -0.0605 ns, 5,061 slew violations, and 145 capacitance violations.
 M0 is complete and M1 preprocessing is next.
+
+### 2026-09-29 — Codex — repository review handoff
+
+**Stopped cleanly.** Read the tracked repository, fetched and compared the
+renamed GitHub remote, reviewed every commit since the prior Codex handoff, and
+verified the active architecture, model, flow, results, and Claude handoff.
+`make test` passes: 38 documentation files, eleven lint parameter sets, 29 model
+tests, and both small integration depths. Local and remote `master` are aligned.
+
+**Next.** M1 item 1: add K channel-mean centering and Hadamard rotation behind
+new `scripts/eval_precision.py` flags, measure all four pinned captures, update
+the precision record, and include the handoff in the verified commit.
 
 ### 2026-09-29 — Codex — session start
 
