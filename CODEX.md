@@ -129,7 +129,14 @@ Updated 2026-09-29 by Codex.
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Prior art is reviewed for the two nearest papers.**
+- **The prior-art gate is satisfied.** All nine cited papers have been read in
+  full; three did not match their abstracts. Only three report synthesized
+  hardware, none in an open PDK. `docs/related-work.md` states plainly what this
+  project can and cannot claim, so results may now be positioned against it.
+  Per-block FP4/INT4 is **not** a novelty track: MixFP4 publishes the mechanism,
+  the scale-sign-bit encoding, and the tensor-core area.
+- **Superseded note, kept for the record.** The earlier entry below said only
+  the two nearest papers were reviewed.
   [docs/related-work.md](docs/related-work.md) now carries a full-text review
   and corrects three claims the abstract-level version got wrong. Net effect:
   per-block FP4/INT4 is **not** a strong novelty track, since MixFP4 already
@@ -203,6 +210,33 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5) — prior-art gate satisfied; E4M3 exactness
+
+**Done.** Finished the full-text review of all nine cited papers, extracting
+each with `pdftotext` locally because the fetcher cannot decompress arXiv PDFs.
+Three of nine did not match their abstracts, and two of those corrections
+narrowed the project's claims. `docs/related-work.md` now records the
+corrections, what the project can claim, and what it must not.
+
+**Found while planning the E4M3 RTL, and worth more than the review.** E4M3
+block scales **apply exactly**. A Bs=16 accumulator is 13 bits, so at most 12
+significant bits; two E4M3 significands add 4 bits each; 20 bits fits FP32's
+24. Measured: 0 of 60,000 random triples need rounding with E4M3 against 59,990
+with FP32, which the current design rounds twice. The bound is `ACC_W <= 17`,
+met at every supported block size and **not** met by P1's 43-bit FP8
+accumulator. This is a third independent argument for ADR 0008, it removes
+rounding logic from the scaler, and it makes the software reference a plain
+double product rounded once. Recorded in ADR 0008 and the precision record.
+
+**Consequence for the RTL.** E4M3 changes score bits, because the new path is
+exact where the old rounded twice. The protocol version 7 bump is therefore a
+numerical bump too, and the model and testbench must adopt the exact reference
+together with the RTL.
+
+**In flight.** A full signoff run, `m2-signoff-40ns` at 40 ns with timing repair
+enabled and setup and hold margins set. Check
+`build/librelane/m2-signoff-40ns/pnr.log` and `runs/pnr/final/metrics.json`.
 
 ### 2026-09-29 — Claude (Opus 5) — the block-streaming top routes, zero congestion
 

@@ -188,7 +188,8 @@ format-selectable multiplication including the wide shared and packed options.
 stream. 3c, a layer-selected sparsity policy; fixed exponent-bound skipping is
 not carried forward because the decoder validation found no skippable 4x4 tile.
 
-**M4, integration.** Route the best combined configuration, including the
+**M4, integration.** The prior-art review it required is already done; see
+[related work](related-work.md). Remaining: Route the best combined configuration, including the
 eight-engine design point from ADR 0007 if the area allows, finish the related
 work review, and optionally compare `sky130_fd_sc_hs`.
 
