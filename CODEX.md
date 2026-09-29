@@ -84,8 +84,13 @@ Updated 2026-09-29 by Claude (Opus 5.5).
   with a quarter of the scale storage. E8M0 is 13.83x smaller but costs 2.34
   points of top-1, so it is rejected and the reopening condition is recorded.
   The RTL change lands with the M2 accumulator rework, as protocol version 7.
-- **Exact next step, for Codex.** Finish the M0 gate, then start M1's remaining
-  items. Both are spelled out under "Picking this up" below.
+- **M0 is complete.** The gate run finished after the handoff was written:
+  LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
+  LVS, and **zero antenna violations**, then stopped correctly at the hold
+  checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
+  in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
+  usable: no switching activity was annotated.
+- **Exact next step, for Codex.** M1, item 1 under "Picking this up" below.
 
 ### Gotchas
 
@@ -103,31 +108,14 @@ Updated 2026-09-29 by Claude (Opus 5.5).
 
 ## Picking this up
 
-### 1. Finish the M0 gate, which was still running
+### 1. M0 is done; start at M1
 
-A `D_HEAD=4`, 900 um, `full` LibreLane run was in detailed routing when Claude
-stopped. It writes outside the repository, through the space-free symlink:
+The gate run finished and is recorded. The toolchain takes this design RTL to
+GDS, and LibreLane's detailed-route antenna repair removed the antenna
+violations that every OpenLane 1.1.1 route carried. Timing was not the gate and
+was not met, at a toy `D_HEAD=4`.
 
-```bash
-L=~/.local/share/fp4-accel/repo/build/librelane/m0-gate-d4
-tail -2 "$L/pnr.log"; ls "$L/runs/pnr" | grep -E '^[0-9]' | tail -2
-docker ps            # empty means it is no longer running
-```
-
-If it finished, the gate passes when `$L/runs/pnr/final/gds/` holds a GDS and
-`$L/runs/pnr/*checker*/` reports no DRC, LVS, or antenna violations. Record the
-result in `docs/results/physical-design.md` as the M0 gate, with the LibreLane
-and PDK versions from `$L/manifest.txt`, then commit. If it failed, record why
-with the numbers; do not widen scope to work around it.
-
-If it is gone with no result, re-run it:
-
-```bash
-D_HEAD=4 DIE_EDGE=900 SYNTH_CLOCK_PERIOD=8 \
-  ./scripts/run_librelane.sh m0-gate-d4 20 full
-```
-
-### 2. Then M1, in this order
+### 2. M1, in this order
 
 The scale-format question is closed by [ADR 0008](docs/adr/0008-e4m3-block-scales.md).
 What is left, all in `scripts/eval_precision.py` behind new flags, following
@@ -171,6 +159,26 @@ Newest first. Keep the last eight entries here and move older ones to
 at `0ab7170`, confirmed a clean tree, read the shared handoff and agent rules,
 and claimed the lock. The next action is to inspect and record the in-flight M0
 LibreLane gate exactly as Claude specified.
+
+### 2026-09-29 — Claude (Opus 5) — M0 gate result, after the session-end entry
+
+**Done.** The M0 gate LibreLane run completed while the handoff was being
+written, so its result is recorded rather than left for Codex:
+`docs/results/physical-design.md` and
+`docs/results/data/m0-gate-librelane-metrics.csv`. RTL to GDS at `D_HEAD=4`,
+155,927 instances on a 0.81 mm² die, zero detailed-route, Magic, KLayout, LVS,
+and **antenna** violations; stopped at the hold checker with setup -2.0313 ns
+and hold -0.0605 ns at the slow corner, plus 5,061 slew and 145 capacitance
+violations.
+
+**Why it matters.** Zero antenna violations, against 332 pins and 281 nets on
+the best OpenLane 1.1.1 route, where 60% of the slew violators were the repair
+diodes themselves. The interaction that made the old dynamic power unusable is
+gone. The 18.6 mW the run reports is still not a usable power number: nothing
+annotated switching activity. M2's gate-level simulation remains the route to
+the first valid one.
+
+**Verified.** `make test` passes; tree clean.
 
 ### 2026-09-29 — Claude (Opus 5) — session end, credits
 

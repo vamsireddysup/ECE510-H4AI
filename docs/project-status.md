@@ -123,10 +123,11 @@ commit sized for one agent session; each milestone ends with a results record,
 an ADR where a decision is made, a handoff entry in the root `CODEX.md`, and my
 review. The first session after a milestone re-runs its gate before new work.
 
-**M0, housekeeping and toolchain. Nearly done.** The floorplan result is
-recorded, the old run trees are deleted, LibreLane 3.0.14 is installed and its
-smoke test passes, and the flow is ported. The remaining step is the gate run
-itself, a `D_HEAD=4` configuration from RTL to clean GDS.
+**M0, housekeeping and toolchain. Complete.** The floorplan result is recorded,
+the old run trees are deleted, LibreLane 3.0.14 is installed, and the flow is
+ported. The gate run took a `D_HEAD=4` configuration from RTL to GDS with zero
+DRC, LVS, and antenna violations; see
+[the M0 gate result](results/physical-design.md).
 
 Original scope: Record the P0.7b floorplan result, then
 delete the old `build/physical` trees. Install LibreLane 3.x with its `ciel`

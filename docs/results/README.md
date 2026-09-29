@@ -22,6 +22,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Block-scale lane sweep](data/block-scale-lane-sweep.csv) | Bs=32 array and lane measurements |
 | [Bs=16 default simulation](data/bs16-default-simulation.csv) | Current protocol cycles, traffic, utilization, and RTL precision |
 | [Physical constraint sweep](data/physical-constraint-sweep.csv) | Floorplan, timing, and signoff outcomes |
+| [M0 gate metrics](data/m0-gate-librelane-metrics.csv) | LibreLane RTL-to-GDS signoff metrics for the `D_HEAD=4` toolchain gate |
 | [Floorplan sweep](data/floorplan-sweep.csv) | P0.7b F4 die and density outcomes, placed area, and congestion by stage |
 | [Frequency attribution](data/frequency-attribution.csv) | P0.7b F3 mapped minimum period and area after each RTL change |
 | [Synthesis sweep](data/synthesis-sweep.csv) | P0.7b F2 cells, area, and typical and slow minimum period by strategy and target |

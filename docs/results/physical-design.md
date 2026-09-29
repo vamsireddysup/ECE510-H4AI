@@ -516,6 +516,61 @@ structural fix, a block-streaming accumulator that stops holding every block's
 partial sums, is roadmap milestone M2, and the floorplan sweep moves there with
 densities down to 0.25. F5 and F6 did not start.
 
+## M0 gate: the LibreLane toolchain, RTL to GDS
+
+The roadmap's M0 gate asks only whether the new toolchain works end to end, so
+it uses a deliberately small configuration. This is a **measured** LibreLane
+result at revision `4a740f6`: `qkt_chiplet_top` at 4x4, **`D_HEAD=4`**,
+`T_MAX=16`, Bs=16, one score lane, `ENGINES=1`, on a 900 um die at 45% target
+density, synthesized at 8 ns with `DELAY 0` and placed and routed at 20 ns.
+Tools are LibreLane 3.0.14, image
+`ghcr.io/librelane/librelane:3.0.14`, ciel 2.6.1, and Sky130
+`8afc8346a57fe1ab7934ba5a6056ea8b43078e71`.
+
+**`D_HEAD=4` is a toy depth.** It exists to exercise the flow, not to describe
+the design, whose workload depth is 64. Nothing here transfers to the real
+configuration except the toolchain's behavior.
+
+| Item | Result |
+| --- | ---: |
+| Instances | 155,927 |
+| Die area | 0.81 mm² |
+| Final utilization | 53.13% |
+| Routed wire length | 1,438,721 um |
+| Detailed-route violations | 0 |
+| Magic DRC | 0 |
+| KLayout DRC | 0 |
+| LVS errors | 0 |
+| **Antenna violations** | **0** |
+| Max-slew violations | 5,061 |
+| Max-capacitance violations | 145 |
+| Max-fanout violations | 0 |
+| Worst setup slack, slow corner | -2.0313 ns |
+| Worst hold slack, slow corner | -0.0605 ns |
+
+The flow reached GDS and wrote every signoff view. It then stopped at the hold
+checker, which is the correct behavior: the design does not meet timing at
+20 ns at the slow corner.
+
+**What this settles.** The toolchain works, and the antenna problem is gone.
+Every OpenLane 1.1.1 route on record carried antenna violations, 332 pins and
+281 nets on the best one, and 60% of that run's slew violators were the antenna
+diodes inserted to fix them. LibreLane repairs antennas during detailed routing
+and reports **zero antenna violations** here, with DRC and LVS clean. The F4
+blocker was congestion, not antennas, but the antenna and slew interaction that
+made the old dynamic power unusable is no longer in the way.
+
+**What this does not settle.** Setup misses by 2.03 ns and hold by 0.06 ns at
+the slow corner, with timing repair at its defaults and no margins set; 5,061
+slew and 145 capacitance violations remain. The run also reports a total power
+of 18.6 mW, and **that number is not usable**: nothing annotated switching
+activity, so it rests on the tool's default toggle assumption. The project's
+first valid power number still requires the gate-level simulation planned for
+milestone M2, at `D_HEAD=64`.
+
+The reviewed metrics are in
+[`data/m0-gate-librelane-metrics.csv`](data/m0-gate-librelane-metrics.csv).
+
 ## Related
 
 - [Project status](../project-status.md)
