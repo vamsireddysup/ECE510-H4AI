@@ -1,5 +1,16 @@
 # Latest verification
 
+## September 29 M2 block-streaming accumulator
+
+The active engine now ping-pongs two single-block exact accumulators and streams
+each completed block through one set of score lanes. Sequential FP32 block
+addition preserves the reference order. All eleven lint parameter sets pass;
+the directed and T=64/128/512 suites remain bit-exact. At T=512, 4x4 v5 takes
+1,050,690 cycles. The remeasured 8x8 L2 and 16x16 L4 points take 526,458 and
+264,474 cycles because each of four blocks now consumes a scaler pass. The
+cycle model reproduces all 32 recorded configurations exactly. Synthesis and
+routing comparison remain the next M2 gate.
+
 ## September 29 FP4 multiplier probe
 
 At revision `4b2caf5`, Yosys SAT proves the exact E2M1 shift/add product equals

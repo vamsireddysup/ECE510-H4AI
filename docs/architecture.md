@@ -11,7 +11,7 @@ multiplication by V stay on the host.
 
 ## Blocks
 
-The active design is one top plus six arithmetic and control submodules. Everything else in the
+The active design is one top plus five arithmetic and control submodules. Everything else in the
 original datapath is in
 [`archive/superseded-rtl/`](../archive/superseded-rtl/README.md).
 
@@ -22,7 +22,6 @@ original datapath is in
 | `axi4_lite_ctrl` | [`rtl/interfaces/axi4_lite_ctrl.sv`](../rtl/interfaces/axi4_lite_ctrl.sv) | Control and profiling registers |
 | `score_scaler` | [`rtl/core/score_scaler.sv`](../rtl/core/score_scaler.sv) | Parameterized score-scaling lanes and their six-cycle metadata pipeline |
 | `fp32_mul` | [`rtl/core/fp32_mul.sv`](../rtl/core/fp32_mul.sv) | Three-stage FP32 multiplier, instantiated twice per scaler lane |
-| `score_reducer` | [`rtl/core/score_reducer.sv`](../rtl/core/score_reducer.sv) | Pipelined combination of the scaled block scores |
 | `fp32_add` | [`rtl/core/fp32_add.sv`](../rtl/core/fp32_add.sv) | Three-stage FP32 cross-block adder |
 
 ## Dataflow
@@ -52,14 +51,16 @@ flowchart LR
 Each FP4 code is E2M1 with magnitudes 0, 0.5, 1, 1.5, 2, 3, 4, 6 and a sign bit.
 Both zero encodings decode to zero. The decode returns the magnitude in half
 units, so the integer set is 0, 1, 2, 3, 4, 6, 8, 12, and the product of two
-operands is exact in quarter units. Each reduction block has its own accumulator.
+operands is exact in quarter units. Two ping-pong accumulators each hold one
+completed reduction block.
 With the default `SCALE_BLOCK_SIZE=16`, the worst-case block sum is
 `144 * 16 = 2304`, so 13 signed bits hold it exactly. The parameterized width is
 derived from the block depth, including a partial final block.
 
-Every block accumulator converts to FP32 and passes through its own pair of Q
-and K scale multipliers. `score_reducer` then uses one three-stage FP32 add for
-the default two blocks. The custom multiplier and adder round finite normal
+As compute starts the next block, the completed block streams through the
+quarter-unit conversion and Q/K scale pipeline. Block zero seeds a partial
+score array; later blocks pass through one three-stage FP32 adder in sequence.
+The custom multiplier and adder round finite normal
 results to nearest even, which makes the complete default path bit-exact with
 the NumPy FP32 model on the pinned T=512 workload. Gradual underflow and every
 IEEE exception and signed-zero rule are not implemented.
@@ -68,7 +69,7 @@ IEEE exception and signed-zero rule are not implemented.
 
 Four independent sequencers move output tiles through load, compute, scale, and
 output. Two Q banks let the input stream fill the next tile row while the current
-row computes. Two K banks, two exact-accumulator banks, and two FP32 score banks
+row computes. Two K banks, two block-local accumulator banks, and two FP32 score banks
 form ready/valid boundaries between the stages. A bank changes owner only after
 its consumer finishes, so input and output backpressure cannot overwrite live
 data.
@@ -80,14 +81,15 @@ load the K cache before Q and bypass K ping-pong. Every version preserves output
 tile order.
 
 `score_scaler` owns the exact-quarter-unit conversion and the two chained FP32
-multipliers. The top instantiates one scaler lane per block for every concurrent
-score lane, so blocks scale in parallel. `SCORE_LANES` controls concurrent
-scores; its default is one. `score_reducer` combines corresponding block lanes.
+multipliers. `SCORE_LANES` controls concurrent scores within the block being
+drained; its default is one. Blocks stream in reduction order, and the FP32
+adder updates the partial score before the same score arrives from the next
+block. This removes the tile-wide block accumulator and its dynamic read mux.
 
 ## Cycle cost model
 
 [`scripts/cycle_model.py`](../scripts/cycle_model.py) derives the no-stall command
-count and reproduces all 24 measured configurations exactly. For tile size `B`,
+count and reproduces all 32 measured configurations exactly. For tile size `B`,
 depth `D`, block size `Bs`, score lanes `L`, and block count
 `C=ceil(D/Bs)`, concurrent stage service times are:
 
@@ -95,7 +97,7 @@ depth `D`, block size `Bs`, score lanes `L`, and block count
 | --- | ---: | --- |
 | `LOAD_K`, K reload | `ceil(B*D/16)` | 16 FP4 codes per accepted input beat |
 | `CALC` | `D` | the first products initialize the accumulator bank, followed by `D-1` updates |
-| `SCALING` | `ceil(B^2/L) + 7 + 3*(C-1)` | `L` score launches per cycle, scale prefetch, multiplier drain, and cross-block-add drain |
+| `SCALING` | `C*ceil(B^2/L)` | every score in every block launches once; pipeline latency overlaps launches |
 | `OUTPUT` | `ceil(B^2/2)` | two FP32 scores per accepted output beat |
 
 For `N=(T/B)^2` complete tiles, `Qbeats=ceil(B*D/16)`, and continuously ready
@@ -133,11 +135,11 @@ T=512 and version 4 transfers 5,120. Version 4 is 2,032 cycles slower because it
 host bytes; P0.5 must decide whether that traffic reduction justifies physical
 storage.
 
-The Bs=16 default was measured after the scale-prefetch change with the same
-Verilator version. Version 5 takes 1,050,696 cycles and 266,240 input beats at
-4x4/T=512; version 6 takes 1,052,728 cycles and 6,144 input beats. The 8x8 L2
-and 16x16 L4 defaults take 264,336 and 133,392 cycles. The model reproduces all
-of these counts exactly. Versions 3 and 4 remain the measured Bs=32
+The Bs=16 default was remeasured after block streaming with the same Verilator
+version. Version 5 takes 1,050,690 cycles and 266,240 input beats at
+4x4/T=512; version 6 takes 1,052,722 cycles and 6,144 input beats. The 8x8 L2
+and 16x16 L4 defaults take 526,458 and 264,474 cycles. The model reproduces all
+32 counts exactly. Versions 3 and 4 remain the measured Bs=32
 compatibility points in the table above.
 
 ## Binding stages after overlap
@@ -149,10 +151,11 @@ compatibility points in the table above.
 | 16x16 | 64 | 64 | 266 | 128 | `SCALING`, 266 | 272,384 | 1,344 | 273,728 |
 
 Those rows retain Bs=32 and one score lane so the P0.3 comparison stays
-reproducible. At the Bs=16 default, the selected lane counts give scaling
-service of 32 cycles for 4x4 L1, 48 for 8x8 L2, and 80 for 16x16 L4. CALC binds
-the first two and OUTPUT binds 16x16. Their measured T=512 totals are 1,050,696,
-264,336, and 133,392 cycles.
+reproducible as pre-M2 measurements. At the Bs=16 default, block streaming gives
+scaling service of 64 cycles for 4x4 L1, 128 for 8x8 L2, and 256 for 16x16 L4.
+CALC ties scaling at 4x4; scaling binds both wider arrays. Their measured T=512
+totals are 1,050,690, 526,458, and 264,474 cycles. Wider arrays therefore need
+proportionally more within-block score lanes before routing them is useful.
 
 At 4x4 the dot array runs for 1,048,576 of 1,049,666 command cycles, so measured
 array-active is 99.896%. The 1,090 remaining cycles are scale loading,

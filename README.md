@@ -48,9 +48,9 @@ rather than quoting a speedup.
 
 | Result | Human-scale value | Evidence |
 | --- | --- | --- |
-| 4x4, one score lane, T=512 | 1,050,696 cycles; **32.05 ms at 32.9 MHz** | Projected latency from measured RTL simulation and a routed 30.5 ns setup bound; hold fails |
-| 16x16, four score lanes, T=512 | 133,392 cycles; **4.07 ms** | Projected from RTL simulation and the 4x4 period; 16x16 route is blocked |
-| Eight replicated 4x4 engines with K reuse | 135,280 cycles; **4.13 ms**, 96.9% of the output-port floor | Measured RTL simulation; latency projected from the 4x4 period, and the replicated top has no synthesis or route |
+| 4x4, one score lane, T=512 | 1,050,690 cycles; **32.05 ms at 32.9 MHz** | Projected latency from measured RTL simulation and a routed 30.5 ns setup bound; hold fails |
+| 16x16, four score lanes, T=512 | 264,474 cycles; **8.07 ms** | Projected from block-streaming RTL simulation and the 4x4 period; 16x16 route is blocked |
+| Eight replicated 4x4 engines with K reuse | 135,274 cycles; **4.13 ms**, 96.9% of the output-port floor | Measured RTL simulation; latency projected from the 4x4 period, and the replicated top has no synthesis or route |
 | CPU, same T=512 problem | **0.293 ms** one thread, **0.142 ms** four cores with OpenBLAS | Measured; 81.29% of the single-core AVX-512 peak |
 | Selected `Bs=16` precision | **9.70%** relative Frobenius error on pinned real BERT activations | Measured software model |
 | Routed 4x4 physical result | **4.84 mm²** die; DRC and LVS clean | Measured EDA output; hold is -1.2765 ns and power is invalid |

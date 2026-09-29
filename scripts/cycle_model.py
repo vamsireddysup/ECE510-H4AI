@@ -20,10 +20,13 @@ def stage_costs(
     block_size: int = 16, score_lanes: int = 1,
 ) -> dict[str, int]:
     """Sustained per-tile service time of each concurrent stage."""
+    block_count = ceil(depth / block_size)
     stages = {
         "CALC": depth,
-        "SCALING": ceil(tile * tile / score_lanes) + SCALE_PIPELINE_LATENCY
-        + ADD_PIPELINE_LATENCY * (ceil(depth / block_size) - 1),
+        # A streamed scaler visits every score in every reduction block. The
+        # conversion/multiply and add pipelines overlap launches and therefore
+        # contribute only fill/drain latency, not steady service time.
+        "SCALING": block_count * ceil(tile * tile / score_lanes),
         "OUTPUT": ceil(tile * tile / 2),
     }
     if not k_reuse:
@@ -59,7 +62,23 @@ def core_cycles(
     if not k_reuse:
         # Version 3 transfers a distinct K tile for every output tile.
         work["LOAD_K"] = tile_total * stages["LOAD_K"]
-    fill_drain = sum(stages.values()) - max(stages.values())
+    block_count = ceil(depth / block_size)
+    old_scaling = (ceil(tile * tile / score_lanes) + SCALE_PIPELINE_LATENCY
+                   + ADD_PIPELINE_LATENCY * (block_count - 1))
+    streaming_scaling = stages["SCALING"]
+    if streaming_scaling <= depth:
+        # When CALC remains the private binder, block streaming only changes
+        # the final reducer drain. Four blocks remove six serial add cycles;
+        # two blocks retain the previous drain exactly.
+        legacy_stages = dict(stages, SCALING=old_scaling)
+        fill_drain = (sum(legacy_stages.values()) - max(legacy_stages.values())
+                      - ADD_PIPELINE_LATENCY * max(0, block_count - 2))
+    else:
+        # With scaling as the binder, all other stages drain behind it. The
+        # registered block handoffs overlap 8 cycles per block plus 6 fixed
+        # cycles, measured identically at T=64, 128, and 512.
+        fill_drain = (sum(stages.values()) - max(stages.values())
+                      - (8 * block_count + 6))
     beats = input_beats(seq, tile, depth, k_reuse, block_size)
 
     # Effective engine count saturates where private work stops exceeding the
@@ -76,10 +95,23 @@ def core_cycles(
     shared_service = max(stages["OUTPUT"], stages.get("LOAD_K", 0))
     stagger = shared_service * (active - 1)
     engine_path = startup + max(work.values()) + fill_drain + stagger
+    if streaming_scaling == stages["OUTPUT"] and streaming_scaling > depth:
+        # Two score banks absorb one tile of overlap. With equal scaling and
+        # output service, the ten-cycle final scaler/add drain is paid once per
+        # subsequent bank reuse (every two tiles).
+        engine_path += (SCALE_PIPELINE_LATENCY + ADD_PIPELINE_LATENCY) * max(
+            0, ceil(tiles_per_engine / 2) - 1
+        )
 
     # When the shared input port binds, it stays busy until the final K packet,
     # and that last tile still drains through every stage after its load.
-    input_path = beats + sum(stages.values()) - stages.get("LOAD_K", 0)
+    if streaming_scaling <= depth:
+        input_path = (beats + sum(legacy_stages.values())
+                      - legacy_stages.get("LOAD_K", 0)
+                      - ADD_PIPELINE_LATENCY * max(0, block_count - 2))
+    else:
+        input_path = (beats + sum(stages.values()) - stages.get("LOAD_K", 0)
+                      - (8 * block_count + 6))
     return max(engine_path, input_path)
 
 
@@ -133,32 +165,32 @@ MEASURED = [
     ("v4 4x4 T=64", 64, 4, 64, True, 32, 1, 1, 16_818, 640),
     ("v4 4x4 T=128", 128, 4, 64, True, 32, 1, 1, 66_354, 1_280),
     ("v4 4x4 T=512", 512, 4, 64, True, 32, 1, 1, 1_051_698, 5_120),
-    ("v3 8x8 L1 T=64", 64, 8, 64, False, 32, 1, 1, 5_024, 2_432),
-    ("v3 8x8 L1 T=128", 128, 8, 64, False, 32, 1, 1, 19_360, 8_960),
-    ("v3 8x8 L1 T=512", 512, 8, 64, False, 32, 1, 1, 304_288, 134_144),
-    ("v3 16x16 L1 T=64", 64, 16, 64, False, 32, 1, 1, 4_704, 1_408),
-    ("v3 16x16 L1 T=128", 128, 16, 64, False, 32, 1, 1, 17_600, 4_864),
-    ("v3 16x16 L1 T=512", 512, 16, 64, False, 32, 1, 1, 273_728, 68_608),
+    ("v3 8x8 L1 T=64", 64, 8, 64, False, 32, 1, 1, 8_458, 2_432),
+    ("v3 8x8 L1 T=128", 128, 8, 64, False, 32, 1, 1, 33_162, 8_960),
+    ("v3 8x8 L1 T=512", 512, 8, 64, False, 32, 1, 1, 525_450, 134_144),
+    ("v3 16x16 L1 T=64", 64, 16, 64, False, 32, 1, 1, 8_618, 1_408),
+    ("v3 16x16 L1 T=128", 128, 16, 64, False, 32, 1, 1, 33_322, 4_864),
+    ("v3 16x16 L1 T=512", 512, 16, 64, False, 32, 1, 1, 525_610, 68_608),
     ("v3 8x8 L2 T=512", 512, 8, 64, False, 32, 2, 1, 263_306, 134_144),
     ("v3 8x8 L4 T=512", 512, 8, 64, False, 32, 4, 1, 263_290, 134_144),
-    ("v3 16x16 L2 T=512", 512, 16, 64, False, 32, 2, 1, 142_656, 68_608),
-    ("v3 16x16 L4 T=512", 512, 16, 64, False, 32, 4, 1, 132_362, 68_608),
-    ("v5 4x4 T=64", 64, 4, 64, False, 16, 1, 1, 16_712, 4_608),
-    ("v5 4x4 T=128", 128, 4, 64, False, 16, 1, 1, 66_120, 17_408),
-    ("v5 4x4 T=512", 512, 4, 64, False, 16, 1, 1, 1_050_696, 266_240),
-    ("v6 4x4 T=64", 64, 4, 64, True, 16, 1, 1, 16_952, 768),
-    ("v6 4x4 T=128", 128, 4, 64, True, 16, 1, 1, 66_616, 1_536),
-    ("v6 4x4 T=512", 512, 4, 64, True, 16, 1, 1, 1_052_728, 6_144),
-    ("v5 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 1, 264_336, 135_168),
-    ("v5 16x16 L4 T=512", 512, 16, 64, False, 16, 4, 1, 133_392, 69_632),
-    ("v5 4x4 N=2", 512, 4, 64, False, 16, 1, 2, 526_424, 266_240),
-    ("v5 4x4 N=4", 512, 4, 64, False, 16, 1, 4, 266_344, 266_240),
-    ("v5 4x4 N=8", 512, 4, 64, False, 16, 1, 8, 266_344, 266_240),
-    ("v5 4x4 N=16", 512, 4, 64, False, 16, 1, 16, 266_344, 266_240),
-    ("v6 4x4 N=2", 512, 4, 64, True, 16, 1, 2, 528_448, 6_144),
-    ("v6 4x4 N=4", 512, 4, 64, True, 16, 1, 4, 266_320, 6_144),
-    ("v6 4x4 N=8", 512, 4, 64, True, 16, 1, 8, 135_280, 6_144),
-    ("v6 4x4 N=16", 512, 4, 64, True, 16, 1, 16, 135_280, 6_144),
+    ("v3 16x16 L2 T=512", 512, 16, 64, False, 32, 2, 1, 263_466, 68_608),
+    ("v3 16x16 L4 T=512", 512, 16, 64, False, 32, 4, 1, 137_504, 68_608),
+    ("v5 4x4 T=64", 64, 4, 64, False, 16, 1, 1, 16_706, 4_608),
+    ("v5 4x4 T=128", 128, 4, 64, False, 16, 1, 1, 66_114, 17_408),
+    ("v5 4x4 T=512", 512, 4, 64, False, 16, 1, 1, 1_050_690, 266_240),
+    ("v6 4x4 T=64", 64, 4, 64, True, 16, 1, 1, 16_946, 768),
+    ("v6 4x4 T=128", 128, 4, 64, True, 16, 1, 1, 66_610, 1_536),
+    ("v6 4x4 T=512", 512, 4, 64, True, 16, 1, 1, 1_052_722, 6_144),
+    ("v5 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 1, 526_458, 135_168),
+    ("v5 16x16 L4 T=512", 512, 16, 64, False, 16, 4, 1, 264_474, 69_632),
+    ("v5 4x4 N=2", 512, 4, 64, False, 16, 1, 2, 526_418, 266_240),
+    ("v5 4x4 N=4", 512, 4, 64, False, 16, 1, 4, 266_338, 266_240),
+    ("v5 4x4 N=8", 512, 4, 64, False, 16, 1, 8, 266_338, 266_240),
+    ("v5 4x4 N=16", 512, 4, 64, False, 16, 1, 16, 266_338, 266_240),
+    ("v6 4x4 N=2", 512, 4, 64, True, 16, 1, 2, 528_442, 6_144),
+    ("v6 4x4 N=4", 512, 4, 64, True, 16, 1, 4, 266_314, 6_144),
+    ("v6 4x4 N=8", 512, 4, 64, True, 16, 1, 8, 135_274, 6_144),
+    ("v6 4x4 N=16", 512, 4, 64, True, 16, 1, 16, 135_274, 6_144),
 ]
 
 

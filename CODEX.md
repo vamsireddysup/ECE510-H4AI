@@ -77,9 +77,9 @@ Updated 2026-09-29 by Codex.
 - **Best timing evidence.** Mapped netlist, `DELAY 0` at an 8 ns target, no
   wires: 18.241 ns slow-corner and 8.998 ns typical-corner minimum period at
   `34d9df5`. This is not a routed or closing frequency.
-- **Open blocker.** No floorplan has routed with the current RTL. Congestion is
-  dominated by `acc_bank` nets. M2's block-streaming accumulator is the planned
-  fix.
+- **Open blocker.** No floorplan has routed with the current RTL. The M2
+  block-streaming rewrite removes the tile-wide `acc_bank`; synthesis and
+  routing must now show whether congestion actually improves.
 - **No valid dynamic power number exists yet.** That is M2's deliverable.
 - **Toolchain.** LibreLane 3.0.14 is installed by
   `scripts/install_librelane.sh` (venv `~/.local/share/fp4-accel/librelane-venv`,
@@ -126,8 +126,8 @@ Updated 2026-09-29 by Codex.
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step.** Start M2 with the block-streaming accumulator and combine
-  it with the ADR 0008 E4M3 scaler and ADR 0009 shift/add product.
+- **Exact next step.** Map and route the block-streaming checkpoint, then replace
+  the FP32 scale path with the ADR 0008 searched-E4M3 scaler.
 
 ### Gotchas
 
@@ -189,6 +189,20 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M2 block streaming implemented
+
+**Done.** Replaced two tile-by-block accumulator banks with two single-block
+ping-pong banks. Completed blocks stream through one set of score lanes, and a
+partial-score array plus FP32 adder preserves left-to-right block rounding.
+The 4x4 T=512 default improves by six cycles to 1,050,690 with every score bit
+unchanged. Wider arrays now expose the real per-block scaling cost: 8x8 L2 is
+526,458 cycles and 16x16 L4 is 264,474.
+
+**Verification.** Eleven lint configurations and directed plus large integration
+suites pass. The updated cycle model exactly reproduces all 32 recorded
+configurations. Next map and route this structural checkpoint, then integrate
+the ADR 0008 E4M3 scaler.
 
 ### 2026-09-29 — Codex — M2 block-streaming start
 
@@ -267,10 +281,3 @@ pass is assumed, so no RTL is selected.
 
 **Verification.** The model suite regenerates all 20 rows and asserts bound
 safety. Next is two modern decoder captures with `D_HEAD=64`.
-
-### 2026-09-29 — Codex — M1 exponent-bound start
-
-**Started.** Confirmed clean synchronized `master` at `800c2eb`, read the
-shared handoff and rules, and claimed the lock. The atomic task measures a
-safe exponent-only upper bound, score and whole-tile skip coverage, and the
-resulting softmax cost across all four pinned captures.

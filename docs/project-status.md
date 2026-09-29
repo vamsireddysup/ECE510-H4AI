@@ -10,8 +10,8 @@ The active `qkt_chiplet_top` accepts packed 64-bit input packets and computes
 dense attention score matrices from FP4 E2M1 Q and K inputs. The default uses
 one FP32 scale per 16 reduction elements, exact block-local quarter-unit integer
 accumulators, parallel FP32 scale multipliers, and an FP32 cross-block reduction.
-Two banks for Q tiles, K tiles, accumulators, and scores overlap load, compute,
-scale, and output. Protocol version 5 reloads K per output tile; optional version
+Two banks for Q tiles, K tiles, block-local accumulators, and scores overlap
+load, compute, scale, and output. Protocol version 5 reloads K per output tile; optional version
 6 caches K for a whole command.
 
 The active module list is `rtl/filelist.f`. The retained M4 package is the
@@ -24,7 +24,7 @@ every IEEE exception or signed-zero rule.
 
 The default 4x4 top passes T=1/4/7/8/16 at `D_HEAD=4/64` and T=64/128/512 at
 `D_HEAD=64`, including edge tiles, stalls, malformed packets, reset, and repeated
-commands. At T=512 it produces 262,144 bit-exact scores in 1,050,696 simulated
+commands. At T=512 it produces 262,144 bit-exact scores in 1,050,690 simulated
 core cycles. The optimized complete top routes with 30.5 ns setup timing, while
 hold, antenna, slew, fanout, and valid dynamic power remain open. Detailed
 measurements are in [performance results](results/performance.md) and
@@ -70,13 +70,14 @@ measurements are in [performance results](results/performance.md) and
   activation sweeps select 1x16 FP32 in
   [ADR 0004](adr/0004-use-1x16-fp32-scales.md). Protocol versions 5 and 6 make
   it the verified RTL default while retaining versions 3 and 4 for 1x32.
-- P0.4 provides the parameterized block accumulators, parallel scale lanes, and
-  cross-block FP32 reducer. All 262,144 T=512 default RTL scores match the 1x16
+- P0.4 provides parameterized block accumulation and scaling. M2 now streams
+  each completed block through the scale lanes and performs cross-block FP32
+  additions sequentially. All 262,144 T=512 default RTL scores match the 1x16
   software model bit-exactly; RTL relative Frobenius error is 13.29%.
-- P0.6 keeps the 64-bit output. At 8x8, two score lanes move the binding stage
-  from scaling to CALC and complete T=512 in 264,336 cycles. At 16x16, four
-  lanes move it to output and complete in 133,392 cycles, 2,320 cycles above
-  the two-score-per-cycle steady floor.
+- P0.6 keeps the 64-bit output. Those pre-M2 lane results remain historical;
+  block streaming changes the service requirement to one pass per block. The
+  remeasured 8x8 L2 and 16x16 L4 points take 526,458 and 264,474 cycles, so
+  scaling binds both until within-block lane counts increase.
 - P0.5 closes register-based K reuse in
   [ADR 0005](adr/0005-close-register-k-reuse.md). Its projected slow-corner
   leakage alone reaches 0.686 mJ per T=512 command, while avoided DRAM energy
@@ -170,11 +171,11 @@ same-flow complete-top comparison saves 3,313 cells but only 0.046% mapped
 area, so M2 routing rather than the standalone projection decides its value.
 M1 is complete.
 
-**M2, P0 closure: the first routed milestone.** Replace the per-tile
-accumulator banks with a block-streaming accumulator that hands each 16-deep
-block to the scaler as it completes, removing the congestion source and the
-32-to-1 scaler read mux, and implement the ADR 0008 scaler plus ADR 0009
-shift/add products. Route in LibreLane
+**M2, P0 closure: the first routed milestone.** The block-streaming accumulator
+now hands each 16-deep block to the scaler as it completes, removing the
+tile-wide accumulator and its dynamic read mux while preserving every score
+bit. ADR 0009 shift/add products are active. Next implement the ADR 0008 scaler
+and route in LibreLane
 with placement timing repair on and signoff at three corners. Annotate switching
 activity from gate-level simulation of the pinned workload to obtain the
 project's first valid dynamic power and energy per score. Gate: setup and hold

@@ -6,6 +6,13 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-09-29 — Codex — M1 exponent-bound start
+
+**Started.** Confirmed clean synchronized `master` at `800c2eb`, read the
+shared handoff and rules, and claimed the lock. The atomic task measures a
+safe exponent-only upper bound, score and whole-tile skip coverage, and the
+resulting softmax cost across all four pinned captures.
+
 ### 2026-09-29 — Codex — M1 accumulation-order result
 
 **Done.** Added `--accumulation-study` for sequential and balanced-tree FP32

@@ -57,18 +57,24 @@ module qkt_engine #(
     localparam int ACC_DEPTH = (SCALE_BLOCK_SIZE < D_HEAD) ? SCALE_BLOCK_SIZE : D_HEAD;
     localparam int ACC_W = $clog2(144*ACC_DEPTH+1)+1;
     localparam int INDEX_W = $clog2(TILE_SIZE*TILE_SIZE);
+    localparam int BLOCK_W = (BLOCK_COUNT <= 1) ? 1 : $clog2(BLOCK_COUNT);
+    localparam int TAG_W = INDEX_W+BLOCK_W+1;
     localparam int TILE_INDEX_W = (TILE_SIZE <= 1) ? 1 : $clog2(TILE_SIZE);
     localparam int TILE_COUNT_W = $clog2(TILE_SIZE+1);
-    localparam int SCALER_LANES = BLOCK_COUNT*SCORE_LANES;
+    localparam int SCALER_LANES = SCORE_LANES;
     localparam int FILL_DEPTHS = (16/TILE_SIZE > 0) ? 16/TILE_SIZE : 1;
     localparam int FILL_BEATS = (D_HEAD+FILL_DEPTHS-1)/FILL_DEPTHS;
     localparam int COL_STRIDE = ENGINES*TILE_SIZE;
     localparam int COL_BASE = ENGINE_ID*TILE_SIZE;
 
     logic [3:0] k_bank [0:1][0:TILE_SIZE-1][0:D_HEAD-1];
+    // Each bank holds one reduction block. Compute fills one while scaling
+    // drains the other, so storage and read selection do not grow with the
+    // number of blocks in a dot product.
     logic signed [ACC_W-1:0] acc_bank
-        [0:1][0:BLOCK_COUNT-1][0:TILE_SIZE-1][0:TILE_SIZE-1];
+        [0:1][0:TILE_SIZE-1][0:TILE_SIZE-1];
     logic [31:0] score_bank [0:1][0:TILE_SIZE*TILE_SIZE-1];
+    logic [31:0] partial_score [0:TILE_SIZE*TILE_SIZE-1];
 
     logic [1:0] k_valid, acc_valid, score_valid;
     logic load_k_bank, calc_q_bank, calc_k_bank;
@@ -77,16 +83,22 @@ module qkt_engine #(
     // calc_depth never exceeds D_HEAD, so it is only as wide as that needs.
     localparam int DEPTH_W = $clog2(D_HEAD+1);
     localparam int DEPTH_INDEX_W = (D_HEAD <= 1) ? 1 : $clog2(D_HEAD);
+    localparam int BLOCK_DEPTH_W = $clog2(SCALE_BLOCK_SIZE+1);
     logic [31:0] calc_row, calc_col;
     logic [DEPTH_W-1:0] calc_depth;
+    logic [BLOCK_W-1:0] calc_block;
+    logic [BLOCK_DEPTH_W-1:0] calc_block_depth;
     logic [31:0] fill_row, fill_col, fill_beat;
     logic [31:0] acc_row [0:1], acc_col [0:1];
     logic [TILE_COUNT_W-1:0] acc_cols [0:1];
     logic [31:0] acc_scores [0:1];
+    logic [BLOCK_W-1:0] acc_block [0:1];
     logic [31:0] score_count [0:1];
-    logic [31:0] scale_launch_index, scale_result_count;
+    logic [31:0] scale_launch_index;
+    logic [31:0] pending_result_count [0:1];
+    logic [31:0] pending_score_count [0:1];
 
-    logic calc_start, row_skip, fill_start;
+    logic calc_start, calc_block_stall, row_skip, fill_start;
     // Tile-position tests against matrix_size are registered alongside
     // calc_row and calc_col, from their next values, so no 32-bit compare sits
     // in front of calc_start's fanout. matrix_size is fixed for a command.
@@ -111,6 +123,8 @@ module qkt_engine #(
     // An engine with no tile in this Q row still hands its Q bank back.
     assign row_skip = command_active && !calc_busy && calc_row_in &&
         !calc_col_in && q_valid_in[calc_q_bank];
+    assign calc_block_stall = calc_busy && calc_block_depth == 0 &&
+        acc_valid[calc_acc_bank];
 
     // The shared Q banks are read one cycle ahead into a private register, so
     // the engine-crossing array read is register to register and never shares a
@@ -123,11 +137,12 @@ module qkt_engine #(
     // While busy, calc_depth is 1 through D_HEAD-1, so "calc_depth+1 < D_HEAD"
     // is exactly "not the last depth".
     assign q_rd_depth = (calc_start && D_HEAD > 1) ? 32'd1 :
+        calc_block_stall ? 32'(calc_depth) :
         (calc_busy && !q_row_last) ? 32'(calc_depth + 1'b1) : 32'd0;
     assign k_ready = command_active && !k_valid[load_k_bank];
     assign kc_col = fill_col;
     assign kc_beat = fill_start ? 32'd0 : fill_beat;
-    assign calc_active = calc_busy || calc_start;
+    assign calc_active = (calc_busy && !calc_block_stall) || calc_start;
 
     function automatic signed [9:0] e2m1_product(
         input logic [3:0] a, input logic [3:0] b
@@ -164,33 +179,37 @@ module qkt_engine #(
         e2m1_product = (a[3] ^ b[3]) ? -signed_magnitude : signed_magnitude;
     endfunction
 
-    logic scale_start, scale_launch;
+    logic scale_start, scale_launch, scale_block_done;
     logic [31:0] scale_effective_index;
     logic [TILE_INDEX_W-1:0] scale_launch_row, scale_launch_col;
     logic [TILE_INDEX_W-1:0] scale_effective_row, scale_effective_col;
     logic [TILE_INDEX_W-1:0] scale_next_row, scale_next_col;
-    logic [31:0] scale_launch_count, reduced_count;
+    logic [31:0] scale_launch_count;
+    logic [31:0] final_result_count [0:1];
+    logic [BLOCK_W-1:0] scale_block;
     logic [SCALER_LANES-1:0] scaler_prefetch_valid;
     logic [SCALER_LANES-1:0] scaler_launch_valid, scaler_result_valid;
     logic [SCALER_LANES*32-1:0] scaler_prefetch_q_scale;
     logic [SCALER_LANES*32-1:0] scaler_prefetch_k_scale;
-    logic [SCALER_LANES*INDEX_W-1:0] scaler_prefetch_index;
+    logic [SCALER_LANES*TAG_W-1:0] scaler_prefetch_index;
     // The accumulator is read in the prefetch cycle and registered with the
     // scales, so the first multiplier stage starts from a register rather than
     // from the accumulator read mux.
     logic signed [SCALER_LANES*ACC_W-1:0] scaler_prefetch_acc, scaler_acc;
     logic [SCALER_LANES*32-1:0] scaler_q_scale, scaler_k_scale, scaler_result;
-    logic [SCALER_LANES*INDEX_W-1:0] scaler_index_in, scaler_result_index;
-    logic [SCORE_LANES-1:0] reduced_valid;
-    logic [SCORE_LANES*32-1:0] reduced_result;
-    logic [SCORE_LANES*INDEX_W-1:0] reduced_index;
+    logic [SCALER_LANES*TAG_W-1:0] scaler_index_in, scaler_result_index;
+    logic [SCORE_LANES-1:0] add_valid, add_result_valid;
+    logic [SCORE_LANES*32-1:0] add_result;
+    logic [TAG_W-1:0] add_tag_pipe [0:SCORE_LANES-1][0:2];
     assign scale_start = command_active && !scale_busy &&
-        acc_valid[scale_acc_bank] && !score_valid[scale_score_bank];
+        acc_valid[scale_acc_bank] && acc_block[scale_acc_bank] == 0 &&
+        !score_valid[scale_score_bank];
     assign scale_active = scale_busy || scale_start;
     assign scale_effective_index = scale_start ? 0 : scale_launch_index;
     assign scale_effective_row = scale_start ? '0 : scale_launch_row;
     assign scale_effective_col = scale_start ? '0 : scale_launch_col;
-    assign scale_launch = command_active && (scale_start ||
+    assign scale_launch = command_active && acc_valid[scale_acc_bank] &&
+        acc_block[scale_acc_bank] == scale_block && (scale_start ||
         (scale_busy && scale_launch_index < acc_scores[scale_acc_bank]));
     assign scale_launch_count = !scale_launch ? 0 :
         ((scale_effective_index+SCORE_LANES <= acc_scores[scale_acc_bank]) ?
@@ -207,13 +226,25 @@ module qkt_engine #(
             end
         end
     end
+    assign scale_block_done = scale_launch &&
+        scale_effective_index+scale_launch_count == acc_scores[scale_acc_bank];
     always_comb begin
-        reduced_count = 0;
-        for (int lane = 0; lane < SCORE_LANES; lane++)
-            reduced_count = reduced_count + 32'(reduced_valid[lane]);
+        final_result_count[0] = 0;
+        final_result_count[1] = 0;
+        for (int lane = 0; lane < SCORE_LANES; lane++) begin
+            if (BLOCK_COUNT == 1 && scaler_result_valid[lane])
+                final_result_count[scaler_result_index[
+                    lane*TAG_W+INDEX_W+BLOCK_W]] =
+                    final_result_count[scaler_result_index[
+                        lane*TAG_W+INDEX_W+BLOCK_W]] + 1;
+            else if (BLOCK_COUNT != 1 && add_result_valid[lane] &&
+                     add_tag_pipe[lane][2][INDEX_W +: BLOCK_W] ==
+                     BLOCK_W'(BLOCK_COUNT-1))
+                final_result_count[add_tag_pipe[lane][2][INDEX_W+BLOCK_W]] =
+                    final_result_count[add_tag_pipe[lane][2][INDEX_W+BLOCK_W]] + 1;
+        end
     end
     for (genvar score_lane = 0; score_lane < SCORE_LANES; score_lane++) begin : g_score_lane
-        localparam int LANE_BASE = score_lane*BLOCK_COUNT;
         logic [INDEX_W-1:0] lane_index;
         logic [TILE_INDEX_W-1:0] lane_row, lane_col;
         assign lane_index = INDEX_W'(scale_effective_index) + INDEX_W'(score_lane);
@@ -231,31 +262,42 @@ module qkt_engine #(
             acc_row[scale_acc_bank] + 32'(lane_row);
         assign sk_index[score_lane*32 +: 32] =
             acc_col[scale_acc_bank] + 32'(lane_col);
-        for (genvar block = 0; block < BLOCK_COUNT; block++) begin : g_scale_block
-            localparam int FLAT_LANE = LANE_BASE+block;
-            assign scaler_prefetch_valid[FLAT_LANE] =
-                scale_launch && score_lane < scale_launch_count;
-            assign scaler_prefetch_acc[FLAT_LANE*ACC_W +: ACC_W] =
-                acc_bank[scale_acc_bank][block][lane_row][lane_col];
-            assign scaler_prefetch_q_scale[FLAT_LANE*32 +: 32] =
-                sq_data[FLAT_LANE*32 +: 32];
-            assign scaler_prefetch_k_scale[FLAT_LANE*32 +: 32] =
-                sk_data[FLAT_LANE*32 +: 32];
-            assign scaler_prefetch_index[FLAT_LANE*INDEX_W +: INDEX_W] =
-                lane_index;
-        end
-        score_reducer #(.BLOCK_COUNT(BLOCK_COUNT), .INDEX_W(INDEX_W)) u_reducer (
+        assign scaler_prefetch_valid[score_lane] =
+            scale_launch && score_lane < scale_launch_count;
+        assign scaler_prefetch_acc[score_lane*ACC_W +: ACC_W] =
+            acc_bank[scale_acc_bank][lane_row][lane_col];
+        assign scaler_prefetch_q_scale[score_lane*32 +: 32] =
+            sq_data[(score_lane*BLOCK_COUNT+32'(scale_block))*32 +: 32];
+        assign scaler_prefetch_k_scale[score_lane*32 +: 32] =
+            sk_data[(score_lane*BLOCK_COUNT+32'(scale_block))*32 +: 32];
+        assign scaler_prefetch_index[score_lane*TAG_W +: TAG_W] =
+            {scale_score_bank, scale_block, lane_index};
+
+        assign add_valid[score_lane] = scaler_result_valid[score_lane] &&
+            scaler_result_index[score_lane*TAG_W+INDEX_W +: BLOCK_W] != 0;
+        fp32_add u_block_add (
             .clk, .rst_n,
-            .block_valid(scaler_result_valid[LANE_BASE +: BLOCK_COUNT]),
-            .block_result(scaler_result[LANE_BASE*32 +: BLOCK_COUNT*32]),
-            .block_index(scaler_result_index[
-                LANE_BASE*INDEX_W +: BLOCK_COUNT*INDEX_W]),
-            .result_valid(reduced_valid[score_lane]),
-            .result(reduced_result[score_lane*32 +: 32]),
-            .result_index(reduced_index[score_lane*INDEX_W +: INDEX_W])
+            .a(partial_score[scaler_result_index[
+                score_lane*TAG_W +: INDEX_W]]),
+            .b(scaler_result[score_lane*32 +: 32]),
+            .valid_in(add_valid[score_lane]),
+            .result(add_result[score_lane*32 +: 32]),
+            .valid_out(add_result_valid[score_lane])
         );
+        always_ff @(posedge clk) begin
+            if (!rst_n) begin
+                add_tag_pipe[score_lane][0] <= '0;
+                add_tag_pipe[score_lane][1] <= '0;
+                add_tag_pipe[score_lane][2] <= '0;
+            end else begin
+                add_tag_pipe[score_lane][0] <=
+                    scaler_result_index[score_lane*TAG_W +: TAG_W];
+                add_tag_pipe[score_lane][1] <= add_tag_pipe[score_lane][0];
+                add_tag_pipe[score_lane][2] <= add_tag_pipe[score_lane][1];
+            end
+        end
     end
-    score_scaler #(.ACC_W(ACC_W), .INDEX_W(INDEX_W),
+    score_scaler #(.ACC_W(ACC_W), .INDEX_W(TAG_W),
                    .LANES(SCALER_LANES)) u_scaler (
         .clk, .rst_n, .launch_valid(scaler_launch_valid),
         .acc_in(scaler_acc), .q_scale_in(scaler_q_scale),
@@ -311,19 +353,24 @@ module qkt_engine #(
             scale_score_bank <= 0; output_score_bank <= 0;
             calc_busy <= 0; scale_busy <= 0; fill_busy <= 0;
             calc_row <= 0; calc_col <= COL_BASE; calc_depth <= 0;
+            calc_block <= 0; calc_block_depth <= 0;
             calc_row_in <= matrix_size != 0;
             calc_col_in <= COL_BASE < matrix_size;
             calc_col_more <= COL_BASE+COL_STRIDE < matrix_size;
             calc_rows_q <= tile_extent(0, matrix_size);
             calc_cols_q <= tile_extent(COL_BASE, matrix_size);
             fill_row <= 0; fill_col <= COL_BASE; fill_beat <= 0;
-            scale_launch_index <= 0; scale_result_count <= 0;
+            scale_launch_index <= 0;
+            scale_block <= 0;
             scale_launch_row <= 0; scale_launch_col <= 0;
             q_release <= 0;
             for (int bank = 0; bank < 2; bank++) begin
                 acc_row[bank] <= 0; acc_col[bank] <= 0;
                 acc_cols[bank] <= 0; acc_scores[bank] <= 0;
+                acc_block[bank] <= 0;
                 score_count[bank] <= 0;
+                pending_result_count[bank] <= 0;
+                pending_score_count[bank] <= 0;
             end
         end else begin
             q_release <= 2'b00;
@@ -374,36 +421,45 @@ module qkt_engine #(
                     calc_rows_q <= tile_extent(calc_row + TILE_SIZE, matrix_size);
                 end else if (calc_start) begin
                     calc_busy <= 1'b1; calc_depth <= 1;
-                    for (int block = 0; block < BLOCK_COUNT; block++)
-                        for (int i = 0; i < TILE_SIZE; i++)
-                            for (int j = 0; j < TILE_SIZE; j++)
-                                acc_bank[calc_acc_bank][block][i][j] <= '0;
+                    calc_block <= 0; calc_block_depth <= 1;
                     /* verilator lint_off BLKLOOPINIT */
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
-                            acc_bank[calc_acc_bank][0][i][j] <=
+                            acc_bank[calc_acc_bank][i][j] <=
                                 ACC_W'(e2m1_product(
                                     q_row[4*i +: 4],
                                     k_bank[calc_k_bank][j][0]));
                     /* verilator lint_on BLKLOOPINIT */
-                end else if (calc_busy) begin
+                end else if (calc_busy && !calc_block_stall) begin
                     /* verilator lint_off BLKLOOPINIT */
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
-                            acc_bank[calc_acc_bank][32'(calc_depth)/SCALE_BLOCK_SIZE][i][j] <=
-                                acc_bank[calc_acc_bank]
-                                        [32'(calc_depth)/SCALE_BLOCK_SIZE][i][j] +
-                                ACC_W'(e2m1_product(
-                                    q_row[4*i +: 4],
-                                    k_bank[calc_k_bank][j]
-                                        [calc_depth[DEPTH_INDEX_W-1:0]]));
+                            if (calc_block_depth == 0)
+                                acc_bank[calc_acc_bank][i][j] <=
+                                    ACC_W'(e2m1_product(
+                                        q_row[4*i +: 4],
+                                        k_bank[calc_k_bank][j]
+                                            [calc_depth[DEPTH_INDEX_W-1:0]]));
+                            else
+                                acc_bank[calc_acc_bank][i][j] <=
+                                    acc_bank[calc_acc_bank][i][j] +
+                                    ACC_W'(e2m1_product(
+                                        q_row[4*i +: 4],
+                                        k_bank[calc_k_bank][j]
+                                            [calc_depth[DEPTH_INDEX_W-1:0]]));
                     /* verilator lint_on BLKLOOPINIT */
-                    if (q_row_last) begin
-                        calc_busy <= 1'b0; acc_valid[calc_acc_bank] <= 1'b1;
+                    if (calc_block_depth+1'b1 ==
+                        BLOCK_DEPTH_W'(SCALE_BLOCK_SIZE) || q_row_last) begin
+                        acc_valid[calc_acc_bank] <= 1'b1;
                         acc_row[calc_acc_bank] <= calc_row;
                         acc_col[calc_acc_bank] <= calc_col;
                         acc_cols[calc_acc_bank] <= calc_cols_q;
-                        acc_scores[calc_acc_bank] <= 32'(calc_rows_q * calc_cols_q);
+                        acc_scores[calc_acc_bank] <=
+                            32'(calc_rows_q * calc_cols_q);
+                        acc_block[calc_acc_bank] <= calc_block;
+                    end
+                    if (q_row_last) begin
+                        calc_busy <= 1'b0;
                         calc_acc_bank <= ~calc_acc_bank;
                         k_valid[calc_k_bank] <= 1'b0;
                         calc_k_bank <= ~calc_k_bank;
@@ -421,36 +477,82 @@ module qkt_engine #(
                             calc_rows_q <= tile_extent(calc_row + TILE_SIZE, matrix_size);
                             calc_cols_q <= tile_extent(COL_BASE, matrix_size);
                         end
-                    end else calc_depth <= calc_depth + 1'b1;
+                    end else begin
+                        calc_depth <= calc_depth + 1'b1;
+                        if (calc_block_depth+1'b1 ==
+                            BLOCK_DEPTH_W'(SCALE_BLOCK_SIZE)) begin
+                            calc_acc_bank <= ~calc_acc_bank;
+                            calc_block <= calc_block + 1'b1;
+                            calc_block_depth <= 0;
+                        end else calc_block_depth <= calc_block_depth + 1'b1;
+                    end
                 end
 
                 // Scaling sequencer drains completed accumulator banks in order.
                 if (scale_start) begin
                     scale_busy <= 1'b1;
+                    scale_block <= 0;
                     scale_launch_index <= scale_launch_count;
                     scale_launch_row <= scale_next_row;
                     scale_launch_col <= scale_next_col;
-                    scale_result_count <= 0;
-                end else if (scale_busy) begin
-                    if (scale_launch) begin
-                        scale_launch_index <= scale_launch_index + scale_launch_count;
-                        scale_launch_row <= scale_next_row;
-                        scale_launch_col <= scale_next_col;
+                    pending_result_count[scale_score_bank] <= 0;
+                    pending_score_count[scale_score_bank] <=
+                        acc_scores[scale_acc_bank];
+                end else if (scale_busy && scale_launch) begin
+                    scale_launch_index <= scale_launch_index + scale_launch_count;
+                    scale_launch_row <= scale_next_row;
+                    scale_launch_col <= scale_next_col;
+                end
+                if (scale_block_done) begin
+                    acc_valid[scale_acc_bank] <= 1'b0;
+                    scale_acc_bank <= ~scale_acc_bank;
+                    if (scale_block != BLOCK_W'(BLOCK_COUNT-1)) begin
+                        scale_block <= scale_block + 1'b1;
+                        scale_launch_index <= 0;
+                        scale_launch_row <= 0;
+                        scale_launch_col <= 0;
+                    end else begin
+                        scale_busy <= 1'b0;
+                        scale_block <= 0;
+                        scale_score_bank <= ~scale_score_bank;
                     end
-                    for (int lane = 0; lane < SCORE_LANES; lane++)
-                        if (reduced_valid[lane])
-                            score_bank[scale_score_bank]
-                                [reduced_index[lane*INDEX_W +: INDEX_W]] <=
-                                reduced_result[lane*32 +: 32];
-                    if (reduced_count != 0) begin
-                        scale_result_count <= scale_result_count + reduced_count;
-                        if (scale_result_count+reduced_count == acc_scores[scale_acc_bank]) begin
-                            scale_busy <= 1'b0;
-                            score_valid[scale_score_bank] <= 1'b1;
-                            score_count[scale_score_bank] <= acc_scores[scale_acc_bank];
-                            acc_valid[scale_acc_bank] <= 1'b0;
-                            scale_acc_bank <= ~scale_acc_bank;
-                            scale_score_bank <= ~scale_score_bank;
+                end
+
+                // Block zero seeds the partial score. Later blocks pass through
+                // one FP32 adder at a time, preserving the established
+                // left-to-right cross-block rounding order.
+                for (int lane = 0; lane < SCORE_LANES; lane++) begin
+                    if (scaler_result_valid[lane] &&
+                        scaler_result_index[lane*TAG_W+INDEX_W +: BLOCK_W] == 0) begin
+                        if (BLOCK_COUNT == 1)
+                            score_bank[scaler_result_index[
+                                lane*TAG_W+INDEX_W+BLOCK_W]]
+                                [scaler_result_index[lane*TAG_W +: INDEX_W]] <=
+                                scaler_result[lane*32 +: 32];
+                        else
+                            partial_score[scaler_result_index[
+                                lane*TAG_W +: INDEX_W]] <=
+                                scaler_result[lane*32 +: 32];
+                    end
+                    if (add_result_valid[lane]) begin
+                        if (add_tag_pipe[lane][2][INDEX_W +: BLOCK_W] ==
+                            BLOCK_W'(BLOCK_COUNT-1))
+                            score_bank[add_tag_pipe[lane][2][INDEX_W+BLOCK_W]]
+                                [add_tag_pipe[lane][2][INDEX_W-1:0]] <=
+                                add_result[lane*32 +: 32];
+                        else
+                            partial_score[add_tag_pipe[lane][2][INDEX_W-1:0]] <=
+                                add_result[lane*32 +: 32];
+                    end
+                end
+                for (int bank = 0; bank < 2; bank++) begin
+                    if (final_result_count[bank] != 0) begin
+                        pending_result_count[bank] <=
+                            pending_result_count[bank] + final_result_count[bank];
+                        if (pending_result_count[bank]+final_result_count[bank] ==
+                            pending_score_count[bank]) begin
+                            score_valid[bank] <= 1'b1;
+                            score_count[bank] <= pending_score_count[bank];
                         end
                     end
                 end
@@ -486,9 +588,14 @@ module qkt_engine #(
 
     property p_acc_bank_ownership;
         @(posedge clk) disable iff (!rst_n)
-        calc_busy && scale_busy |-> calc_acc_bank != scale_acc_bank;
+        calc_busy && !calc_block_stall && scale_launch |->
+            calc_acc_bank != scale_acc_bank ||
+            (scale_block_done && calc_block_depth == 0);
     endproperty
-    assert property (p_acc_bank_ownership);
+    assert property (p_acc_bank_ownership) else $error(
+        "acc ownership calc=%0d scale=%0d block=%0d depth=%0d done=%0d index=%0d",
+        calc_acc_bank, scale_acc_bank, scale_block, calc_block_depth,
+        scale_block_done, scale_launch_index);
 
     property p_score_bank_ownership;
         @(posedge clk) disable iff (!rst_n)

@@ -7,6 +7,24 @@ and measured or projected label.
 
 ## Single-engine correctness and simulated cycles
 
+### M2 block-streaming checkpoint
+
+Measured with Verilator 5.041 on 2026-09-29, the engine now retains two
+single-block accumulator banks instead of two complete tile-by-block banks.
+Each completed block streams to the scaler while compute fills the other bank;
+the FP32 adder preserves the established left-to-right block order. The T=512
+4x4 default completes in **1,050,690 cycles**, six fewer than the prior RTL,
+and all 262,144 score bit patterns are unchanged.
+
+The storage reduction changes wider-array throughput because `SCORE_LANES` now
+means lanes within one block. At Bs=16, 8x8 L2 measures 526,458 cycles and
+16x16 L4 measures 264,474 cycles; scaling binds both. These replace their
+264,336 and 133,392 pre-M2 performance points. The reviewed rows are in
+[`data/bs16-default-simulation.csv`](data/bs16-default-simulation.csv), and the
+updated closed-form model reproduces all 32 recorded configurations exactly.
+The tables below that describe the older P0.3/P0.4 schedule remain as historical
+comparison evidence.
+
 The integration test checks every score against the same exact integer-dot
 software 1x32 FP32 reference bit-exactly. It also checks packet `TLAST`, stable output under
 backpressure, padding, beat and tile counts, malformed packets, reset, and
