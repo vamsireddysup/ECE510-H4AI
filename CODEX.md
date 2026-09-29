@@ -94,14 +94,18 @@ Updated 2026-09-29 by Codex.
   Hadamard rotation have mixed capture-level effects. Neither improves KL, TV,
   top-1, and top-5 together across all four captures, so neither becomes the
   default. The 32-row record is machine-checked.
+- **M1 element-format selection is measured.** Reconstruction-selected FP4 or
+  INT4 blocks improve mean KL, TV, top-5, and Frobenius error, but lose 0.34
+  top-1 points and regress on the larger-model capture. The result supports a
+  layer-selective P1 mode, not a global default.
 - **M0 is complete.** The gate run finished after the handoff was written:
   LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
   LVS, and **zero antenna violations**, then stopped correctly at the hold
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step.** M1 item 2 under "Picking this up": per-block FP4 versus
-  INT4 selected by reconstruction error.
+- **Exact next step.** M1 item 3 under "Picking this up": sequential versus
+  tree cross-block accumulation.
 
 ### Gotchas
 
@@ -163,6 +167,18 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M1 element-format result
+
+**Done.** Added `--element-format-study` for fixed FP4, fixed signed INT4, and
+per-block reconstruction-error selection under searched E4M3 scales. Adaptive
+selection uses INT4 for 62.14% of Q/K blocks and improves mean KL from 0.02114
+to 0.01875, but top-1 falls from 90.82% to 90.48% and small-BERT L3 H0 regresses.
+It remains a layer-selective candidate. One format bit per block is required;
+the existing 13-bit Bs=16 accumulator covers all native product bounds.
+
+**Verification.** The model suite regenerates all 12 rows and capture hashes.
+Next is sequential versus tree cross-block accumulation.
 
 ### 2026-09-29 — Codex — M1 preprocessing result
 

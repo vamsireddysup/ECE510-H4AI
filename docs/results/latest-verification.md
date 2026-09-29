@@ -1,5 +1,14 @@
 # Latest verification
 
+## September 29 element-format study
+
+Fixed FP4, fixed INT4, and reconstruction-selected per-block formats were
+measured at Bs=16 with searched E4M3 scales across all four pinned captures.
+Adaptive blocks choose INT4 62.14% of the time and improve mean KL from 0.02114
+to 0.01875, but mean top-1 falls from 90.82% to 90.48% and the small-BERT head
+regresses. It remains a layer-selective candidate, not the default. The model
+suite regenerates all 12 rows from the pinned captures.
+
 ## September 29 preprocessing study
 
 The M1 preprocessing study evaluates no transform, K channel-mean centering,

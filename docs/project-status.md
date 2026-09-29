@@ -147,8 +147,10 @@ Probe scaler and multiplier cost with synthesis-only runs.
 searched E4M3, which is more accurate than FP32 on every softmax metric and
 4.89 times smaller in the scaling path. The element format and preprocessing
 study is now measured: neither K centering nor Hadamard rotation improves all
-softmax metrics across all four captures, so neither becomes the default. The
-element-format decision remains.
+softmax metrics across all four captures, so neither becomes the default.
+Per-block FP4/INT4 selection lowers mean KL, TV, Frobenius error, and raises
+top-5, but loses 0.34 top-1 points and regresses on the larger-model capture.
+It remains a layer-selective P1 candidate rather than a global default.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep

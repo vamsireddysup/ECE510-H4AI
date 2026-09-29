@@ -32,6 +32,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Scaler format cost](data/scaler-format-cost.csv) | Mapped Sky130 area of one score lane's scaling path per scale format |
 | [Block-scale format study](data/scale-format-study.csv) | FP32, E4M3, and E8M0 scale rules across the four pinned captures |
 | [Preprocessing study](data/preprocessing-study.json) | K centering and Hadamard rotation under FP32 and searched E4M3 scales |
+| [Element-format study](data/element-format-study.json) | Fixed FP4, fixed INT4, and reconstruction-selected blocks under searched E4M3 scales |
 | [Output format sweep](data/output-format-sweep.csv) | FP32, FP16, and BF16 output scores across the four pinned captures |
 | [CPU baseline](data/cpu-baseline.csv) | Reference-BLAS and OpenBLAS medians, throughput, and fraction of peak |
 | [Replicated-engine measurements](data/replicated-engine-measured.csv) | Measured engine-count cycles, beats, and model error |

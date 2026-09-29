@@ -383,6 +383,43 @@ The raw generated record, including every capture SHA-256, is
 [`data/preprocessing-study.json`](data/preprocessing-study.json). A model test
 regenerates every row.
 
+## Per-block FP4 or INT4
+
+M1 next tested whether each Q and K block should use FP4 E2M1 or signed INT4.
+The host quantizer searches E4M3 block scales for both formats and selects the
+format with lower reconstruction mean-square error independently for every row
+and 16-value block. This is a **measured software-model result** on the same four
+pinned captures with NumPy 1.26.4.
+
+| Element rule | Mean KL | Mean TV | Top-1 | Top-5 | Rel. Frobenius | INT4 blocks |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fixed FP4 | 0.02114 | 0.07339 | **90.82%** | 94.28% | 7.27% | 0% |
+| Fixed INT4 | 0.02164 | 0.07336 | 89.94% | 94.48% | 6.99% | 100% |
+| **Adaptive** | **0.01875** | **0.06869** | 90.48% | **94.97%** | **6.42%** | 62.14% |
+
+Adaptive selection improves mean KL by 11.3%, TV by 6.4%, top-5 by 0.69
+points, and relative Frobenius error by 11.7% against fixed FP4. Mean top-1
+falls by 0.34 points, so it does not pass the project's rule that a new default
+must improve all softmax metrics.
+
+The capture-level direction also changes. Adaptive KL improves on all three
+tiny-BERT heads, from 0.00786/0.02741/0.03055 to
+0.00623/0.02404/0.02271. On small-BERT layer 3 head 0 it worsens from 0.01876
+to 0.02203, and top-1 falls from 93.36% to 91.80%. The result supports P1's
+layer-selective premise but rejects a global adaptive default chosen only by
+local reconstruction error.
+
+The hardware cost is one format bit per Q/K block plus format-aware decode and
+scale exponent adjustment. Native integer products are bounded by 144 for
+FP4×FP4, 96 for FP4×INT4, and 64 for INT4×INT4. At Bs=16, the existing signed
+13-bit accumulator covers all three. This is a model result; no mixed-format RTL
+exists yet.
+
+Reproduce with `--element-format-study` and the same four `--captures` listed
+in the preprocessing command above. The 12 generated rows and capture hashes
+are in [`data/element-format-study.json`](data/element-format-study.json), and
+a model test regenerates every row.
+
 ## Output score format
 
 The replicated engine is bound by the 64-bit output port, which carries two FP32

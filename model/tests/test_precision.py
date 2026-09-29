@@ -14,8 +14,10 @@ from scripts.eval_precision import (
     SCALE_TYPES,
     evaluate,
     evaluate_preprocessing,
+    evaluate_element_formats,
     hadamard_rotate,
     preprocess_qk,
+    quantize_element_blocks,
     power_of_two_scale,
     quantize_blocks,
     render_t512_table,
@@ -28,6 +30,7 @@ PRECISION_MARKDOWN = REPO_ROOT / "docs/results/precision.md"
 ACTIVATION_CAPTURE = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0.npz"
 ACTIVATION_JSON = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0-precision.json"
 PREPROCESSING_JSON = REPO_ROOT / "docs/results/data/preprocessing-study.json"
+ELEMENT_FORMAT_JSON = REPO_ROOT / "docs/results/data/element-format-study.json"
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -111,6 +114,46 @@ def test_preprocessing_study_matches_committed_json() -> None:
                 })
     assert len(regenerated) == len(expected)
     for actual, recorded in zip(regenerated, expected, strict=True):
+        assert actual.keys() == recorded.keys()
+        for key in actual:
+            if isinstance(actual[key], float):
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)
+            else:
+                assert actual[key] == recorded[key]
+
+
+def test_adaptive_element_format_minimizes_block_reconstruction() -> None:
+    values = np.array([[0.1, 0.2, 0.3, 6.0], [-5.0, -1.0, 1.0, 5.0]], dtype=np.float32)
+    results = {}
+    for element_format in ("FP4", "INT4", "adaptive"):
+        code, scale, unit, _, _ = quantize_element_blocks(values, 4, element_format)
+        reconstruction = code * unit[:, 0, None] * scale[:, 0, None]
+        results[element_format] = np.mean((reconstruction - values) ** 2, axis=1)
+    assert np.all(results["adaptive"] <= results["FP4"])
+    assert np.all(results["adaptive"] <= results["INT4"])
+
+
+def test_mixed_element_accumulator_bound() -> None:
+    q = np.array([[6.0] * 16, [-8.0] * 16], dtype=np.float32)
+    row = evaluate_element_formats(q, q, "adaptive", 16)
+    assert row["accumulator_bits_bs16"] == 13
+
+
+def test_element_format_study_matches_committed_json() -> None:
+    """Regenerate fixed and adaptive format rows from pinned captures."""
+    committed = json.loads(ELEMENT_FORMAT_JSON.read_text())
+    regenerated = []
+    for source in committed["captures"]:
+        path = REPO_ROOT / source["source"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == source["sha256"]
+        with np.load(path, allow_pickle=False) as capture:
+            q, k = capture["q"], capture["k"]
+        for element_format in ("FP4", "INT4", "adaptive"):
+            regenerated.append({
+                **evaluate_element_formats(q, k, element_format, 16),
+                "source": source["source"],
+            })
+    for actual, recorded in zip(regenerated, committed["metrics"], strict=True):
         assert actual.keys() == recorded.keys()
         for key in actual:
             if isinstance(actual[key], float):

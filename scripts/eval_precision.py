@@ -20,6 +20,7 @@ SCALE_TYPES = ("FP32", "E8M0-floor", "E8M0-nearest", "E8M0-ceil")
 # four scores in one 64-bit beat instead of two.
 OUTPUT_FORMATS = ("FP32", "FP16", "BF16")
 PREPROCESSING_TYPES = ("none", "k-center", "hadamard", "k-center+hadamard")
+ELEMENT_FORMATS = ("FP4", "INT4", "adaptive")
 
 
 def render_t512_table(metrics: list[dict[str, float | int | str]]) -> str:
@@ -431,6 +432,165 @@ def evaluate_preprocessing(
     }
 
 
+def quantize_element_blocks(
+    values: np.ndarray, block_size: int, element_format: str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int]:
+    """Quantize blocks to FP4, INT4, or the lower-MSE choice.
+
+    Codes are exact accumulator integers. ``units`` converts one code unit to
+    the block-scale domain: one half for FP4 half-unit codes and one for INT4.
+    The boolean format array is true for INT4 blocks.
+    """
+    if element_format not in ELEMENT_FORMATS:
+        raise ValueError(f"unknown element format: {element_format}")
+    values = np.asarray(values, dtype=np.float64)
+    rows, depth = values.shape
+    blocks = math.ceil(depth / block_size)
+    codes = np.zeros((rows, depth), dtype=np.int32)
+    scales = np.ones((rows, blocks), dtype=np.float32)
+    units = np.ones((rows, blocks), dtype=np.float32)
+    is_int4 = np.zeros((rows, blocks), dtype=bool)
+    clips = 0
+    # One tensor scale supports either element format. FP4's smaller maximum
+    # sets the required E4M3 range and exactly matches the ADR 0008 baseline.
+    tensor_scale = max(float(np.max(np.abs(values))), 1e-30) / (6.0 * E4M3_MAX)
+
+    def e4m3_candidates(ideal: np.ndarray) -> list[np.ndarray]:
+        base = _e4m3_index(ideal / tensor_scale)
+        return [
+            E4M3_VALUES[np.clip(base + offset, 1, len(E4M3_VALUES) - 1)]
+            * tensor_scale
+            for offset in range(-2, 7)
+        ]
+
+    for block in range(blocks):
+        start = block * block_size
+        stop = min(start + block_size, depth)
+        chunk = values[:, start:stop]
+        maximum = np.max(np.abs(chunk), axis=1)
+        safe = np.where(maximum > 0, maximum, 1.0)
+
+        fp4_scales = e4m3_candidates(safe / 6.0)
+        fp4_errors = np.stack([
+            np.mean((_e2m1(chunk, scale)[1] - chunk) ** 2, axis=1)
+            for scale in fp4_scales
+        ])
+        fp4_choice = np.argmin(fp4_errors, axis=0)
+        fp4_scale = np.stack(fp4_scales)[fp4_choice, np.arange(rows)]
+        fp4_code, fp4_reconstruction, _ = _e2m1(chunk, fp4_scale)
+        fp4_clip = np.count_nonzero(
+            np.abs(chunk / fp4_scale[:, None]) > E2M1_MAX, axis=1
+        )
+
+        int4_scales = e4m3_candidates(safe / 7.0)
+        int4_codes = []
+        int4_reconstructions = []
+        int4_errors = []
+        int4_clip_counts = []
+        for scale in int4_scales:
+            normalized = chunk / scale[:, None]
+            code = np.clip(np.rint(normalized), -8, 7).astype(np.int32)
+            reconstruction = code.astype(np.float64) * scale[:, None]
+            int4_codes.append(code)
+            int4_reconstructions.append(reconstruction)
+            int4_errors.append(np.mean((reconstruction - chunk) ** 2, axis=1))
+            int4_clip_counts.append(np.count_nonzero(
+                (normalized < -8) | (normalized > 7), axis=1
+            ))
+        int4_choice = np.argmin(np.stack(int4_errors), axis=0)
+        int4_scale = np.stack(int4_scales)[int4_choice, np.arange(rows)]
+        int4_code = np.stack(int4_codes)[int4_choice, np.arange(rows)]
+        int4_reconstruction = np.stack(int4_reconstructions)[
+            int4_choice, np.arange(rows)
+        ]
+        int4_clip = np.stack(int4_clip_counts)[int4_choice, np.arange(rows)]
+
+        if element_format == "FP4":
+            choose_int4 = np.zeros(rows, dtype=bool)
+        elif element_format == "INT4":
+            choose_int4 = np.ones(rows, dtype=bool)
+        else:
+            fp4_mse = np.mean((fp4_reconstruction - chunk) ** 2, axis=1)
+            int4_mse = np.mean((int4_reconstruction - chunk) ** 2, axis=1)
+            choose_int4 = int4_mse < fp4_mse
+        codes[:, start:stop] = np.where(
+            choose_int4[:, None], int4_code, fp4_code
+        )
+        scales[:, block] = np.where(choose_int4, int4_scale, fp4_scale)
+        units[:, block] = np.where(choose_int4, 1.0, 0.5)
+        is_int4[:, block] = choose_int4
+        clips += int(np.sum(np.where(choose_int4, int4_clip, fp4_clip)))
+    return codes, scales, units, is_int4, clips
+
+
+def evaluate_element_formats(
+    q: np.ndarray, k: np.ndarray, element_format: str, block_size: int = 16,
+) -> dict[str, float | int | str]:
+    """Evaluate fixed or reconstruction-selected FP4/INT4 blocks."""
+    q = np.asarray(q, dtype=np.float32)
+    k = np.asarray(k, dtype=np.float32)
+    q_code, q_scale, q_unit, q_int4, q_clips = quantize_element_blocks(
+        q, block_size, element_format
+    )
+    k_code, k_scale, k_unit, k_int4, k_clips = quantize_element_blocks(
+        k, block_size, element_format
+    )
+    scores = np.zeros((q.shape[0], q.shape[0]), dtype=np.float32)
+    for block in range(q_scale.shape[1]):
+        start = block * block_size
+        stop = min(start + block_size, q.shape[1])
+        integer_dot = q_code[:, start:stop] @ k_code[:, start:stop].T
+        block_scores = integer_dot.astype(np.float32)
+        block_scores *= q_unit[:, block, None]
+        block_scores *= k_unit[None, :, block]
+        block_scores *= q_scale[:, block, None]
+        block_scores *= k_scale[None, :, block]
+        scores += block_scores
+
+    reference = q @ k.T
+    difference = scores.astype(np.float64) - reference.astype(np.float64)
+    divisor = math.sqrt(q.shape[1])
+    ref_probability = softmax(reference / divisor)
+    probability = softmax(scores / divisor)
+    tiny = np.finfo(np.float64).tiny
+    kl = np.sum(ref_probability * (
+        np.log(np.maximum(ref_probability, tiny))
+        - np.log(np.maximum(probability, tiny))
+    ), axis=1)
+    tv = 0.5 * np.sum(np.abs(ref_probability - probability), axis=1)
+    top_k = min(5, q.shape[0])
+    ref_top = np.argsort(ref_probability, axis=1, kind="stable")[:, -top_k:]
+    actual_top = np.argsort(probability, axis=1, kind="stable")[:, -top_k:]
+    overlap = [
+        len(set(ref_top[row]) & set(actual_top[row])) / top_k
+        for row in range(q.shape[0])
+    ]
+    block_total = q_int4.size + k_int4.size
+    return {
+        "T": q.shape[0], "D_HEAD": q.shape[1], "block_size": block_size,
+        "element_format": element_format, "scale_type": "E4M3-search",
+        "mean_kl_divergence": float(np.mean(kl)),
+        "mean_total_variation": float(np.mean(tv)),
+        "top1_agreement": float(np.mean(
+            np.argmax(ref_probability, axis=1) == np.argmax(probability, axis=1)
+        )),
+        "top5_index_agreement": float(np.mean(overlap)),
+        "mean_abs_error": float(np.mean(np.abs(difference))),
+        "relative_frobenius_error": float(
+            np.linalg.norm(difference)
+            / max(np.linalg.norm(reference.astype(np.float64)), 1e-30)
+        ),
+        "int4_block_fraction": float(
+            (np.count_nonzero(q_int4) + np.count_nonzero(k_int4)) / block_total
+        ),
+        "clipped_input_fraction": float(
+            (q_clips + k_clips) / (q.size + k.size)
+        ),
+        "worst_integer_product": 64 if element_format == "INT4" else 144,
+        "accumulator_bits_bs16": 13,
+    }
+
+
 def evaluate_output_format(
     q: np.ndarray, k: np.ndarray, block_size: int, scale_type: str,
     output_format: str,
@@ -467,6 +627,10 @@ def main() -> None:
         help="compare K centering and Hadamard rotation at one block size",
     )
     parser.add_argument(
+        "--element-format-study", action="store_true",
+        help="compare fixed and per-block-selected FP4 and INT4",
+    )
+    parser.add_argument(
         "--captures", type=Path, nargs="+",
         help="multiple pinned Q/K captures for the preprocessing study",
     )
@@ -492,7 +656,18 @@ def main() -> None:
             generator.standard_normal((size, args.depth), dtype=np.float32),
         ) for size in args.sizes]
         source = {"source": "synthetic_normal", "seed": args.seed}
-    if args.preprocessing_study:
+    if args.element_format_study:
+        if not args.captures and not args.npz:
+            raise ValueError("--element-format-study requires --npz or --captures")
+        metrics = [
+            {
+                **evaluate_element_formats(q, k, element_format, args.block_size),
+                "source": str(args.captures[index]) if args.captures else str(args.npz),
+            }
+            for index, (q, k) in enumerate(matrices)
+            for element_format in ELEMENT_FORMATS
+        ]
+    elif args.preprocessing_study:
         if not args.captures and not args.npz:
             raise ValueError("--preprocessing-study requires --npz or --captures")
         metrics = [
