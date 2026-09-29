@@ -110,6 +110,10 @@ measurements are in [performance results](results/performance.md) and
 
 ## Roadmap: milestones M0 to M4
 
+The live state, which milestone step is active and what runs next, is in the
+root [`CODEX.md`](../CODEX.md), which both agents update after every verified
+commit. This section is the plan; that file is the position within it.
+
 This roadmap replaces the P0.7b stage list. It came from a literature review on
 2026-09-29 recorded in [related work](related-work.md), which showed that my
 1x16 FP4 block choice re-derives NVFP4 and so is not new by itself. Novelty has
@@ -119,7 +123,12 @@ commit sized for one agent session; each milestone ends with a results record,
 an ADR where a decision is made, a handoff entry in the root `CODEX.md`, and my
 review. The first session after a milestone re-runs its gate before new work.
 
-**M0, housekeeping and toolchain.** Record the P0.7b floorplan result, then
+**M0, housekeeping and toolchain. Nearly done.** The floorplan result is
+recorded, the old run trees are deleted, LibreLane 3.0.14 is installed and its
+smoke test passes, and the flow is ported. The remaining step is the gate run
+itself, a `D_HEAD=4` configuration from RTL to clean GDS.
+
+Original scope: Record the P0.7b floorplan result, then
 delete the old `build/physical` trees. Install LibreLane 3.x with its `ciel`
 PDK manager, port the OpenLane configuration and SDC, and keep the pinned
 OpenLane 1.1.1 image only to reproduce recorded results. Gate: LibreLane smoke
@@ -133,7 +142,7 @@ preprocessing (K mean-centering and Hadamard rotation), per-block FP4 or INT4,
 sequential versus tree cross-block accumulation, and an exponent-only score
 bound for skipping. Add at least two modern decoder heads with `D_HEAD=64`.
 Probe scaler and multiplier cost with synthesis-only runs.
-[ADR 0008](adr/0008-e4m3-block-scales.md) has selected the scale format:
+**Partly done:** [ADR 0008](adr/0008-e4m3-block-scales.md) has selected the scale format:
 searched E4M3, which is more accurate than FP32 on every softmax metric and
 4.89 times smaller in the scaling path. The element format and preprocessing
 decisions remain.

@@ -48,6 +48,28 @@ naming rules these entries follow, see
   to 135,280 cycles at eight engines against the 131,072-cycle output floor, and
   sixteen engines do not improve either. There is no area or routed result.
 
+### Block-scale format
+
+- Selected E4M3 block scales chosen by an offline scale search in
+  [ADR 0008](docs/adr/0008-e4m3-block-scales.md). They beat the FP32 default on
+  mean KL, top-1 agreement, and Frobenius error across all four pinned BERT
+  captures, and map to a scaling path 4.89x smaller with a quarter of the
+  scale storage. E8M0 is 13.83x smaller but costs 2.34 points of top-1. The
+  RTL change lands with the milestone M2 accumulator rework as protocol
+  version 7.
+- Added `rtl/probe/scaler_probe.sv` and `scripts/run_scaler_probe.sh`, a cost
+  probe checked bit-exact against a double-precision reference before its area
+  was used.
+
+### Toolchain
+
+- Installed a pinned LibreLane 3.0.14 toolchain with `ciel` for the PDK, and
+  ported the flow: `config/librelane/`, `scripts/librelane_config.py`, and
+  `scripts/run_librelane.sh`. The OpenLane 1.1.1 image is retained only to
+  reproduce recorded results.
+- `scripts/run_synthesis.sh` now reads `rtl/filelist.f` instead of a hardcoded
+  list that had gone stale, so no flow can drift from the simulated sources.
+
 ### Agent handoff and roadmap
 
 - Turned the root `CODEX.md` into the shared entry point for Claude Code and

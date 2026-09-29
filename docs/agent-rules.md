@@ -10,6 +10,9 @@ repository-wide changes.
 
 ## Handoff protocol
 
+**Start here: read the root [`CODEX.md`](../CODEX.md) before anything else.**
+It holds the lock, the current state, "Picking this up", and the handoff log.
+
 Claude Code and Codex both work on this repository, one at a time, as each has
 credits. The root `CODEX.md` is the shared entry point: it holds the lock, the
 current state, and the handoff log, and `AGENTS.md` points to it so Codex loads

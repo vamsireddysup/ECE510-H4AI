@@ -48,7 +48,8 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: none
+Active agent: none. Claude stopped on 2026-09-29 on the owner's "credits are
+getting over"; Codex picks up from "Exact next step" below.
 
 ## Current state
 
@@ -83,14 +84,8 @@ Updated 2026-09-29 by Claude (Opus 5.5).
   with a quarter of the scale storage. E8M0 is 13.83x smaller but costs 2.34
   points of top-1, so it is rejected and the reopening condition is recorded.
   The RTL change lands with the M2 accumulator rework, as protocol version 7.
-- **Exact next step.** Finish the M0 gate: a `D_HEAD=4`, 900 um, `full`
-  LibreLane run was in placement repair when this entry was written; check
-  `build/librelane/m0-gate-d4/pnr.log` and its `runs/pnr/final` for a clean
-  GDS, then record the M0 gate result. After that, M1's scaler synthesis probe
-  (FP32 against E4M3 against E8M0) and the remaining M1 software items:
-  K mean-centering, Hadamard rotation, per-block FP4 or INT4, sequential
-  cross-block accumulation, the exponent-only skip bound, and two modern
-  decoder captures.
+- **Exact next step, for Codex.** Finish the M0 gate, then start M1's remaining
+  items. Both are spelled out under "Picking this up" below.
 
 ### Gotchas
 
@@ -106,10 +101,96 @@ Updated 2026-09-29 by Claude (Opus 5.5).
 - The bash auto-approval classifier sometimes fails on long heredoc commands;
   writing a file with the editor tool and running a short command works.
 
+## Picking this up
+
+### 1. Finish the M0 gate, which was still running
+
+A `D_HEAD=4`, 900 um, `full` LibreLane run was in detailed routing when Claude
+stopped. It writes outside the repository, through the space-free symlink:
+
+```bash
+L=~/.local/share/fp4-accel/repo/build/librelane/m0-gate-d4
+tail -2 "$L/pnr.log"; ls "$L/runs/pnr" | grep -E '^[0-9]' | tail -2
+docker ps            # empty means it is no longer running
+```
+
+If it finished, the gate passes when `$L/runs/pnr/final/gds/` holds a GDS and
+`$L/runs/pnr/*checker*/` reports no DRC, LVS, or antenna violations. Record the
+result in `docs/results/physical-design.md` as the M0 gate, with the LibreLane
+and PDK versions from `$L/manifest.txt`, then commit. If it failed, record why
+with the numbers; do not widen scope to work around it.
+
+If it is gone with no result, re-run it:
+
+```bash
+D_HEAD=4 DIE_EDGE=900 SYNTH_CLOCK_PERIOD=8 \
+  ./scripts/run_librelane.sh m0-gate-d4 20 full
+```
+
+### 2. Then M1, in this order
+
+The scale-format question is closed by [ADR 0008](docs/adr/0008-e4m3-block-scales.md).
+What is left, all in `scripts/eval_precision.py` behind new flags, following
+the `--scale-study` pattern so committed record shapes never change:
+
+1. **Softmax-invariant preprocessing.** K channel-mean centering, and Hadamard
+   rotation of Q and K. Both leave `QK^T` unchanged in exact arithmetic, so
+   they are free accuracy if they help FP4. Measure on the four captures.
+2. **Per-block FP4 or INT4**, selected by reconstruction error, which is
+   novelty track 2. INT4 products reach 64 against FP4's 144, so both fit the
+   existing 13-bit Bs=16 accumulator.
+3. **Sequential versus tree cross-block accumulation.** M2 needs sequential;
+   measure the difference now and redefine the reference if it moves.
+4. **Exponent-only score bound** for novelty track 4: what fraction of scores
+   and whole tiles fall below `rowmax - tau`, and what skipping them costs in
+   softmax agreement.
+5. **Two modern decoder captures** with `D_HEAD=64` through
+   `scripts/capture_transformer_qk.py`, in an isolated uv environment, pinned
+   revision and SHA-256 recorded.
+6. **Multiplier cost probe**, the same shape as `rtl/probe/scaler_probe.sv`:
+   the current decode-and-multiply against an exact shift-add E2M1 multiplier
+   (products are `{1,3} x 2^e`) against the product ROM in
+   `archive/superseded-rtl/fp4_mul_lut.sv`. That is novelty track 3.
+
+Each of 1 to 5 is one commit with a results-record update; 6 ends in an ADR.
+
+### 3. Then M2, the first routed milestone
+
+Block-streaming accumulator plus the ADR 0008 scaler, then route in LibreLane
+and get the project's first valid dynamic power number. See
+[the roadmap](docs/project-status.md#roadmap-milestones-m0-to-m4).
+
 ## Handoff log
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5) — session end, credits
+
+**Stopped** at the owner's request with credits running out. The tree is clean,
+everything is pushed to `origin/master` at `4a740f6`, and `make test` passes.
+Nothing is half-finished in the repository. The only work in flight is the M0
+gate LibreLane run described above, which writes outside the repository.
+
+**This session, in order.** Made `CODEX.md` the shared handoff and added
+`AGENTS.md` (`4af41f6`); recorded the stopped F4 floorplan sweep before
+deleting its trees (`e89b356`); freed 57 GB and installed a pinned LibreLane
+3.0.14 (`eb4d962`); ported the flow to LibreLane and measured the block-scale
+formats (`734ee74`); selected searched E4M3 scales in ADR 0008 with both an
+accuracy and an area measurement (`cf7b1d8`).
+
+**The result worth carrying forward.** Searched E4M3 block scales are better
+than the FP32 default on every softmax metric across all four pinned captures
+*and* map to a scaling path 4.89x smaller, at a quarter of the scale storage.
+There is no accuracy-for-area trade, which is why ADR 0008 acts on it. That
+combination, chosen by softmax fidelity and measured Sky130 cost together, is
+the clearest novelty candidate the project has; see
+[related work](docs/related-work.md) for what is and is not new, and do not
+call it novel in any document until that page's full-text review is done.
+
+**Do not restore any wall-clock speedup claim.** At 135,280 cycles, parity with
+one OpenBLAS thread needs 461 MHz and Sky130 will not give it. The claim is
+energy and area per score, which is still unmeasured.
 
 ### 2026-09-29 — Claude (Opus 5) — ADR 0008, the M1 scale-format gate
 
