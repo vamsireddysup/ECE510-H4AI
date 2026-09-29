@@ -77,9 +77,12 @@ Updated 2026-09-29 by Codex.
 - **Best timing evidence.** Mapped netlist, `DELAY 0` at an 8 ns target, no
   wires: 18.241 ns slow-corner and 8.998 ns typical-corner minimum period at
   `34d9df5`. This is not a routed or closing frequency.
-- **Open blocker.** No floorplan has routed with the current RTL. The M2
-  block-streaming rewrite removes the tile-wide `acc_bank`; synthesis and
-  routing must now show whether congestion actually improves.
+- **The congestion blocker is cleared.** The M2 block-streaming top completes
+  global routing with **zero overflow on every metal layer**, zero antenna, zero
+  slew, and zero capacitance violations, and hold passes at the slow corner at
+  **+0.4007 ns** against -1.2765 ns before. Recorded in
+  `docs/results/physical-design.md`. What remains is frequency: setup misses by
+  9.94 ns at 30 ns, so the slow-corner minimum period is 39.94 ns.
 - **No valid dynamic power number exists yet.** That is M2's deliverable.
 - **Toolchain.** LibreLane 3.0.14 is installed by
   `scripts/install_librelane.sh` (venv `~/.local/share/fp4-accel/librelane-venv`,
@@ -135,9 +138,10 @@ Updated 2026-09-29 by Codex.
   What survives is the open-PDK priced co-design, the maintained bit-exactness,
   and the specific finding that searched E4M3 is both more accurate and 4.89x
   smaller than FP32 scales.
-- **Exact next step.** Resume the stopped LibreLane global-route checkpoint
-  described in the newest handoff, then replace the FP32 scale path with the
-  ADR 0008 searched-E4M3 scaler.
+- **Exact next step.** Replace the FP32 scale path with the ADR 0008
+  searched-E4M3 scaler (protocol version 7), which also shortens the scaling
+  path that now sets setup timing. Then a signoff run with timing repair
+  enabled, and gate-level switching activity for the first valid power number.
 
 ### Gotchas
 
@@ -199,6 +203,31 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5) — the block-streaming top routes, zero congestion
+
+**Done.** Resumed the interrupted checkpoint;
+`SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-block-stream-grt-30ns 30 global-route`
+completed at `8ffc662`. **Zero routing overflow on li1 and met1 through met5**,
+27.82% total routing utilization, 118,109 instances, 879,704 um², estimated wire
+3,427,020 um, 0 antenna violations with 635 diodes, 0 slew, 0 capacitance, and
+hold **+0.4007 ns** at the slow corner. Recorded in
+`docs/results/physical-design.md` and `docs/results/data/m2-global-route.csv`.
+
+**Why it matters.** Congestion, caused by the accumulator banks, blocked every
+floorplan in P0.7b; `acc_bank` nets were nearly all of the overflow. Streaming
+one block at a time removes that array and the 32-to-1 scaler read mux, and the
+route is now clean with room to spare. Hold passing and slew and capacitance
+being clean also remove the three reasons the old dynamic-power report was
+rejected.
+
+**Still open.** Setup misses by 9.94 ns at 30 ns, so the slow-corner minimum
+period is 39.94 ns; fast-corner hold is -0.0351 ns. This checkpoint ran with
+timing repair **off** and stops after antenna repair, so it is not signoff: no
+detailed routing, extraction, DRC, LVS, or power.
+
+**Next.** The ADR 0008 E4M3 scaler, which also shortens the path that now sets
+setup timing.
 
 ### 2026-09-29 — Claude (Opus 5) — verified the Codex handoff; corrected prior art
 

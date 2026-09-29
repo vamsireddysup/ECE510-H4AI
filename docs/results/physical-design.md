@@ -595,6 +595,71 @@ milestone M2, at `D_HEAD=64`.
 The reviewed metrics are in
 [`data/m0-gate-librelane-metrics.csv`](data/m0-gate-librelane-metrics.csv).
 
+## M2: the block-streaming top routes with zero congestion
+
+This is the result P0.7 and P0.7b could not reach. Congestion, not die size,
+had blocked every floorplan attempt, and the accumulator banks caused it. The
+M2 block-streaming accumulator keeps one active 16-deep block plus a handoff
+buffer instead of every block's partial sums for a whole tile, which removes
+both the tile-wide bank array and the 32-to-1 scaler read mux.
+
+**Measured** LibreLane 3.0.14 global-route checkpoint at revision `8ffc662`:
+`qkt_chiplet_top` 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=16, one score lane,
+`ENGINES=1`, default 1800 um die at 45% target density, synthesized at 8 ns with
+`DELAY 0` and placed and routed against 30 ns. Image
+`ghcr.io/librelane/librelane:3.0.14`, Sky130
+`8afc8346a57fe1ab7934ba5a6056ea8b43078e71`.
+
+| Item | Result |
+| --- | ---: |
+| Instances | 118,109 |
+| Instance area | 879,704 um² |
+| Core utilization | 27.53% |
+| Estimated wire length | 3,427,020 um |
+| **Routing overflow, all layers** | **0** |
+| Total routing utilization | 27.82% |
+| Antenna violations | 0, with 635 diodes inserted |
+| Max-slew violations | 0 |
+| Max-capacitance violations | 0 |
+| Worst hold slack, slow corner | **+0.4007 ns** |
+| Worst setup slack, slow corner | -9.9417 ns |
+
+Per-layer overflow is zero on li1, met1, met2, met3, met4, and met5, at 34.33%,
+36.52%, 15.87%, 17.94%, and 6.19% demand. The reviewed rows are in
+[`data/m2-global-route.csv`](data/m2-global-route.csv).
+
+### What changed
+
+| | Best P0.7b attempt | M2 block streaming |
+| --- | --- | --- |
+| Global route | **GRT-0119 or GRT-0232 congestion** | completes, zero overflow |
+| Antenna | 332 pins, 281 nets on the routed 4x4 | 0 |
+| Max slew | up to 21,262 | 0 |
+| Max capacitance | not reported clean | 0 |
+| Hold, slow corner | -1.2765 ns | **+0.4007 ns** |
+
+Hold passes at the slow corner for the first time, and slew and capacitance are
+clean, which together remove the reasons the earlier dynamic-power report was
+rejected. Two structural changes did it: the block-streaming accumulator removed
+the congestion source, and LibreLane repairs antennas during detailed routing
+rather than after slew repair.
+
+### What is still open
+
+**Setup misses by 9.94 ns at the slow corner**, so the minimum period is
+39.94 ns, not the 30 ns requested. This is now a frequency problem rather than a
+routability problem, and it is the expected consequence of streaming: the
+per-block path that used to be spread across a tile-wide bank is now a single
+sequential chain. Hold is also -0.0351 ns at the fast corner, a small violation
+this checkpoint's disabled timing repair is expected to fix.
+
+This checkpoint deliberately stops after antenna repair with placement and
+global-route timing repair **off**, so it is not signoff. It does not include
+detailed routing, extracted parasitics, DRC, LVS, or power. The M2 milestone
+still needs: the ADR 0008 E4M3 scaler, a signoff run with timing repair enabled
+and margins set, and gate-level switching activity for the first valid dynamic
+power number.
+
 ## Related
 
 - [Project status](../project-status.md)
