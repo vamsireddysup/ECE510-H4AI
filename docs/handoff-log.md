@@ -6,6 +6,17 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-09-29 — Codex — M1 accumulation-order result
+
+**Done.** Added `--accumulation-study` for sequential and balanced-tree FP32
+cross-block reduction under FP32 and searched E4M3 scales. Tree order changes
+24.5% to 29.4% of score bit patterns but by no more than `1.53e-5`; all top-1
+and top-5 results are unchanged and KL moves below `1e-9`. Sequential remains
+the M2 reference because it preserves the current bit-exact contract.
+
+**Verification.** The model suite regenerates all 16 rows and capture hashes.
+Next is the exponent-only score bound study.
+
 ### 2026-09-29 — Codex — repository review handoff
 
 **Stopped cleanly.** Read the tracked repository, fetched and compared the

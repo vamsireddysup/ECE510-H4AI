@@ -54,8 +54,8 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: none. Codex completed M1 and the first M2 shift/add checkpoint on
-2026-09-29. Continue with the block-streaming accumulator.
+Active agent: Codex, 2026-09-29. Implementing the M2 block-streaming
+accumulator.
 
 ## Current state
 
@@ -190,6 +190,13 @@ and get the project's first valid dynamic power number. See
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
 
+### 2026-09-29 — Codex — M2 block-streaming start
+
+**Started.** Confirmed clean synchronized `master` at `df6edb1`, read the shared
+handoff and active dataflow, and claimed the lock. The atomic task removes the
+tile-wide block accumulator read mux while preserving score bits, protocol, and
+recorded cycles unless a measured pipeline dependency requires a model update.
+
 ### 2026-09-29 — Codex — integrated multiplier checkpoint
 
 **Done.** Fixed `run_synthesis.sh` path quoting and mapped the 4x4 complete top
@@ -267,14 +274,3 @@ safety. Next is two modern decoder captures with `D_HEAD=64`.
 shared handoff and rules, and claimed the lock. The atomic task measures a
 safe exponent-only upper bound, score and whole-tile skip coverage, and the
 resulting softmax cost across all four pinned captures.
-
-### 2026-09-29 — Codex — M1 accumulation-order result
-
-**Done.** Added `--accumulation-study` for sequential and balanced-tree FP32
-cross-block reduction under FP32 and searched E4M3 scales. Tree order changes
-24.5% to 29.4% of score bit patterns but by no more than `1.53e-5`; all top-1
-and top-5 results are unchanged and KL moves below `1e-9`. Sequential remains
-the M2 reference because it preserves the current bit-exact contract.
-
-**Verification.** The model suite regenerates all 16 rows and capture hashes.
-Next is the exponent-only score bound study.
