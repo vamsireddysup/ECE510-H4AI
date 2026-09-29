@@ -367,11 +367,32 @@ Scale storage shrinks by the same four times: `sq` and `sk` together hold
 `2 * T_MAX * ceil(D_HEAD/Bs)` scales, which is 4,096 bits at 32 bits and
 1,024 at 8, and that grows with `T_MAX`.
 
+### E4M3 scales apply exactly
+
+A fourth property, found while planning the RTL and worth stating separately
+because it is not an accuracy-versus-area matter at all. An E4M3 significand is
+four bits. A Bs=16 block accumulator is 13 bits, so at most 12 significant bits.
+The product of the converted accumulator and the two block scales needs at most
+`12 + 4 + 4 = 20` significant bits, inside FP32's 24, so **nothing is rounded**.
+
+Measured over 60,000 random accumulator and scale triples:
+
+| Scale format | Cases needing FP32 rounding |
+| --- | ---: |
+| E4M3 | **0 of 60,000** |
+| FP32 | 59,990 of 60,000 |
+
+The current FP32 design rounds twice, once in each of the two chained
+multipliers. With E4M3 the complete score path is exact given the quantized
+inputs: exact integer block dot, exact conversion, exact scale application. The
+condition is `ACC_W <= 17`, satisfied at every supported block size, and it
+fails for the 43-bit accumulator P1's FP8 support would need.
+
 ### Reading the two halves together
 
 E4M3 with a scale search is **more accurate than the FP32 default on every
-softmax metric and 4.89 times smaller in the scaling path**, with a quarter of
-the scale storage. There is no accuracy-for-area trade to make here, which is
+softmax metric, 4.89 times smaller in the scaling path, and exact where FP32
+rounds twice**, with a quarter of the scale storage. There is no accuracy-for-area trade to make here, which is
 what makes it worth acting on; [ADR 0003](../adr/0003-fp32-scales-with-32-element-blocks.md)
 assumed a finer scale had to cost more hardware, and at 32-bit scales it did.
 

@@ -49,7 +49,28 @@ per-head improvement claim. E8M0-UOS remains worse on every decoder aggregate.
 Scale storage falls by four times as well, from 4,096 to 1,024 bits at
 `T_MAX=16`, and that gap grows with `T_MAX`.
 
-E4M3 is therefore better on accuracy and cheaper in area at the same time. That
+**Exactness.** There is a third argument, found while planning the RTL. An
+E4M3 significand is four bits, one implicit and three stored. A block
+accumulator of `ACC_W` bits carries at most `ACC_W - 1` significant bits, 12 at
+the Bs=16 width of 13. The product of the converted accumulator and the two
+block scales therefore needs at most `(ACC_W - 1) + 4 + 4` significant bits, 20
+here, which fits inside FP32's 24-bit significand. **Applying E4M3 block scales
+is exact: it rounds nothing.** Over 60,000 random accumulator and scale triples,
+0 needed rounding with E4M3 scales and 59,990 needed it with FP32 scales, which
+the current design rounds twice, once per multiplier.
+
+The condition is `ACC_W <= 17`, and it holds for every supported block size:
+13 bits at Bs=16, 14 at Bs=32, 15 at Bs=64. It would not hold for the 43-bit
+accumulator P1 needs for FP8, so that stage has to revisit it.
+
+The consequence is that the whole score path becomes exact given the quantized
+inputs and scales: exact integer block dot, exact conversion to FP32, exact
+scale application. The only numerical error left is input quantization. It also
+removes rounding logic from the scaler and makes the software reference a plain
+double-precision product rounded once to FP32.
+
+E4M3 is therefore better on accuracy, cheaper in area, and exact where FP32
+rounds twice, all at once. That
 is the whole reason to act: there is no trade to weigh. ADR 0003 assumed a
 finer scale must cost more hardware, which was true when the alternative to
 FP32 was a coarser format, and is false when the alternative is a narrower
@@ -68,6 +89,10 @@ not yet shown it needs. Reopen this if a routed result shows the scaling path
 dominating area or energy.
 
 ## Consequences
+
+Scores change. The new path is exact where the old one rounded twice, so the
+protocol version bump is also a numerical-result bump, and the software model
+and testbench must adopt the same exact reference.
 
 The stream contract changes: block scales become one byte plus two per-tensor
 FP32 scales per command, so this is protocol version 7, the next unused
