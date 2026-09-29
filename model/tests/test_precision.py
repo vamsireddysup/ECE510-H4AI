@@ -13,6 +13,9 @@ from scripts.eval_precision import (
     BLOCK_SIZES,
     SCALE_TYPES,
     evaluate,
+    evaluate_preprocessing,
+    hadamard_rotate,
+    preprocess_qk,
     power_of_two_scale,
     quantize_blocks,
     render_t512_table,
@@ -24,6 +27,7 @@ PRECISION_JSON = REPO_ROOT / "docs/results/data/synthetic-precision-sweep.json"
 PRECISION_MARKDOWN = REPO_ROOT / "docs/results/precision.md"
 ACTIVATION_CAPTURE = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0.npz"
 ACTIVATION_JSON = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0-precision.json"
+PREPROCESSING_JSON = REPO_ROOT / "docs/results/data/preprocessing-study.json"
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -59,6 +63,60 @@ def test_ceil_dequantization_scale_does_not_clip() -> None:
         np.array([[5.0, 1.0]], dtype=np.float32), 2, "E8M0-ceil"
     )
     assert clips == 0
+
+
+def test_softmax_invariant_preprocessing() -> None:
+    generator = np.random.default_rng(19)
+    q = generator.standard_normal((7, 8), dtype=np.float32)
+    k = generator.standard_normal((7, 8), dtype=np.float32)
+    reference = q @ k.T
+    reference_probability = np.exp(reference - np.max(reference, axis=1, keepdims=True))
+    reference_probability /= np.sum(reference_probability, axis=1, keepdims=True)
+    for preprocessing in ("k-center", "hadamard", "k-center+hadamard"):
+        q_work, k_work = preprocess_qk(q, k, preprocessing)
+        scores = q_work @ k_work.T
+        probability = np.exp(scores - np.max(scores, axis=1, keepdims=True))
+        probability /= np.sum(probability, axis=1, keepdims=True)
+        np.testing.assert_allclose(probability, reference_probability, rtol=2e-6, atol=2e-7)
+
+
+def test_hadamard_rotation_requires_power_of_two_depth() -> None:
+    with pytest.raises(ValueError, match="power-of-two"):
+        hadamard_rotate(np.ones((2, 6), dtype=np.float32))
+
+
+def test_preprocessing_record_uses_row_shift_aligned_error() -> None:
+    q = np.eye(4, dtype=np.float32)
+    k = np.arange(16, dtype=np.float32).reshape(4, 4)
+    row = evaluate_preprocessing(q, k, "k-center", 4, "FP32")
+    assert row["exact_softmax_invariance_max_abs"] < 1e-6
+    assert "row_centered_relative_frobenius_error" in row
+
+
+def test_preprocessing_study_matches_committed_json() -> None:
+    """Keep every preprocessing row tied to the four pinned captures."""
+    committed = json.loads(PREPROCESSING_JSON.read_text())
+    expected = committed["metrics"]
+    regenerated = []
+    for source in committed["captures"]:
+        path = REPO_ROOT / source["source"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == source["sha256"]
+        with np.load(path, allow_pickle=False) as capture:
+            q, k = capture["q"], capture["k"]
+        for scale_type in ("FP32", "E4M3-search"):
+            for preprocessing in ("none", "k-center", "hadamard", "k-center+hadamard"):
+                regenerated.append({
+                    **evaluate_preprocessing(q, k, preprocessing, 16, scale_type),
+                    "source": source["source"],
+                })
+    assert len(regenerated) == len(expected)
+    for actual, recorded in zip(regenerated, expected, strict=True):
+        assert actual.keys() == recorded.keys()
+        for key in actual:
+            if isinstance(actual[key], float):
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)
+            else:
+                assert actual[key] == recorded[key]
 
 
 def test_reference_accepts_numpy_block_scale_rows() -> None:

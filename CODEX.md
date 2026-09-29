@@ -90,13 +90,18 @@ Updated 2026-09-29 by Codex.
   with a quarter of the scale storage. E8M0 is 13.83x smaller but costs 2.34
   points of top-1, so it is rejected and the reopening condition is recorded.
   The RTL change lands with the M2 accumulator rework, as protocol version 7.
+- **M1 preprocessing is measured.** K channel-mean centering and normalized
+  Hadamard rotation have mixed capture-level effects. Neither improves KL, TV,
+  top-1, and top-5 together across all four captures, so neither becomes the
+  default. The 32-row record is machine-checked.
 - **M0 is complete.** The gate run finished after the handoff was written:
   LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
   LVS, and **zero antenna violations**, then stopped correctly at the hold
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step, for Codex.** M1, item 1 under "Picking this up" below.
+- **Exact next step.** M1 item 2 under "Picking this up": per-block FP4 versus
+  INT4 selected by reconstruction error.
 
 ### Gotchas
 
@@ -158,6 +163,20 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M1 preprocessing result
+
+**Done.** Added K channel-mean centering and normalized Walsh-Hadamard rotation
+behind `--preprocessing-study`, including their combination, FP32 and searched
+E4M3 scales, and all four pinned captures. The record measures raw score error
+after row-mean removal, because K centering intentionally adds a softmax-inert
+row shift. Neither transform becomes the default: searched E4M3 baseline mean
+KL/top-1 is 0.02114/90.82%; K centering gives 0.02712/89.16%, and Hadamard gives
+0.02165/90.53%. Capture-level directions differ.
+
+**Verified.** `make test` passes with 33 model tests, eleven lint configurations,
+and both integration depths. A provenance test checks all 32 study rows and all
+four capture hashes. Next is per-block FP4 versus INT4.
 
 ### 2026-09-29 — Codex — M1 preprocessing start
 

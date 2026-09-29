@@ -326,6 +326,63 @@ KL divergence, so it is not free, and on this evidence I am not taking it.
 above are mapped, without wires; the routed consequence is a milestone M2
 result.
 
+## Softmax-invariant preprocessing
+
+M1 tested two transformations before quantization. K channel-mean centering
+subtracts the mean K vector from every key, which subtracts one constant from
+each query row of `QK^T`. A normalized Walsh-Hadamard transform applies the same
+orthogonal rotation to Q and K. Both preserve attention probabilities in exact
+arithmetic. Across the four captures, the largest measured probability change
+from float32 evaluation of either transform or their combination is
+`1.82e-6`; this is numerical rounding rather than a model change.
+
+These are **measured software-model results** at Bs=16 with NumPy 1.26.4. Raw
+score error is computed after removing each score row's mean, because an
+arbitrary row constant is invisible to softmax. The aggregate values are
+unweighted means of the four pinned captures.
+
+| Scale | Preprocessing | Mean KL | Mean TV | Top-1 | Top-5 | Row-centered rel. Frobenius |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| FP32 | none | 0.02738 | 0.08214 | 89.65% | 93.35% | 10.03% |
+| FP32 | K center | 0.03268 | 0.09162 | 88.53% | 94.02% | 9.06% |
+| FP32 | Hadamard | 0.03071 | 0.08695 | 87.40% | 93.54% | 10.12% |
+| FP32 | both | 0.04653 | 0.10511 | 83.35% | 93.87% | 9.13% |
+| E4M3-search | none | **0.02114** | 0.07339 | **90.82%** | 94.28% | 8.63% |
+| E4M3-search | K center | 0.02712 | 0.08128 | 89.16% | 94.82% | **7.85%** |
+| E4M3-search | Hadamard | 0.02165 | **0.07338** | 90.53% | 94.61% | 8.70% |
+| E4M3-search | both | 0.02849 | 0.08443 | 87.74% | **94.86%** | 7.86% |
+
+The capture-level selected-format result shows why the aggregate is not enough:
+
+| Capture | Preprocessing | Mean KL | Top-1 | Top-5 |
+| --- | --- | ---: | ---: | ---: |
+| tiny L0 H0 | none / K center / Hadamard / both | 0.00786 / 0.00744 / 0.00766 / 0.00746 | 91.02% / 89.84% / 90.82% / 88.67% | 89.84% / 90.20% / 91.09% / 91.17% |
+| tiny L1 H0 | none / K center / Hadamard / both | 0.02741 / 0.04847 / 0.02807 / 0.04914 | 89.06% / 88.09% / 88.09% / 84.96% | 98.09% / 97.93% / 97.97% / 97.81% |
+| tiny L1 H1 | none / K center / Hadamard / both | 0.03055 / 0.03816 / 0.03538 / 0.04037 | 89.84% / 84.57% / 88.48% / 82.81% | 98.36% / 98.67% / 97.89% / 98.36% |
+| small L3 H0 | none / K center / Hadamard / both | 0.01876 / 0.01439 / 0.01549 / 0.01700 | 93.36% / 94.14% / 94.73% / 94.53% | 90.82% / 92.50% / 91.48% / 92.11% |
+
+No preprocessing becomes the default. K centering lowers row-aligned raw error
+and improves top-5 on average, but worsens mean KL, TV, and top-1. Hadamard
+rotation leaves mean TV effectively unchanged under searched E4M3 while
+worsening KL and top-1. The larger, deeper capture improves under both rules,
+while the two tiny-model layer-1 heads regress. A layer-selective rule may still
+be useful in P1, but these four captures do not support applying either rule to
+every layer.
+
+Reproduce the 32 rows with:
+
+```bash
+python3 scripts/eval_precision.py --preprocessing-study \
+  --captures docs/results/data/bert-tiny-layer0-head0.npz \
+  docs/results/data/bert-tiny-layer1-head0.npz \
+  docs/results/data/bert-tiny-layer1-head1.npz \
+  docs/results/data/bert-small-layer3-head0.npz
+```
+
+The raw generated record, including every capture SHA-256, is
+[`data/preprocessing-study.json`](data/preprocessing-study.json). A model test
+regenerates every row.
+
 ## Output score format
 
 The replicated engine is bound by the 64-bit output port, which carries two FP32

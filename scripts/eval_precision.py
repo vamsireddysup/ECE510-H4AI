@@ -19,6 +19,7 @@ SCALE_TYPES = ("FP32", "E8M0-floor", "E8M0-nearest", "E8M0-ceil")
 # Output score formats. The engine emits FP32 today; the narrower formats fit
 # four scores in one 64-bit beat instead of two.
 OUTPUT_FORMATS = ("FP32", "FP16", "BF16")
+PREPROCESSING_TYPES = ("none", "k-center", "hadamard", "k-center+hadamard")
 
 
 def render_t512_table(metrics: list[dict[str, float | int | str]]) -> str:
@@ -233,6 +234,42 @@ def evaluate_scale_study(
     }
 
 
+def hadamard_rotate(values: np.ndarray) -> np.ndarray:
+    """Apply an orthonormal Walsh-Hadamard transform along D_HEAD."""
+    if values.ndim != 2 or values.shape[1] == 0:
+        raise ValueError("values must be a nonempty T x D array")
+    depth = values.shape[1]
+    if depth & (depth - 1):
+        raise ValueError("Hadamard rotation requires power-of-two D_HEAD")
+    rotated = values.astype(np.float64, copy=True)
+    width = 1
+    while width < depth:
+        for start in range(0, depth, 2 * width):
+            left = rotated[:, start:start + width].copy()
+            right = rotated[:, start + width:start + 2 * width].copy()
+            rotated[:, start:start + width] = left + right
+            rotated[:, start + width:start + 2 * width] = left - right
+        width *= 2
+    return (rotated / math.sqrt(depth)).astype(np.float32)
+
+
+def preprocess_qk(
+    q: np.ndarray, k: np.ndarray, preprocessing: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply one softmax-invariant Q/K preprocessing rule."""
+    if preprocessing not in PREPROCESSING_TYPES:
+        raise ValueError(f"unknown preprocessing rule: {preprocessing}")
+    q_work = np.asarray(q, dtype=np.float32)
+    k_work = np.asarray(k, dtype=np.float32)
+    if preprocessing.startswith("k-center"):
+        k_work = (k_work.astype(np.float64)
+                  - np.mean(k_work.astype(np.float64), axis=0)).astype(np.float32)
+    if preprocessing.endswith("hadamard"):
+        q_work = hadamard_rotate(q_work)
+        k_work = hadamard_rotate(k_work)
+    return q_work, k_work
+
+
 def softmax(scores: np.ndarray) -> np.ndarray:
     shifted = scores.astype(np.float64) - np.max(scores, axis=1, keepdims=True)
     exponentials = np.exp(shifted)
@@ -311,6 +348,89 @@ def evaluate(
     }
 
 
+def evaluate_preprocessing(
+    q: np.ndarray, k: np.ndarray, preprocessing: str,
+    block_size: int = 16, scale_type: str = "E4M3-search",
+) -> dict[str, float | int | str]:
+    """Evaluate quantization after an exact softmax-invariant transform.
+
+    K centering subtracts one constant from every score in a query row. Raw
+    score errors are therefore measured after removing each row mean. Softmax
+    metrics are always measured against the original, untransformed logits.
+    """
+    q = np.asarray(q, dtype=np.float32)
+    k = np.asarray(k, dtype=np.float32)
+    q_work, k_work = preprocess_qk(q, k, preprocessing)
+    q_half, q_scale, q_clips = quantize_blocks_study(
+        q_work, block_size, scale_type
+    )
+    k_half, k_scale, k_clips = quantize_blocks_study(
+        k_work, block_size, scale_type
+    )
+    fp4_scores = np.zeros((q.shape[0], q.shape[0]), dtype=np.float32)
+    for block in range(q_scale.shape[1]):
+        start = block * block_size
+        stop = min(start + block_size, q.shape[1])
+        exact_quarters = q_half[:, start:stop] @ k_half[:, start:stop].T
+        block_scores = exact_quarters.astype(np.float32) * np.float32(.25)
+        block_scores *= q_scale[:, block, None]
+        block_scores *= k_scale[None, :, block]
+        fp4_scores += block_scores
+
+    reference_scores = q @ k.T
+    transformed_scores = q_work @ k_work.T
+    divisor = math.sqrt(q.shape[1])
+    reference_probability = softmax(reference_scores / divisor)
+    transformed_probability = softmax(transformed_scores / divisor)
+    fp4_probability = softmax(fp4_scores / divisor)
+    tiny = np.finfo(np.float64).tiny
+    kl_rows = np.sum(
+        reference_probability
+        * (np.log(np.maximum(reference_probability, tiny))
+           - np.log(np.maximum(fp4_probability, tiny))), axis=1,
+    )
+    tv_rows = 0.5 * np.sum(
+        np.abs(reference_probability - fp4_probability), axis=1
+    )
+    top1 = np.argmax(reference_probability, axis=1) == np.argmax(
+        fp4_probability, axis=1
+    )
+    top_k = min(5, q.shape[0])
+    reference_top = np.argsort(
+        reference_probability, axis=1, kind="stable"
+    )[:, -top_k:]
+    fp4_top = np.argsort(fp4_probability, axis=1, kind="stable")[:, -top_k:]
+    overlap = np.array([
+        len(set(reference_top[row]) & set(fp4_top[row])) / top_k
+        for row in range(q.shape[0])
+    ])
+    reference_aligned = reference_scores.astype(np.float64)
+    reference_aligned -= np.mean(reference_aligned, axis=1, keepdims=True)
+    fp4_aligned = fp4_scores.astype(np.float64)
+    fp4_aligned -= np.mean(fp4_aligned, axis=1, keepdims=True)
+    difference = fp4_aligned - reference_aligned
+    return {
+        "T": q.shape[0], "D_HEAD": q.shape[1],
+        "block_size": block_size, "scale_type": scale_type,
+        "preprocessing": preprocessing,
+        "mean_kl_divergence": float(np.mean(kl_rows)),
+        "mean_total_variation": float(np.mean(tv_rows)),
+        "top1_agreement": float(np.mean(top1)),
+        "top5_index_agreement": float(np.mean(overlap)),
+        "row_centered_mean_abs_error": float(np.mean(np.abs(difference))),
+        "row_centered_relative_frobenius_error": float(
+            np.linalg.norm(difference)
+            / max(np.linalg.norm(reference_aligned), 1e-30)
+        ),
+        "exact_softmax_invariance_max_abs": float(np.max(
+            np.abs(reference_probability - transformed_probability)
+        )),
+        "clipped_input_fraction": float(
+            (q_clips + k_clips) / (q.size + k.size)
+        ),
+    }
+
+
 def evaluate_output_format(
     q: np.ndarray, k: np.ndarray, block_size: int, scale_type: str,
     output_format: str,
@@ -342,8 +462,25 @@ def main() -> None:
         "--scale-study", action="store_true",
         help="compare FP32, E4M3, and E8M0 block-scale rules at one block size",
     )
+    parser.add_argument(
+        "--preprocessing-study", action="store_true",
+        help="compare K centering and Hadamard rotation at one block size",
+    )
+    parser.add_argument(
+        "--captures", type=Path, nargs="+",
+        help="multiple pinned Q/K captures for the preprocessing study",
+    )
     args = parser.parse_args()
-    if args.npz:
+    if args.captures:
+        matrices = []
+        sources = []
+        for path in args.captures:
+            with np.load(path) as capture:
+                matrices.append((capture["q"], capture["k"]))
+            sources.append({"source": str(path),
+                            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+        source = {"captures": sources}
+    elif args.npz:
         with np.load(args.npz) as capture:
             matrices = [(capture["q"], capture["k"])]
         source = {"source": str(args.npz),
@@ -355,7 +492,21 @@ def main() -> None:
             generator.standard_normal((size, args.depth), dtype=np.float32),
         ) for size in args.sizes]
         source = {"source": "synthetic_normal", "seed": args.seed}
-    if args.scale_study:
+    if args.preprocessing_study:
+        if not args.captures and not args.npz:
+            raise ValueError("--preprocessing-study requires --npz or --captures")
+        metrics = [
+            {
+                **evaluate_preprocessing(
+                    q, k, preprocessing, args.block_size, scale_type
+                ),
+                "source": str(args.captures[index]) if args.captures else str(args.npz),
+            }
+            for index, (q, k) in enumerate(matrices)
+            for scale_type in ("FP32", "E4M3-search")
+            for preprocessing in PREPROCESSING_TYPES
+        ]
+    elif args.scale_study:
         metrics = [
             evaluate_scale_study(q, k, args.block_size, scale_type)
             for q, k in matrices

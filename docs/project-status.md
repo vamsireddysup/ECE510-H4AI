@@ -146,7 +146,9 @@ Probe scaler and multiplier cost with synthesis-only runs.
 **Partly done:** [ADR 0008](adr/0008-e4m3-block-scales.md) has selected the scale format:
 searched E4M3, which is more accurate than FP32 on every softmax metric and
 4.89 times smaller in the scaling path. The element format and preprocessing
-decisions remain.
+study is now measured: neither K centering nor Hadamard rotation improves all
+softmax metrics across all four captures, so neither becomes the default. The
+element-format decision remains.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep
