@@ -77,12 +77,12 @@ Updated 2026-09-29 by Claude (Opus 5.5).
   image `ghcr.io/librelane/librelane:3.0.14`). Its smoke test passes. The old
   OpenLane 1.1.1 image stays for reproducing recorded results.
 - **Uncommitted.** Nothing.
-- **M1 result so far.** E4M3 block scales with an offline scale search beat the
-  FP32 default on every softmax metric across all four captures, at a quarter
-  of the scale storage and with a 4-bit rather than 24x24 significand multiply.
-  E8M0 stays worse even with the MXAttention boundary. No format change is made
-  until the scaler synthesis comparison prices it; that plus this table is
-  ADR 0008.
+- **M1 scale-format decision is made.** [ADR 0008](docs/adr/0008-e4m3-block-scales.md)
+  selects searched E4M3 block scales: better than FP32 on every softmax metric
+  across all four captures **and** 4.89x smaller in the mapped scaling path,
+  with a quarter of the scale storage. E8M0 is 13.83x smaller but costs 2.34
+  points of top-1, so it is rejected and the reopening condition is recorded.
+  The RTL change lands with the M2 accumulator rework, as protocol version 7.
 - **Exact next step.** Finish the M0 gate: a `D_HEAD=4`, 900 um, `full`
   LibreLane run was in placement repair when this entry was written; check
   `build/librelane/m0-gate-d4/pnr.log` and its `runs/pnr/final` for a clean
@@ -111,7 +111,27 @@ Updated 2026-09-29 by Claude (Opus 5.5).
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
 
-### 2026-09-29 — Claude (Opus 5) — M0 step 4 and first M1 result
+### 2026-09-29 — Claude (Opus 5) — ADR 0008, the M1 scale-format gate
+
+**Done.** Measured the cost side of the scale format with
+`rtl/probe/scaler_probe.sv` and `scripts/run_scaler_probe.sh`: one score lane's
+scaling path per format, mapped to Sky130. FP32 52,280 um²; E4M3 10,695 um²,
+4.89x smaller; E8M0 3,780 um², 13.83x smaller. With the accuracy table from the
+previous entry this makes the decision one-sided, and ADR 0008 takes searched
+E4M3. Also fixed `scripts/run_synthesis.sh`, which still hardcoded a file list
+without `qkt_engine.sv` and so could not have run.
+
+**Verified.** Both narrow probe variants are bit-exact against a
+double-precision reference over 539 accumulator and scale combinations each;
+the first version of the probe was wrong and the test caught it. `make test`
+passes.
+
+**Gotchas.** Yosys `stat` reports area per module, so a hierarchical read
+undercounts: the FP32 variant's two `fp32_mul` instances were missing until the
+script added `-flatten`. Any area number from `stat` needs flattening or
+explicit summing.
+
+### 2026-09-29 — Claude (Opus 5.5) — M0 step 4 and first M1 result
 
 **Done.** Ported the flow to LibreLane: `config/librelane/qkt_chiplet_top/`
 (config plus SDC), `scripts/librelane_config.py`, and
