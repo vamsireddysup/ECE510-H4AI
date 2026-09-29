@@ -71,12 +71,18 @@ Updated 2026-09-29 by Claude (Opus 5.5).
   dominated by `acc_bank` nets. M2's block-streaming accumulator is the planned
   fix.
 - **No valid dynamic power number exists yet.** That is M2's deliverable.
-- **Uncommitted.** Nothing.
-- **Exact next step.** M0 step 2: confirm no OpenLane container or process is
-  running (`docker ps`, `pgrep -fa run_physical`), then delete every
-  `build/physical/*` tree, which the owner approved on 2026-09-29. Reviewed
-  numbers already live in `docs/results/data/`. Then M0 step 3, install
-  LibreLane.
+- **Toolchain.** LibreLane 3.0.14 is installed by
+  `scripts/install_librelane.sh` (venv `~/.local/share/fp4-accel/librelane-venv`,
+  ciel 2.6.1, Sky130 `8afc8346a57fe1ab7934ba5a6056ea8b43078e71` in `~/.ciel`,
+  image `ghcr.io/librelane/librelane:3.0.14`). Its smoke test passes. The old
+  OpenLane 1.1.1 image stays for reproducing recorded results.
+- **Uncommitted.** `config/librelane/qkt_chiplet_top/constraints.sdc`, the
+  project SDC ported to LibreLane variable names, not yet exercised by a run.
+- **Exact next step.** M0 step 4: write `config/librelane/qkt_chiplet_top/`
+  base config and `scripts/run_librelane.sh` (two-phase: run to
+  `Checker.NetlistAssignStatements` at the synthesis clock, then
+  `--from OpenROAD.CheckSDCFiles --with-initial-state` at the P&R clock), then
+  run the M0 gate: 4x4, `D_HEAD=4`, RTL to clean GDS.
 
 ### Gotchas
 
@@ -96,6 +102,29 @@ Updated 2026-09-29 by Claude (Opus 5.5).
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5.5) — M0 steps 2 and 3
+
+**Done.** Deleted every old `build/physical` tree (57 GB) as the owner
+approved; the reviewed numbers were already in `docs/results/data/`. Stopped a
+leaked memory-sampler loop left from the F4 pilot. Installed LibreLane with a
+pinned, re-runnable installer. Disk is now 47% used.
+
+**Verified.** `librelane --docker-no-tty --dockerized --smoke-test` prints
+"Smoke test passed". Log in `build/librelane-smoke.log`.
+
+**Gotchas.**
+
+- LibreLane 3.0.14 requires `ciel>=2.3.1,<3`; ciel 3.0.0 does not install.
+- Non-interactive shells need `--docker-no-tty` before `--dockerized`, or the
+  container fails with "cannot attach stdin to a TTY-enabled container".
+- LibreLane mounts `$HOME` at the same path, so the container sees this repo at
+  its real path, which contains spaces. Whether every tool accepts that is the
+  first thing the M0 gate run tests. `sanitize_path` uses `abspath`, not
+  `realpath`, so a space-free symlink is the fallback.
+- LibreLane's Classic flow still runs `RepairDesignPostGRT` before
+  `RepairAntennas`, the same ordering that left slew violations on antenna
+  diodes in OpenLane 1.1.1.
 
 ### 2026-09-29 — Claude (Opus 5.5) — M0 step 1
 
