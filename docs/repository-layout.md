@@ -9,7 +9,8 @@ For the migration that produced this layout, see [`CHANGELOG.md`](../CHANGELOG.m
 ```text
 .
 ├── README.md              entry point: what this is, verified status, how to run
-├── CODEX.md               one-line pointer to docs/agent-rules.md
+├── AGENTS.md              pointer Codex loads automatically; points to CODEX.md
+├── CODEX.md               agent entry point: lock, current state, handoff log
 ├── CONTRIBUTING.md        human workflow
 ├── CHANGELOG.md           engineering history
 ├── LICENSE                Apache-2.0
@@ -51,8 +52,10 @@ release assets, not Git history.
 ## Naming
 
 Root-level conventional files keep their uppercase names: `README.md`,
-`CODEX.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`. The root `CODEX.md` is
-a discovery pointer; its rules live in [`agent-rules.md`](agent-rules.md). Every other Markdown
+`AGENTS.md`, `CODEX.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`. The root
+`CODEX.md` is the agents' handoff and entry point, `AGENTS.md` is the pointer
+Codex loads automatically, and the rules live in
+[`agent-rules.md`](agent-rules.md). Every other Markdown
 file is kebab-case, including everything under `docs/`. Directory READMEs are
 `README.md` at any depth.
 

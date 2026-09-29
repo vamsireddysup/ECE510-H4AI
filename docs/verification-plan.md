@@ -75,7 +75,7 @@ all pass.
 
 ## Recording a result
 
-Per [`CODEX.md`](../CODEX.md), every published number records the commit, the RTL
+Per the [agent rules](agent-rules.md), every published number records the commit, the RTL
 target and included modules, the parameter values, the tool and PDK versions, the
 clock constraint, and whether it is measured or projected. Reviewed results go in
 [`docs/results/`](results/README.md).

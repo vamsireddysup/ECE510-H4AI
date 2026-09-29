@@ -11,6 +11,7 @@ This index gives each active document one job and three reading paths. The root
 | [Project status and plan](project-status.md) | Current implementation, completed evidence, and next gates |
 | [Architecture](architecture.md) | Blocks, dataflow, and exact cycle model |
 | [Research questions](problem-statements/README.md) | P0, deferred P1, and shelved P2 scope |
+| [Related work](related-work.md) | Nearest published work per research track and what is not new |
 
 ## Build or change it
 
@@ -20,7 +21,8 @@ This index gives each active document one job and three reading paths. The root
 | [Protocol history](protocol-history.md) | Compatibility meaning of versions 1 through 6 |
 | [Verification plan](verification-plan.md) | What every check proves and the remaining gaps |
 | [Repository layout](repository-layout.md) | Directory, naming, documentation, and rename conventions |
-| [Agent rules](agent-rules.md) | Automated workflow, commit policy, and result provenance |
+| [Agent rules](agent-rules.md) | Automated workflow, handoff protocol, commit policy, and result provenance |
+| [Handoff log archive](handoff-log.md) | Older Claude and Codex handoff entries rotated out of `CODEX.md` |
 | [Contribution workflow](../CONTRIBUTING.md) | Human change workflow |
 
 ## Review the evidence

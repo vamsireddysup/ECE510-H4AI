@@ -1,4 +1,4 @@
-# Codex project instructions
+# Agent project instructions
 
 ## Purpose
 
@@ -7,6 +7,26 @@ course work while building and testing the active implementation.
 
 Read [the documentation index](README.md) before making architectural or
 repository-wide changes.
+
+## Handoff protocol
+
+Claude Code and Codex both work on this repository, one at a time, as each has
+credits. The root `CODEX.md` is the shared entry point: it holds the lock, the
+current state, and the handoff log, and `AGENTS.md` points to it so Codex loads
+it automatically. There is no `CLAUDE.md`.
+
+- Start every session with `CODEX.md`, these rules, `git status`, and the git
+  log since the newest handoff entry. Stop if another agent holds the lock.
+- After every verified commit, update the current state and add a handoff
+  entry, then push. The handoff is never more than one step behind the code.
+- Neither agent can read its own credit percentage, so there is no reliable
+  "at 80%" trigger. Stop deliberately when the owner says so, when a context or
+  usage warning appears, or when the next step will not fit: finish the atomic
+  step, commit, write the entry, push, and clear the lock.
+- The first session after a milestone re-runs that milestone's gate commands
+  before starting new work.
+- Keep `CODEX.md` under about 24 KB; move handoff entries older than the newest
+  eight to `docs/handoff-log.md`.
 
 ## Source-of-truth policy
 

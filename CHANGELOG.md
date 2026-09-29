@@ -48,6 +48,15 @@ naming rules these entries follow, see
   to 135,280 cycles at eight engines against the 131,072-cycle output floor, and
   sixteen engines do not improve either. There is no area or routed result.
 
+### Agent handoff and roadmap
+
+- Turned the root `CODEX.md` into the shared entry point for Claude Code and
+  Codex, with a lock, the current state, and a handoff log updated after every
+  verified commit, and added an `AGENTS.md` pointer because Codex loads that
+  name automatically and had not been reading `CODEX.md` on its own.
+- Added a related-work survey showing the 1x16 FP4 block re-derives NVFP4, and
+  replaced the P0.7b stage list with roadmap milestones M0 to M4.
+
 ### Baseline, model, and measurement
 
 - Refreshed the CPU baseline with a host block, an optional all-core mode, and

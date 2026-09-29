@@ -108,6 +108,53 @@ measurements are in [performance results](results/performance.md) and
   second route remains the verified 16x16 L4 top. See the
   [replication result](results/performance.md).
 
+## Roadmap: milestones M0 to M4
+
+This roadmap replaces the P0.7b stage list. It came from a literature review on
+2026-09-29 recorded in [related work](related-work.md), which showed that my
+1x16 FP4 block choice re-derives NVFP4 and so is not new by itself. Novelty has
+to come from choosing formats and hardware together, judged by softmax fidelity
+and by measured area, energy, and timing in an open PDK. Every step is one
+commit sized for one agent session; each milestone ends with a results record,
+an ADR where a decision is made, a handoff entry in the root `CODEX.md`, and my
+review. The first session after a milestone re-runs its gate before new work.
+
+**M0, housekeeping and toolchain.** Record the P0.7b floorplan result, then
+delete the old `build/physical` trees. Install LibreLane 3.x with its `ciel`
+PDK manager, port the OpenLane configuration and SDC, and keep the pinned
+OpenLane 1.1.1 image only to reproduce recorded results. Gate: LibreLane smoke
+test, synthesis parity with the current netlist, and a small configuration from
+RTL to clean GDS.
+
+**M1, arithmetic decisions in software.** Extend `scripts/eval_precision.py`
+with scale formats (FP32, E4M3 with a tensor scale, E8M0 with the 7.25 clipping
+boundary, per-block four-or-six, and scale search), softmax-invariant
+preprocessing (K mean-centering and Hadamard rotation), per-block FP4 or INT4,
+sequential versus tree cross-block accumulation, and an exponent-only score
+bound for skipping. Add at least two modern decoder heads with `D_HEAD=64`.
+Probe scaler and multiplier cost with synthesis-only runs. Gate: ADR 0008
+selects element format, scale format, and preprocessing.
+
+**M2, P0 closure: the first routed milestone.** Replace the per-tile
+accumulator banks with a block-streaming accumulator that hands each 16-deep
+block to the scaler as it completes, removing the congestion source and the
+32-to-1 scaler read mux, and implement the ADR 0008 scaler. Route in LibreLane
+with placement timing repair on and signoff at three corners. Annotate switching
+activity from gate-level simulation of the pinned workload to obtain the
+project's first valid dynamic power and energy per score. Gate: setup and hold
+non-negative at every corner; zero slew, fanout, DRC, and LVS violations;
+antenna resolved or explicitly accepted.
+
+**M3, P1 tracks against the M2 baseline, measured after routing.** 3a, exact
+multiplier-free E2M1 multiply-accumulate against the current decoder and the
+product ROM. 3b, per-block FP4 or INT4 selected by a one-bit flag in the scale,
+as protocol version 7. 3c, exponent-first skipping, built only if M1 shows its
+saving exceeds its overhead and an ADR settles the output semantics.
+
+**M4, integration.** Route the best combined configuration, including the
+eight-engine design point from ADR 0007 if the area allows, finish the related
+work review, and optionally compare `sky130_fd_sc_hs`.
+
 ## P0, active: dense FP4 matrix multiplication
 
 Stages and their exit conditions are in
@@ -141,6 +188,9 @@ Stages and their exit conditions are in
    power is rejected. The selected 16x16 L4 follow-up remains blocked by accumulator synthesis
    scaling after two bounded alternatives, so ADR 0006 selects replicated 4x4
    engines as the next prototype. See [the physical result](results/physical-design.md).
+   P0.7b then reworked synthesis and control timing (mapped slow-corner minimum
+   period 20.593 ns to 18.241 ns) but no floorplan routed: congestion is
+   dominated by the accumulator banks. Closure moves to roadmap milestone M2.
 7. **P0.5, decide K-reuse storage from routed energy evidence.** Complete for
    the current implementation. Close register K reuse; its full-capacity area
    does not fit the current die and the conservative slow-corner leakage
@@ -195,6 +245,8 @@ negative nominal setup and hold slack.
 ## Related
 
 - [Research questions](problem-statements/README.md)
+- [Related work](related-work.md)
+- [Handoff log archive](handoff-log.md)
 - [Architecture](architecture.md)
 - [Verification plan](verification-plan.md)
 - [Decision records](adr/README.md)
