@@ -54,8 +54,7 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: none. Codex completed M1 preprocessing, element-format, and
-accumulation-order studies on 2026-09-29. Continue with the exponent bound.
+Active agent: Codex, 2026-09-29. Measuring the M1 exponent-only score bound.
 
 ## Current state
 
@@ -171,6 +170,13 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M1 exponent-bound start
+
+**Started.** Confirmed clean synchronized `master` at `800c2eb`, read the
+shared handoff and rules, and claimed the lock. The atomic task measures a
+safe exponent-only upper bound, score and whole-tile skip coverage, and the
+resulting softmax cost across all four pinned captures.
 
 ### 2026-09-29 — Codex — M1 accumulation-order result
 
