@@ -357,6 +357,25 @@ decision is now complete and measured above. Mapped hierarchy area and a routed
 result remain open, so the 4,468,427 um² projection is still the only area
 number for eight engines.
 
+## FP4 product structure
+
+M1 compared three product generators in isolation at revision `4b2caf5` with
+Yosys 0.44 and the Sky130 HD typical library. These are **measured mapped areas
+without wires**, not routed results.
+
+| Structure | Output | Cells | Area |
+| --- | --- | ---: | ---: |
+| Decode and generic multiply | Signed half-unit integer | 127 | 872.09 um2 |
+| **Exact E2M1 shift/add** | Signed half-unit integer | **59** | **381.62 um2** |
+| Archived product ROM | FP32 product | 40 | 228.97 um2 |
+
+The shift/add form is formally equivalent to the active integer product on all
+256 input pairs and cuts like-for-like mapped area by 56.24%. The FP32 ROM is
+smaller in isolation but would require FP32 accumulation or per-product
+conversion, costs absent from its row. [ADR 0009](../adr/0009-use-e2m1-shift-add-products.md)
+selects shift/add for the M2 accumulator rewrite. The complete-top effect,
+timing, and energy remain M2 measurements.
+
 
 ## Related
 

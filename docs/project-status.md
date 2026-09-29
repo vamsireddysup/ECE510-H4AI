@@ -143,7 +143,7 @@ preprocessing (K mean-centering and Hadamard rotation), per-block FP4 or INT4,
 sequential versus tree cross-block accumulation, and an exponent-only score
 bound for skipping. Add at least two modern decoder heads with `D_HEAD=64`.
 Probe scaler and multiplier cost with synthesis-only runs.
-**Partly done:** [ADR 0008](adr/0008-e4m3-block-scales.md) has selected the scale format:
+**Complete:** [ADR 0008](adr/0008-e4m3-block-scales.md) selects the scale format:
 searched E4M3, which is more accurate than FP32 on every softmax metric and
 4.89 times smaller in the scaling path. The element format and preprocessing
 study is now measured: neither K centering nor Hadamard rotation improves all
@@ -163,22 +163,26 @@ sample. Searched E4M3 retains better aggregate softmax and raw-score metrics
 than FP32 and E8M0. Preprocessing and adaptive FP4/INT4 remain layer-dependent.
 The exponent bound covers no complete 4x4 decoder tile at tau=4, so fixed
 exponent-bound skipping is rejected as a general P0 feature.
+[ADR 0009](adr/0009-use-e2m1-shift-add-products.md) selects exact E2M1
+shift/add products after formal equivalence and same-library mapping: 381.62
+um2 against 872.09 um2 for the generic integer multiply. M1 is complete.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep
 block to the scaler as it completes, removing the congestion source and the
-32-to-1 scaler read mux, and implement the ADR 0008 scaler. Route in LibreLane
+32-to-1 scaler read mux, and implement the ADR 0008 scaler plus ADR 0009
+shift/add products. Route in LibreLane
 with placement timing repair on and signoff at three corners. Annotate switching
 activity from gate-level simulation of the pinned workload to obtain the
 project's first valid dynamic power and energy per score. Gate: setup and hold
 non-negative at every corner; zero slew, fanout, DRC, and LVS violations;
 antenna resolved or explicitly accepted.
 
-**M3, P1 tracks against the M2 baseline, measured after routing.** 3a, exact
-multiplier-free E2M1 multiply-accumulate against the current decoder and the
-product ROM. 3b, per-block FP4 or INT4 selected by a one-bit flag in the scale,
-as protocol version 7. 3c, exponent-first skipping, built only if M1 shows its
-saving exceeds its overhead and an ADR settles the output semantics.
+**M3, P1 tracks against the M2 baseline, measured after routing.** 3a,
+format-selectable multiplication including the wide shared and packed options.
+3b, per-block FP4 or INT4 selected by a one-bit flag in a separately versioned
+stream. 3c, a layer-selected sparsity policy; fixed exponent-bound skipping is
+not carried forward because the decoder validation found no skippable 4x4 tile.
 
 **M4, integration.** Route the best combined configuration, including the
 eight-engine design point from ADR 0007 if the area allows, finish the related

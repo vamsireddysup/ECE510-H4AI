@@ -1,0 +1,4 @@
+git_revision,yosys_revision,pdk_revision,library,implementation,output_contract,cells,mapped_area_um2,area_vs_current
+4b2caf5,0.44-80ba43d26,0fe599b2afb6708d281543108caf8310912f54af,sky130_fd_sc_hd__tt_025C_1v80,decode_multiply,signed_half_unit_product,127,872.0864,1.0000
+4b2caf5,0.44-80ba43d26,0fe599b2afb6708d281543108caf8310912f54af,sky130_fd_sc_hd__tt_025C_1v80,e2m1_shift_add,signed_half_unit_product,59,381.6160,0.4376
+4b2caf5,0.44-80ba43d26,0fe599b2afb6708d281543108caf8310912f54af,sky130_fd_sc_hd__tt_025C_1v80,fp32_product_rom,fp32_product,40,228.9696,0.2626

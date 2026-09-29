@@ -53,6 +53,13 @@ For M1, nonzero E2M1 magnitudes are `{1,2,4,8}` and `{3,6,12}`, or `{1,3} *
 2^e`. Their product is `(m1*m2) << (e1+e2)`, with `m1*m2` in `{1,3,9}` and a
 shift from 0 through 6. The maximum remains `9 << 4 = 144`.
 
+The P0 probe has already settled M0 through M2 for the fixed FP4 path. M1 is
+formally equivalent to M0 across all 256 pairs and maps 56.24% smaller in the
+standalone Sky130 comparison. M2's FP32 product output is incompatible with the
+selected exact integer reduction. [ADR 0009](../adr/0009-use-e2m1-shift-add-products.md)
+records the choice. P1.2 retains M3 and M4 because their value depends on the
+runtime multi-format datapath that P0 does not implement.
+
 ## Sparsity analysis
 
 FP4 quantization creates zero codes when a value falls below half a scale unit,

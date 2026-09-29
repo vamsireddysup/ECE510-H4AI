@@ -1,5 +1,14 @@
 # Latest verification
 
+## September 29 FP4 multiplier probe
+
+At revision `4b2caf5`, Yosys SAT proves the exact E2M1 shift/add product equals
+the current decode/multiply result for all 256 FP4 pairs. Sky130 HD typical
+mapping measures 381.62 um2 for shift/add against 872.09 um2 for the current
+integer path, a 56.24% reduction. The archived FP32 product ROM maps to
+228.97 um2 but has an incompatible FP32 reduction contract. These are mapped,
+wire-free areas; no timing or power claim is made.
+
 ## September 29 decoder validation
 
 Two 512x64 post-RoPE Q/K heads were captured from the first and last layers of

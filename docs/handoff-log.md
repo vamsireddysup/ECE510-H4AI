@@ -221,6 +221,13 @@ route, Magic and KLayout DRC, LVS, and antenna checks; setup WNS -2.0313 ns,
 hold WNS -0.0605 ns, 5,061 slew violations, and 145 capacitance violations.
 M0 is complete and M1 preprocessing is next.
 
+### 2026-09-29 — Codex — M1 preprocessing start
+
+**Started.** Confirmed clean synchronized `master` at `fe70a59`, read the shared
+handoff and rules, and claimed the lock. The atomic task is K channel-mean
+centering and Hadamard rotation across all four pinned captures, behind a new
+precision-study flag that does not change existing record shapes.
+
 ## Related
 
 - [Agent rules and handoff protocol](agent-rules.md)

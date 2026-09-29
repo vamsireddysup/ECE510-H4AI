@@ -17,6 +17,7 @@ the old one gets a line saying which.
 | [0006](0006-use-replicated-4x4-engines.md) | Use replicated 4x4 engines for the next physical prototype | Accepted |
 | [0007](0007-fix-eight-replicated-engines.md) | Fix eight engines and protocol version 6 as the replication design point | Accepted |
 | [0008](0008-e4m3-block-scales.md) | Use E4M3 block scales chosen by an offline scale search | Accepted; supersedes the scale-format half of 0004 |
+| [0009](0009-use-e2m1-shift-add-products.md) | Use exact E2M1 shift/add products with the integer accumulator | Accepted |
 
 ## Naming
 

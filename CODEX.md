@@ -65,8 +65,7 @@ Updated 2026-09-29 by Codex.
   pass.
 - **Active plan.** The research-backed roadmap, milestones M0 to M4, is in
   [docs/project-status.md](docs/project-status.md#roadmap-milestones-m0-to-m4).
-  M0 is complete. The current milestone is **M1, arithmetic decisions in
-  software**.
+  M0 and M1 are complete. The next milestone is **M2, P0 physical closure**.
 - **Where the design is.** 4x4 FP4 QK^T engine with 1x16 FP32 block scales,
   exact integer block accumulation, `ENGINES` replication (1 to 16), protocol
   versions 5 and 6 by default. All 32 recorded cycle configurations re-simulate
@@ -83,8 +82,7 @@ Updated 2026-09-29 by Codex.
   ciel 2.6.1, Sky130 `8afc8346a57fe1ab7934ba5a6056ea8b43078e71` in `~/.ciel`,
   image `ghcr.io/librelane/librelane:3.0.14`). Its smoke test passes. The old
   OpenLane 1.1.1 image stays for reproducing recorded results.
-- **Uncommitted.** The multiplier probe is ready to commit; its reviewed result
-  and ADR are the next separate step.
+- **Uncommitted.** Nothing after the M1 closeout commit.
 - **M1 scale-format decision is made.** [ADR 0008](docs/adr/0008-e4m3-block-scales.md)
   selects searched E4M3 block scales: better than FP32 on every softmax metric
   across all four captures **and** 4.89x smaller in the mapped scaling path,
@@ -110,13 +108,19 @@ Updated 2026-09-29 by Codex.
   `D_HEAD=64` retain searched E4M3's aggregate advantage. Preprocessing and
   adaptive FP4/INT4 remain layer-dependent. The exponent bound covers no whole
   4x4 decoder tile at tau=4, so it is not a general P0 feature.
+- **M1 multiplier structure is settled.** [ADR 0009](docs/adr/0009-use-e2m1-shift-add-products.md)
+  selects an exact E2M1 shift/add product. It is formally equivalent to the
+  current integer product and maps 56.24% smaller in the standalone probe. The
+  archived ROM is smaller in isolation but emits FP32 and excludes reduction
+  cost.
 - **M0 is complete.** The gate run finished after the handoff was written:
   LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
   LVS, and **zero antenna violations**, then stopped correctly at the hold
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step.** Record the multiplier probe result and close M1 in an ADR.
+- **Exact next step.** Start M2 with the block-streaming accumulator and combine
+  it with the ADR 0008 E4M3 scaler and ADR 0009 shift/add product.
 
 ### Gotchas
 
@@ -178,6 +182,18 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M1 complete, multiplier decision
+
+**Done.** ADR 0009 selects the exact E2M1 shift/add product for the M2 rewrite.
+It maps to 59 cells and 381.62 um2 against 127 cells and 872.09 um2 for the
+current generic integer multiply. The archived FP32 ROM is 228.97 um2 but does
+not include the FP32 reduction or conversion needed to replace the integer
+contract. M1 is complete.
+
+**Verification.** Yosys SAT covers all 256 input pairs. The result record pins
+revision, Yosys, PDK, and library provenance. Next is M2's integrated rewrite
+and physical closure gate.
 
 ### 2026-09-29 — Codex — M1 multiplier probe implementation
 
@@ -258,10 +274,3 @@ KL/top-1 is 0.02114/90.82%; K centering gives 0.02712/89.16%, and Hadamard gives
 **Verified.** `make test` passes with 33 model tests, eleven lint configurations,
 and both integration depths. A provenance test checks all 32 study rows and all
 four capture hashes. Next is per-block FP4 versus INT4.
-
-### 2026-09-29 — Codex — M1 preprocessing start
-
-**Started.** Confirmed clean synchronized `master` at `fe70a59`, read the shared
-handoff and rules, and claimed the lock. The atomic task is K channel-mean
-centering and Hadamard rotation across all four pinned captures, behind a new
-precision-study flag that does not change existing record shapes.
