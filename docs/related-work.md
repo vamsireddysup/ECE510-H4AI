@@ -3,7 +3,7 @@
 This records the prior work closest to each research track and what, if
 anything, this project could add. Read it before describing any result as new.
 
-**Status: full-text review done for the two nearest papers, 2026-09-29.** The
+**Status: full-text review done for four papers, 2026-09-29.** The
 first version of this page was written from abstracts and summaries, and three
 of its claims were wrong. Those corrections are recorded below rather than
 quietly edited away, because they changed what this project can claim. The
@@ -59,10 +59,11 @@ Rows marked *abstract* have not had a full-text review yet.
 | --- | --- | --- | --- |
 | Multiplier-free MAC | [Shift-Accumulate Attention](https://arxiv.org/pdf/2609.09208) | Multiplier-free exact `QK^T`; INT8 queries and **signed power-of-two keys**; CUDA kernels plus a cost model for a hypothetical `DS4A` instruction | It **changes the key format** to power-of-two to enable shifts, and pays for it: PoT-M4 costs +0.15 perplexity against an INT8 key cache. There is **no ASIC**: no synthesis, no process node, no measured area or power. Our E2M1 products are shift-add *without changing the format*, because E2M1's mantissa set is already `{1, 1.5}`, and [ADR 0009](adr/0009-use-e2m1-shift-add-products.md) measures the result in Sky130. |
 | Per-block FP4/INT4 | [MixFP4](https://arxiv.org/pdf/2605.31035) | Per-block FP4-or-INT4 by crest factor, flag in the E4M3 scale sign bit, unified E2M2 datapath, 3.1% tensor-core area | Little. Ours differs only in selection criterion (reconstruction error), in targeting an exact-integer-accumulator ASIC rather than a tensor core, and in being measured on attention Q and K in an open PDK. **This is no longer a strong novelty track**, which matches the M1 measurement: reconstruction-selected blocks lose 0.34 top-1 points and regress on the larger capture. |
-| Scale-format co-design | [MXAttention](https://arxiv.org/html/2607.24377v1) *(abstract)* | Data-free E8M0 clipping boundary of 7.25 for attention | GPU kernels; no hardware cost for the scale format. Our ADR 0008 prices FP32, E4M3, and E8M0 scalers in Sky130 alongside their softmax fidelity. |
+| Scale-format co-design | [MXAttention](https://arxiv.org/html/2607.24377v1) | E8M0 clipping boundary of 7.25, derived data-free and without calibration, for attention | **Confirmed by full text:** GPU kernels on Blackwell, with **no area, energy, or process-node analysis at all**. Our ADR 0008 prices FP32, E4M3, and E8M0 scalers in Sky130 alongside their softmax fidelity, and reuses their 7.25 boundary as the best case for E8M0. |
 | | [Four Over Six](https://arxiv.org/html/2512.02010v4), [ScaleSearch](https://arxiv.org/html/2605.12464v1) *(abstract)* | Per-block scale-to-4-or-6; MSE search over scale offsets, applied to Q and K | Accuracy only, no hardware cost. |
 | Softmax-invariant preprocessing | [SageAttention3](https://www.alphaxiv.org/overview/2505.11594v2), [QuaRot](https://arxiv.org/pdf/2404.00456) *(abstract)* | K mean-subtraction; Hadamard rotation leaves `QK^T` exact | Measured here and **not adopted**: neither improves all four softmax metrics across all four captures. |
-| Exponent-first sparsity | [BitStopper](https://arxiv.org/html/2512.06457), [LAPA](https://arxiv.org/html/2512.07855) *(abstract)* | MSB-first and log-domain score prediction to skip weak scores, both 28 nm | Integer operands and a separate prediction stage. Our M1 study found a safe sign-and-exponent bound covers 28.83% of scores but **no whole 4x4 tile in either decoder head**, so it is not a general feature. |
+| Exponent-first sparsity | [BitStopper](https://arxiv.org/html/2512.06457) | Bit-serial MSB-first score refinement that prunes tokens without a separate prediction stage; TSMC 28 nm, 6.84 mm², 703 mW, 11.36 TOPS/W | **Confirmed by full text.** It is bit-serial over integer operands, a different mechanism from reading FP4's two exponent bits. Our M1 study found a safe sign-and-exponent bound covers 28.83% of scores but **no whole 4x4 tile in either decoder head**, so it is not a general feature here. |
+| | [LAPA](https://arxiv.org/html/2512.07855) *(abstract)* | Log-domain prediction to skip weak scores, 28 nm, 3.208 mm² | Separate speculation unit taking 52% of area. |
 | MX hardware generally | [Jack Unit](https://arxiv.org/pdf/2507.04772), [MX-SAFE](https://arxiv.org/html/2605.24391v2) *(abstract)* | Precision-scalable MX MAC at 16 nm; MX core at 65 nm | Proprietary nodes, not attention-specific. |
 
 ## What this project can honestly claim
@@ -96,9 +97,11 @@ milestone M2 measurement, which does not exist yet.
 
 ## Before publishing anything
 
-The rows marked *abstract* still need full texts read, in the order they matter:
-MXAttention, then BitStopper and LAPA, then Jack Unit and MX-SAFE. Record each
-correction in the table above rather than editing this page silently.
+The rows marked *abstract* still need full texts read: LAPA, then Jack Unit and
+MX-SAFE, then Four Over Six, ScaleSearch, SageAttention3, and QuaRot. Record
+each correction in the table above rather than editing this page silently.
+MXAttention and BitStopper were reviewed and matched their abstracts, so only
+two of the six reviewed papers held up unchanged.
 
 ## Related
 
