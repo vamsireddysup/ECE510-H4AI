@@ -76,13 +76,21 @@ Updated 2026-09-29 by Claude (Opus 5.5).
   ciel 2.6.1, Sky130 `8afc8346a57fe1ab7934ba5a6056ea8b43078e71` in `~/.ciel`,
   image `ghcr.io/librelane/librelane:3.0.14`). Its smoke test passes. The old
   OpenLane 1.1.1 image stays for reproducing recorded results.
-- **Uncommitted.** `config/librelane/qkt_chiplet_top/constraints.sdc`, the
-  project SDC ported to LibreLane variable names, not yet exercised by a run.
-- **Exact next step.** M0 step 4: write `config/librelane/qkt_chiplet_top/`
-  base config and `scripts/run_librelane.sh` (two-phase: run to
-  `Checker.NetlistAssignStatements` at the synthesis clock, then
-  `--from OpenROAD.CheckSDCFiles --with-initial-state` at the P&R clock), then
-  run the M0 gate: 4x4, `D_HEAD=4`, RTL to clean GDS.
+- **Uncommitted.** Nothing.
+- **M1 result so far.** E4M3 block scales with an offline scale search beat the
+  FP32 default on every softmax metric across all four captures, at a quarter
+  of the scale storage and with a 4-bit rather than 24x24 significand multiply.
+  E8M0 stays worse even with the MXAttention boundary. No format change is made
+  until the scaler synthesis comparison prices it; that plus this table is
+  ADR 0008.
+- **Exact next step.** Finish the M0 gate: a `D_HEAD=4`, 900 um, `full`
+  LibreLane run was in placement repair when this entry was written; check
+  `build/librelane/m0-gate-d4/pnr.log` and its `runs/pnr/final` for a clean
+  GDS, then record the M0 gate result. After that, M1's scaler synthesis probe
+  (FP32 against E4M3 against E8M0) and the remaining M1 software items:
+  K mean-centering, Hadamard rotation, per-block FP4 or INT4, sequential
+  cross-block accumulation, the exponent-only skip bound, and two modern
+  decoder captures.
 
 ### Gotchas
 
@@ -102,6 +110,32 @@ Updated 2026-09-29 by Claude (Opus 5.5).
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5) — M0 step 4 and first M1 result
+
+**Done.** Ported the flow to LibreLane: `config/librelane/qkt_chiplet_top/`
+(config plus SDC), `scripts/librelane_config.py`, and
+`scripts/run_librelane.sh`. Added the block-scale format study to
+`scripts/eval_precision.py` and recorded it in `docs/results/precision.md` and
+`docs/results/data/scale-format-study.csv`.
+
+**Verified.** `make test` passes. The study quantizer reproduces the committed
+FP32 path bit-for-bit, checked directly. LibreLane synthesis of the real design
+completes (30,122 cells at `D_HEAD=4`).
+
+**Gotchas found the hard way.**
+
+- **ABC splits Yosys's scripts on whitespace, and this repository's path has
+  spaces in it.** Synthesis fails with `Cannot open file "/home/.../PSU"`.
+  `run_librelane.sh` therefore points the tools at a space-free symlink,
+  `~/.local/share/fp4-accel/repo`, and `librelane_config.py --root` refuses a
+  path with spaces. Anything new that hands a path to the tools must use
+  `tool_root`, not `repo_root`.
+- LibreLane lints the PDK blackbox models with Verilator by default and one
+  Sky130 UDP fails to resolve, so `RUN_LINTER` is false in the config; `make
+  lint` already covers the RTL over eleven parameter sets.
+- `--with-initial-state` needs the last *numbered* step directory. A plain
+  `ls | tail -1` picks `tmp/` and the run dies immediately.
 
 ### 2026-09-29 — Claude (Opus 5.5) — M0 steps 2 and 3
 
