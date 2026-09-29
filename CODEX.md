@@ -54,7 +54,8 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: Codex, 2026-09-29. Implementing M2 P0 physical closure work.
+Active agent: none. Codex completed M1 and the first M2 shift/add checkpoint on
+2026-09-29. Continue with the block-streaming accumulator.
 
 ## Current state
 
@@ -63,6 +64,9 @@ Updated 2026-09-29 by Codex.
 - **Branch and commit.** `master`, pushed to
   `vamsireddysup/FP4-transformer-attention-accelerator`. CI and `make test`
   pass.
+- **Last integrated synthesis.** The 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=16,
+  one-lane/one-engine shift/add top maps to 82,388 cells and 257,530.74 um2 at
+  `4e877b4`; the same-flow generic baseline is 85,701 cells and 257,649.61 um2.
 - **Active plan.** The research-backed roadmap, milestones M0 to M4, is in
   [docs/project-status.md](docs/project-status.md#roadmap-milestones-m0-to-m4).
   M0 and M1 are complete. The next milestone is **M2, P0 physical closure**.
