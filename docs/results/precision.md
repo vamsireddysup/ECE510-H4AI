@@ -229,6 +229,68 @@ python3 scripts/eval_precision.py \
   --npz docs/results/data/bert-tiny-layer1-head0.npz
 ```
 
+## Block-scale format study
+
+The scale format is a hardware choice as much as a numerical one. FP32 scales
+cost four bytes per block and a 24x24 significand multiply per score; E4M3
+costs one byte and a 4-bit significand multiply; E8M0 costs one byte and turns
+the multiply into an exponent add. [ADR 0003](../adr/0003-fp32-scales-with-32-element-blocks.md)
+rejected E8M0 on accuracy, but it only tested three rounding rules of the
+scale, and it never priced the alternatives.
+
+These are **measured software-model results** at Bs=16 across all four pinned
+captures, produced by `scripts/eval_precision.py --scale-study`. The study
+quantizer reproduces the committed FP32 path bit-for-bit, so these rows are
+comparable with the tables above. Rules tested:
+
+- **FP32**, the current default, `max(abs(block))/6`.
+- **FP32-4over6** and **E4M3-4over6**, per block choosing whichever of
+  `max/6` and `max/4` has lower reconstruction error, after
+  [Four Over Six](https://arxiv.org/html/2512.02010v4).
+- **E4M3**, NVFP4's arrangement: a per-tensor FP32 scale maps the largest block
+  scale into the E4M3 range, and each block scale is E4M3 relative to it. The
+  product of the two tensor scales is one constant per command, which the host
+  can fold into the softmax temperature.
+- **E4M3-search**, the same with a search over E4M3 code offsets from -2 to +6,
+  after [ScaleSearch](https://arxiv.org/html/2605.12464v1).
+- **E8M0-OCP**, the OCP MX rule `floor(log2(max)) - 2`; **E8M0-ceil**, the
+  clipping-safe rule already in the sweeps above; and **E8M0-UOS**,
+  `ceil(log2(max/7.25))` from [MXAttention](https://arxiv.org/html/2607.24377v1).
+
+Mean across the four captures, against the FP32 default:
+
+| Scale rule | Bytes/element | Scale operation | Mean KL | Top-1 | Rel. Frobenius |
+| --- | ---: | --- | ---: | ---: | ---: |
+| FP32 | 0.25 | 24x24 significand multiply | 0.02738 | 89.65% | 8.46% |
+| FP32-4over6 | 0.25 | 24x24 significand multiply | 0.02469, -9.8% | 89.06%, -0.59 pt | 7.67%, -9.3% |
+| E4M3 | 0.0625 | 4-bit significand multiply | 0.02779, +1.5% | 90.38%, +0.73 pt | 8.50%, +0.6% |
+| E4M3-4over6 | 0.0625 | 4-bit significand multiply | 0.02497, -8.8% | 90.53%, +0.88 pt | 7.79%, -7.9% |
+| **E4M3-search** | **0.0625** | **4-bit significand multiply** | **0.02114, -22.8%** | **90.82%, +1.17 pt** | **7.27%, -14.0%** |
+| E8M0-OCP | 0.0625 | exponent add only | 0.05537, +102.2% | 87.06%, -2.59 pt | 11.58%, +36.9% |
+| E8M0-ceil | 0.0625 | exponent add only | 0.04992, +82.3% | 87.74%, -1.90 pt | 10.26%, +21.4% |
+| E8M0-UOS | 0.0625 | exponent add only | 0.04825, +76.2% | 87.30%, -2.34 pt | 10.17%, +20.3% |
+
+Per-capture rows are in
+[`data/scale-format-study.csv`](data/scale-format-study.csv).
+
+**E4M3 with a scale search is better than FP32 on every metric while costing a
+quarter of the scale storage and a far smaller multiplier.** It lowers mean KL
+by 22.8%, raises top-1 agreement by 1.17 points, and cuts relative Frobenius
+error by 14.0%, and it improves mean KL on all four captures individually. The
+search is offline: it runs in the host's quantizer, and the hardware only
+consumes the resulting one-byte scale. That the accuracy gain and the hardware
+saving point the same way is the useful part; it is the opposite of the
+accuracy-for-area trade ADR 0003 assumed.
+
+E8M0 stays clearly worse. The UOS boundary does help, cutting the KL penalty
+from 102.2% to 76.2% against OCP's rule, but an exponent-only scale still loses
+2.34 points of top-1 agreement. On this evidence the exponent-add scaler is not
+worth its accuracy.
+
+The remaining question is what E4M3 saves in silicon. That is a scaler
+synthesis comparison, and it is the other half of the ADR that will decide the
+format. Until then no format change is made.
+
 ## Output score format
 
 The replicated engine is bound by the 64-bit output port, which carries two FP32

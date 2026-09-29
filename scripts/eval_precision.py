@@ -106,6 +106,133 @@ def quantize_output(scores: np.ndarray, output_format: str) -> np.ndarray:
     raise ValueError(f"unknown output format: {output_format}")
 
 
+# Scale-format study (roadmap M1). These rules are evaluated alongside, never
+# instead of, the committed P0.2 and P0.8 scale types above.
+SCALE_STUDY_TYPES = (
+    "FP32", "FP32-4over6", "E4M3", "E4M3-4over6", "E4M3-search",
+    "E8M0-OCP", "E8M0-ceil", "E8M0-UOS",
+)
+E2M1_MAX = 6.0
+E4M3_MAX = 448.0
+UOS_QMAX = 7.25  # MXAttention's data-free clipping boundary for E8M0
+
+
+def _e4m3_values() -> np.ndarray:
+    """Every non-negative finite E4M3 value: bias 7, NaN at S.1111.111."""
+    values = [m / 8 * 2.0 ** -6 for m in range(8)]  # subnormals, including 0
+    for exponent in range(1, 16):
+        for mantissa in range(8):
+            if exponent == 15 and mantissa == 7:
+                continue
+            values.append((1 + mantissa / 8) * 2.0 ** (exponent - 7))
+    return np.array(sorted(set(values)), dtype=np.float64)
+
+
+E4M3_VALUES = _e4m3_values()
+
+
+def _e4m3_index(value: np.ndarray) -> np.ndarray:
+    """Index of the nearest E4M3 value, ties to the even code."""
+    value = np.clip(value, 0, E4M3_MAX)
+    upper = np.clip(np.searchsorted(E4M3_VALUES, value), 1, len(E4M3_VALUES) - 1)
+    lower = upper - 1
+    below = value - E4M3_VALUES[lower]
+    above = E4M3_VALUES[upper] - value
+    pick_upper = (above < below) | ((above == below) & (upper % 2 == 0))
+    return np.where(pick_upper, upper, lower)
+
+
+def _e2m1(chunk: np.ndarray, scale: np.ndarray) -> tuple[np.ndarray, np.ndarray, int]:
+    """Signed half units, dequantized values, and clip count for per-row scales."""
+    normalized = np.abs(chunk / scale[:, None])
+    clips = int(np.count_nonzero(normalized > E2M1_MAX))
+    indices = np.argmin(np.abs(normalized[:, :, None] - MAGNITUDES), axis=2)
+    half = HALF_UNITS[indices] * np.where(chunk < 0, -1, 1)
+    return half, half.astype(np.float64) / 2 * scale[:, None], clips
+
+
+def _best_scale(chunk: np.ndarray, candidates: list[np.ndarray]) -> np.ndarray:
+    """Per row, the candidate scale with the lowest reconstruction MSE."""
+    errors = np.stack([
+        np.mean((_e2m1(chunk, scale)[1] - chunk) ** 2, axis=1) for scale in candidates
+    ])
+    choice = np.argmin(errors, axis=0)
+    return np.stack(candidates)[choice, np.arange(chunk.shape[0])]
+
+
+def quantize_blocks_study(
+    values: np.ndarray, block_size: int, scale_type: str
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """Quantize T x D values under one SCALE_STUDY_TYPES rule.
+
+    E4M3 rules follow NVFP4: a per-tensor FP32 scale maps the largest block
+    scale onto the E4M3 range, and the block scale is E4M3 relative to it. The
+    tensor scale is returned folded into the block scales; in hardware the
+    product of the Q and K tensor scales is one constant per command, which can
+    fold into the host's softmax temperature.
+    """
+    if scale_type not in SCALE_STUDY_TYPES:
+        raise ValueError(f"unknown study scale type: {scale_type}")
+    row_count, depth = values.shape
+    block_count = math.ceil(depth / block_size)
+    half_units = np.empty(values.shape, dtype=np.int32)
+    scales = np.empty((row_count, block_count), dtype=np.float64)
+    clip_count = 0
+    values = values.astype(np.float64)
+    tensor_scale = max(float(np.max(np.abs(values))), 1e-30) / (E2M1_MAX * E4M3_MAX)
+    for block in range(block_count):
+        start = block * block_size
+        stop = min(start + block_size, depth)
+        chunk = values[:, start:stop]
+        maximum = np.max(np.abs(chunk), axis=1)
+        live = maximum > 0
+        safe = np.where(live, maximum, 1.0)
+        if scale_type == "FP32":
+            scale = safe / E2M1_MAX
+        elif scale_type == "FP32-4over6":
+            scale = _best_scale(chunk, [safe / 6.0, safe / 4.0])
+        elif scale_type.startswith("E4M3"):
+            def e4m3(ideal: np.ndarray, offset: int = 0) -> np.ndarray:
+                index = _e4m3_index(ideal / tensor_scale) + offset
+                index = np.clip(index, 1, len(E4M3_VALUES) - 1)  # never a zero scale
+                return E4M3_VALUES[index] * tensor_scale
+            if scale_type == "E4M3":
+                scale = e4m3(safe / 6.0)
+            elif scale_type == "E4M3-4over6":
+                scale = _best_scale(chunk, [e4m3(safe / 6.0), e4m3(safe / 4.0)])
+            else:  # ScaleSearch: code offsets -2 to +6 around the max-based code
+                scale = _best_scale(chunk, [e4m3(safe / 6.0, f) for f in range(-2, 7)])
+        else:
+            if scale_type == "E8M0-OCP":
+                exponent = np.floor(np.log2(safe)) - 2  # OCP MX rule for E2M1
+            elif scale_type == "E8M0-ceil":
+                exponent = np.ceil(np.log2(safe / E2M1_MAX))
+            else:  # E8M0-UOS
+                exponent = np.ceil(np.log2(safe / UOS_QMAX))
+            scale = np.exp2(np.clip(exponent, -127, 127))
+        scale = np.where(live, scale, 1.0)
+        half, _, clips = _e2m1(chunk, scale)
+        half_units[:, start:stop] = np.where(live[:, None], half, 0)
+        clip_count += clips
+        scales[:, block] = scale
+    return half_units, scales.astype(np.float32), clip_count
+
+
+def evaluate_scale_study(
+    q: np.ndarray, k: np.ndarray, block_size: int, scale_type: str
+) -> dict[str, float | int | str]:
+    """Label a study row with its scale storage and hardware scale operation."""
+    row = evaluate(q, k, block_size, scale_type, quantizer=quantize_blocks_study)
+    scale_bytes = 4 if scale_type.startswith("FP32") else 1
+    operation = {"FP32": "24x24 significand multiply", "E4M3": "4-bit significand multiply",
+                 "E8M0": "exponent add only"}[scale_type.split("-")[0]]
+    return {
+        **row,
+        "scale_bytes_per_q_or_k_element": scale_bytes / block_size,
+        "scale_operation": operation,
+    }
+
+
 def softmax(scores: np.ndarray) -> np.ndarray:
     shifted = scores.astype(np.float64) - np.max(scores, axis=1, keepdims=True)
     exponentials = np.exp(shifted)
@@ -114,7 +241,7 @@ def softmax(scores: np.ndarray) -> np.ndarray:
 
 def evaluate(
     q: np.ndarray, k: np.ndarray, block_size: int = 64, scale_type: str = "FP32",
-    output_format: str = "FP32",
+    output_format: str = "FP32", quantizer=None,
 ) -> dict[str, float | int | str]:
     if q.ndim != 2 or k.shape != q.shape or q.shape[1] == 0:
         raise ValueError("q and k must have the same nonempty T x D shape")
@@ -125,8 +252,9 @@ def evaluate(
     if block_size > q.shape[1]:
         raise ValueError("block_size must not exceed D_HEAD")
 
-    q_half, q_scale, q_clips = quantize_blocks(q, block_size, scale_type)
-    k_half, k_scale, k_clips = quantize_blocks(k, block_size, scale_type)
+    quantize = quantizer or quantize_blocks
+    q_half, q_scale, q_clips = quantize(q, block_size, scale_type)
+    k_half, k_scale, k_clips = quantize(k, block_size, scale_type)
     block_count = q_scale.shape[1]
     fp4_scores = np.zeros((q.shape[0], q.shape[0]), dtype=np.float32)
     for block in range(block_count):
@@ -210,6 +338,10 @@ def main() -> None:
         help="sweep FP32, FP16, and BF16 output scores at one block size",
     )
     parser.add_argument("--block-size", type=int, default=16)
+    parser.add_argument(
+        "--scale-study", action="store_true",
+        help="compare FP32, E4M3, and E8M0 block-scale rules at one block size",
+    )
     args = parser.parse_args()
     if args.npz:
         with np.load(args.npz) as capture:
@@ -223,7 +355,13 @@ def main() -> None:
             generator.standard_normal((size, args.depth), dtype=np.float32),
         ) for size in args.sizes]
         source = {"source": "synthetic_normal", "seed": args.seed}
-    if args.output_formats:
+    if args.scale_study:
+        metrics = [
+            evaluate_scale_study(q, k, args.block_size, scale_type)
+            for q, k in matrices
+            for scale_type in SCALE_STUDY_TYPES
+        ]
+    elif args.output_formats:
         metrics = [
             evaluate_output_format(q, k, args.block_size, "FP32", output_format)
             for q, k in matrices

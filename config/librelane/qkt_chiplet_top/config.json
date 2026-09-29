@@ -1,0 +1,24 @@
+{
+    "DESIGN_NAME": "qkt_chiplet_top",
+    "PDK": "sky130A",
+    "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+    "RUN_LINTER": false,
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 20.0,
+    "SYNTH_STRATEGY": "DELAY 0",
+    "SYNTH_SIZING": true,
+    "SYNTH_BUFFERING": true,
+    "FP_SIZING": "absolute",
+    "DIE_AREA": [
+        0,
+        0,
+        1800,
+        1800
+    ],
+    "PL_TARGET_DENSITY_PCT": 45,
+    "MAX_FANOUT_CONSTRAINT": 30,
+    "MAX_TRANSITION_CONSTRAINT": 0.75,
+    "IO_DELAY_CONSTRAINT": 20,
+    "PNR_SDC_FILE": "dir::constraints.sdc",
+    "SIGNOFF_SDC_FILE": "dir::constraints.sdc"
+}
