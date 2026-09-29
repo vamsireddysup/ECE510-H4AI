@@ -1,7 +1,10 @@
 # 0004: use FP32 scales with 16-element reduction blocks
 
 Accepted, September 2026. Supersedes
-[ADR 0003](0003-fp32-scales-with-32-element-blocks.md).
+[ADR 0003](0003-fp32-scales-with-32-element-blocks.md). Its 16-element block
+size stands; its FP32 scale format is superseded by
+[ADR 0008](0008-e4m3-block-scales.md), which measured both the accuracy and the
+area of the alternatives.
 
 ## Decision
 

@@ -287,9 +287,44 @@ from 102.2% to 76.2% against OCP's rule, but an exponent-only scale still loses
 2.34 points of top-1 agreement. On this evidence the exponent-add scaler is not
 worth its accuracy.
 
-The remaining question is what E4M3 saves in silicon. That is a scaler
-synthesis comparison, and it is the other half of the ADR that will decide the
-format. Until then no format change is made.
+### What each format costs in silicon
+
+`rtl/probe/scaler_probe.sv` is one score lane's scaling path, the exact
+quarter-unit conversion followed by the two block-scale applications, built
+once per format so the three are comparable. It is a cost probe, not part of
+the active design. The narrow variants were checked bit-exact against a
+double-precision reference over 539 accumulator and scale combinations each
+before their area was believed.
+
+Mapped with Yosys 0.44 to the Sky130 HD typical library at `ACC_W=13`, the
+Bs=16 accumulator width, flattened so submodules are counted:
+
+| Scale format | Scale bits | Cells | Mapped area | Against FP32 | Scale arithmetic |
+| --- | ---: | ---: | ---: | ---: | --- |
+| FP32 | 32 | 6,761 | 52,280 um² | | two 24x24 significand multiplies |
+| **E4M3** | **8** | **1,360** | **10,695 um²** | **4.89x smaller** | two 24x4 significand multiplies |
+| E8M0 | 8 | 367 | 3,780 um² | 13.83x smaller | exponent adds only |
+
+The rows are in [`data/scaler-format-cost.csv`](data/scaler-format-cost.csv).
+Scale storage shrinks by the same four times: `sq` and `sk` together hold
+`2 * T_MAX * ceil(D_HEAD/Bs)` scales, which is 4,096 bits at 32 bits and
+1,024 at 8, and that grows with `T_MAX`.
+
+### Reading the two halves together
+
+E4M3 with a scale search is **more accurate than the FP32 default on every
+softmax metric and 4.89 times smaller in the scaling path**, with a quarter of
+the scale storage. There is no accuracy-for-area trade to make here, which is
+what makes it worth acting on; [ADR 0003](../adr/0003-fp32-scales-with-32-element-blocks.md)
+assumed a finer scale had to cost more hardware, and at 32-bit scales it did.
+
+E8M0 is 13.83 times smaller still, and that is a real option if the scaling
+path ever dominates area. It costs 2.34 points of top-1 agreement and 76% more
+KL divergence, so it is not free, and on this evidence I am not taking it.
+
+[ADR 0008](../adr/0008-e4m3-block-scales.md) records the decision. The numbers
+above are mapped, without wires; the routed consequence is a milestone M2
+result.
 
 ## Output score format
 

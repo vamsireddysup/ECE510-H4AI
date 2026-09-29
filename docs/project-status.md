@@ -132,8 +132,11 @@ boundary, per-block four-or-six, and scale search), softmax-invariant
 preprocessing (K mean-centering and Hadamard rotation), per-block FP4 or INT4,
 sequential versus tree cross-block accumulation, and an exponent-only score
 bound for skipping. Add at least two modern decoder heads with `D_HEAD=64`.
-Probe scaler and multiplier cost with synthesis-only runs. Gate: ADR 0008
-selects element format, scale format, and preprocessing.
+Probe scaler and multiplier cost with synthesis-only runs.
+[ADR 0008](adr/0008-e4m3-block-scales.md) has selected the scale format:
+searched E4M3, which is more accurate than FP32 on every softmax metric and
+4.89 times smaller in the scaling path. The element format and preprocessing
+decisions remain.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep

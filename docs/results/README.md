@@ -28,6 +28,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Endpoint ranking at 10 ns](data/endpoint-ranking-10ns.csv) | P0.7b F1 worst endpoint per block pair at the slow and typical corners |
 | [Critical-path attribution](data/critical-path-attribution.csv) | Mapped path, slack, cells, and area after each timing change |
 | [Replicated-engine cycles](data/replicated-engine-cycles.csv) | Engine-count sweeps for protocols v3/v4 and tile sizes 4/8/16 |
+| [Scaler format cost](data/scaler-format-cost.csv) | Mapped Sky130 area of one score lane's scaling path per scale format |
 | [Block-scale format study](data/scale-format-study.csv) | FP32, E4M3, and E8M0 scale rules across the four pinned captures |
 | [Output format sweep](data/output-format-sweep.csv) | FP32, FP16, and BF16 output scores across the four pinned captures |
 | [CPU baseline](data/cpu-baseline.csv) | Reference-BLAS and OpenBLAS medians, throughput, and fraction of peak |

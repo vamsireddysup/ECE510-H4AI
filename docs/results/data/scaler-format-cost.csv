@@ -1,0 +1,4 @@
+format,scale_bits,cells,mapped_area_um2,sequential_cells
+FP32,32,6761,52280.140800,33
+E4M3,8,1360,10695.257600,33
+E8M0,8,367,3779.875200,33
