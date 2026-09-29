@@ -165,7 +165,10 @@ The exponent bound covers no complete 4x4 decoder tile at tau=4, so fixed
 exponent-bound skipping is rejected as a general P0 feature.
 [ADR 0009](adr/0009-use-e2m1-shift-add-products.md) selects exact E2M1
 shift/add products after formal equivalence and same-library mapping: 381.62
-um2 against 872.09 um2 for the generic integer multiply. M1 is complete.
+um2 against 872.09 um2 for the generic integer multiply in isolation. A
+same-flow complete-top comparison saves 3,313 cells but only 0.046% mapped
+area, so M2 routing rather than the standalone projection decides its value.
+M1 is complete.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep

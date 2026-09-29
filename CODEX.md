@@ -110,7 +110,9 @@ Updated 2026-09-29 by Codex.
   4x4 decoder tile at tau=4, so it is not a general P0 feature.
 - **M1 multiplier structure is settled.** [ADR 0009](docs/adr/0009-use-e2m1-shift-add-products.md)
   selects an exact E2M1 shift/add product. It is formally equivalent to the
-  current integer product and maps 56.24% smaller in the standalone probe. The
+  current integer product and maps 56.24% smaller in the standalone probe. A
+  same-flow complete-top comparison saves 3,313 cells but only 0.046% area, so
+  the standalone area projection is rejected. The
   archived ROM is smaller in isolation but emits FP32 and excludes reduction
   cost. The selected expression is active in `qkt_engine`; all large and RTL
   precision suites retain identical scores and cycles.
@@ -183,6 +185,18 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — integrated multiplier checkpoint
+
+**Done.** Fixed `run_synthesis.sh` path quoting and mapped the 4x4 complete top
+on both sides of the shift/add change. Generic multiplication maps to 85,701
+cells and 257,649.61 um2; shift/add maps to 82,388 cells and 257,530.74 um2.
+The 3,313-cell reduction survives, while the standalone area projection does
+not: full-top area improves only 0.046%.
+
+**Verification.** Both rows use the same Yosys, Sky130 library, parameters, and
+wire-free flow. Next is the block-streaming accumulator and a routed congestion
+measurement.
 
 ### 2026-09-29 — Codex — M2 shift-add integration
 
@@ -260,15 +274,3 @@ the M2 reference because it preserves the current bit-exact contract.
 
 **Verification.** The model suite regenerates all 16 rows and capture hashes.
 Next is the exponent-only score bound study.
-
-### 2026-09-29 — Codex — M1 element-format result
-
-**Done.** Added `--element-format-study` for fixed FP4, fixed signed INT4, and
-per-block reconstruction-error selection under searched E4M3 scales. Adaptive
-selection uses INT4 for 62.14% of Q/K blocks and improves mean KL from 0.02114
-to 0.01875, but top-1 falls from 90.82% to 90.48% and small-BERT L3 H0 regresses.
-It remains a layer-selective candidate. One format bit per block is required;
-the existing 13-bit Bs=16 accumulator covers all native product bounds.
-
-**Verification.** The model suite regenerates all 12 rows and capture hashes.
-Next is sequential versus tree cross-block accumulation.

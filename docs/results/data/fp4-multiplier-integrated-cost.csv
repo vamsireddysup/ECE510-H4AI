@@ -1,0 +1,3 @@
+variant,git_revision,tile_size,d_head,t_max,scale_block_size,score_lanes,engines,yosys_revision,pdk_revision,library,cells,mapped_area_um2,status
+generic_multiply,2c6bfc9,4,64,16,16,1,1,0.44-80ba43d26,0fe599b2afb6708d281543108caf8310912f54af,sky130_fd_sc_hd__tt_025C_1v80,85701,257649.6064,measured_mapped_no_wires
+e2m1_shift_add,19f908f,4,64,16,16,1,1,0.44-80ba43d26,0fe599b2afb6708d281543108caf8310912f54af,sky130_fd_sc_hd__tt_025C_1v80,82388,257530.7424,measured_mapped_no_wires

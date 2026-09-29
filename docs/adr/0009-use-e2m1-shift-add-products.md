@@ -28,9 +28,18 @@ revision `0fe599b2afb6708d281543108caf8310912f54af`:
 | Archived 256-entry product ROM | FP32 product | 40 | 228.97 um2 |
 
 Shift/add reduces the like-for-like product area by 56.24%, or 2.29 times. A
-4x4 engine has 16 product lanes, so applying the standalone delta to all lanes
-would save 7,848 um2 before routing. That is a **projection**, not a full-top
-area result. The M2 route decides its physical value.
+simple 16-lane projection suggested a 7,848 um2 saving, but a same-flow
+complete-top comparison refutes that projection:
+
+| Complete 4x4 top | Cells | Mapped area | Change |
+| --- | ---: | ---: | ---: |
+| Generic multiply, revision `2c6bfc9` | 85,701 | 257,649.61 um2 | reference |
+| Shift/add, revision `19f908f` | 82,388 | 257,530.74 um2 | -3,313 cells, -0.046% area |
+
+Both rows use `D_HEAD=64`, `T_MAX=16`, Bs=16, one score lane, one engine, the
+same Yosys and library, and no wires. Whole-design optimization absorbs nearly
+all of the standalone area delta. The 3.87% cell-count reduction may reduce
+routing pressure, but only the M2 route can establish that.
 
 The ROM appears smallest only because its output contract is different. It
 emits one FP32 value per product. Using it would require FP32 reduction or a
@@ -51,9 +60,11 @@ RTL precision run remains bit-exact with the software model. A separate
 complete-top route for this small substitution would not resolve the current
 accumulator-net congestion blocker, so its physical effect is measured with M2.
 
-The probe establishes mapped area only. It does not establish routed timing,
-dynamic power, or energy. M2 must report those properties on the integrated
-top.
+The probe and integrated comparison establish mapped area only. They do not
+establish routed timing, congestion, dynamic power, or energy. The decision is
+retained because it removes 3,313 mapped cells without changing behavior, not
+because of the refuted standalone area projection. M2 must report its physical
+effect on the integrated top.
 
 ## Alternatives considered
 

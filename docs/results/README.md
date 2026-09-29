@@ -31,6 +31,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Replicated-engine cycles](data/replicated-engine-cycles.csv) | Engine-count sweeps for protocols v3/v4 and tile sizes 4/8/16 |
 | [Scaler format cost](data/scaler-format-cost.csv) | Mapped Sky130 area of one score lane's scaling path per scale format |
 | [FP4 multiplier cost](data/fp4-multiplier-cost.csv) | Mapped Sky130 area of generic, E2M1 shift/add, and FP32 ROM product structures |
+| [Integrated FP4 multiplier cost](data/fp4-multiplier-integrated-cost.csv) | Same-flow complete-top generic versus E2M1 shift/add mapping |
 | [Block-scale format study](data/scale-format-study.csv) | FP32, E4M3, and E8M0 scale rules across the four pinned captures |
 | [Preprocessing study](data/preprocessing-study.json) | K centering and Hadamard rotation under FP32 and searched E4M3 scales |
 | [Element-format study](data/element-format-study.json) | Fixed FP4, fixed INT4, and reconstruction-selected blocks under searched E4M3 scales |

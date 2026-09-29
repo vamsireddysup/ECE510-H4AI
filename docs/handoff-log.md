@@ -242,6 +242,18 @@ KL/top-1 is 0.02114/90.82%; K centering gives 0.02712/89.16%, and Hadamard gives
 and both integration depths. A provenance test checks all 32 study rows and all
 four capture hashes. Next is per-block FP4 versus INT4.
 
+### 2026-09-29 — Codex — M1 element-format result
+
+**Done.** Added `--element-format-study` for fixed FP4, fixed signed INT4, and
+per-block reconstruction-error selection under searched E4M3 scales. Adaptive
+selection uses INT4 for 62.14% of Q/K blocks and improves mean KL from 0.02114
+to 0.01875, but top-1 falls from 90.82% to 90.48% and small-BERT L3 H0 regresses.
+It remains a layer-selective candidate. One format bit per block is required;
+the existing 13-bit Bs=16 accumulator covers all native product bounds.
+
+**Verification.** The model suite regenerates all 12 rows and capture hashes.
+Next is sequential versus tree cross-block accumulation.
+
 ## Related
 
 - [Agent rules and handoff protocol](agent-rules.md)

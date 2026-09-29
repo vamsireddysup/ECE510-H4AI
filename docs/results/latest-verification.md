@@ -14,6 +14,11 @@ the T=64/128/512 large suite, and the T=512 RTL precision run pass without a
 score, cycle, counter, or error-metric change. The precision run still reports
 relative Frobenius error 0.132942637 and mean absolute error 0.842930886.
 
+The same-flow complete-top comparison is much smaller than the standalone
+delta: mapped area falls from 257,649.61 to 257,530.74 um2, or 0.046%, while
+cell count falls from 85,701 to 82,388. The earlier 7,848 um2 lane-count
+projection is rejected. No routed congestion conclusion is claimed.
+
 ## September 29 decoder validation
 
 Two 512x64 post-RoPE Q/K heads were captured from the first and last layers of

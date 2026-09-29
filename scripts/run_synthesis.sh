@@ -15,7 +15,10 @@ engines="${ENGINES:-1}"
 # simulated and physical flows.
 source "$script_dir/read_filelist.sh"
 read_rtl_filelist "$repo_root"
-sources="${RTL_SOURCES[*]}"
+sources=""
+for source_path in "${RTL_SOURCES[@]}"; do
+    sources+=" \"$source_path\""
+done
 liberty="${SKY130_LIB:-}"
 if [[ -z "$liberty" ]]; then
     liberty="$(find "$HOME/.volare/volare/sky130/versions" -name 'sky130_fd_sc_hd__tt_025C_1v80.lib' -print -quit 2>/dev/null)"

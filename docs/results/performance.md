@@ -370,11 +370,18 @@ without wires**, not routed results.
 | Archived product ROM | FP32 product | 40 | 228.97 um2 |
 
 The shift/add form is formally equivalent to the active integer product on all
-256 input pairs and cuts like-for-like mapped area by 56.24%. The FP32 ROM is
+256 input pairs and cuts like-for-like standalone mapped area by 56.24%. The FP32 ROM is
 smaller in isolation but would require FP32 accumulation or per-product
 conversion, costs absent from its row. [ADR 0009](../adr/0009-use-e2m1-shift-add-products.md)
 selects shift/add, which is now active in `qkt_engine`. The complete-top effect,
 timing, and energy remain M2 measurements.
+
+A same-flow complete-top comparison shows why the standalone number must not be
+extrapolated. At 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=16, and one lane/engine, the
+generic revision `2c6bfc9` maps to 85,701 cells and 257,649.61 um2. Shift/add
+revision `19f908f` maps to 82,388 cells and 257,530.74 um2. That is 3,313 fewer
+cells but only 0.046% less area. Routing may benefit from the cell-count change;
+no routed evidence exists yet.
 
 
 ## Related
