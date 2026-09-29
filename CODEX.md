@@ -48,8 +48,8 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: none. Claude stopped on 2026-09-29 on the owner's "credits are
-getting over"; Codex picks up from "Exact next step" below.
+Active agent: Codex, 2026-09-29. Claude stopped on 2026-09-29 on the owner's
+"credits are getting over"; Codex is following "Exact next step" below.
 
 ## Current state
 
@@ -164,6 +164,13 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — session start
+
+**Started.** Fetched `origin`, confirmed local `master` and `origin/master` both
+at `0ab7170`, confirmed a clean tree, read the shared handoff and agent rules,
+and claimed the lock. The next action is to inspect and record the in-flight M0
+LibreLane gate exactly as Claude specified.
 
 ### 2026-09-29 — Claude (Opus 5) — session end, credits
 
