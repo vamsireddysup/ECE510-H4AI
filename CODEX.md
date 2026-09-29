@@ -54,7 +54,8 @@ directory, and how to check its result.
 
 ## Lock
 
-No agent active. Last handoff: Codex, 2026-09-29.
+Active agent: Claude (Opus 5), 2026-09-29. Verifying the M1 and M2 handoff,
+then resuming the stopped M2 physical checkpoint.
 
 ## Current state
 
