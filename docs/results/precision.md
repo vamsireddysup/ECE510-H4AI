@@ -420,6 +420,28 @@ in the preprocessing command above. The 12 generated rows and capture hashes
 are in [`data/element-format-study.json`](data/element-format-study.json), and
 a model test regenerates every row.
 
+## Cross-block accumulation order
+
+M1 compared the current sequential FP32 reduction with a balanced tree over the
+four Bs=16 block scores. This is a **measured software-model result** under both
+FP32 and searched E4M3 block scales on all four captures.
+
+Tree order changes 24.5% to 29.4% of score bit patterns, with a largest absolute
+score change of `1.53e-5`. It changes no top-1 or top-5 result on any capture.
+The largest KL change is below `1e-9`; TV and Frobenius changes are likewise
+below the reported precision.
+
+Sequential reduction remains the reference. M2 naturally produces block scores
+in sequence, and keeping that order preserves the existing bit-exact contract.
+A balanced tree would be acceptable for measured attention quality, but it
+would change score bits without improving any observed metric and would require
+a separately versioned numerical contract.
+
+Reproduce with `--accumulation-study` and the four pinned `--captures`. The 16
+generated rows and capture hashes are in
+[`data/accumulation-order-study.json`](data/accumulation-order-study.json), and
+a model test regenerates every row.
+
 ## Output score format
 
 The replicated engine is bound by the 64-bit output port, which carries two FP32

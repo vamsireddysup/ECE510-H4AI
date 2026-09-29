@@ -15,9 +15,11 @@ from scripts.eval_precision import (
     evaluate,
     evaluate_preprocessing,
     evaluate_element_formats,
+    evaluate_accumulation_order,
     hadamard_rotate,
     preprocess_qk,
     quantize_element_blocks,
+    reduce_block_scores,
     power_of_two_scale,
     quantize_blocks,
     render_t512_table,
@@ -31,6 +33,7 @@ ACTIVATION_CAPTURE = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0.npz"
 ACTIVATION_JSON = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0-precision.json"
 PREPROCESSING_JSON = REPO_ROOT / "docs/results/data/preprocessing-study.json"
 ELEMENT_FORMAT_JSON = REPO_ROOT / "docs/results/data/element-format-study.json"
+ACCUMULATION_JSON = REPO_ROOT / "docs/results/data/accumulation-order-study.json"
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -155,6 +158,40 @@ def test_element_format_study_matches_committed_json() -> None:
             })
     for actual, recorded in zip(regenerated, committed["metrics"], strict=True):
         assert actual.keys() == recorded.keys()
+        for key in actual:
+            if isinstance(actual[key], float):
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)
+            else:
+                assert actual[key] == recorded[key]
+
+
+def test_tree_and_sequential_reduction_are_distinct() -> None:
+    blocks = [
+        np.array([[1e20]], dtype=np.float32),
+        np.array([[1.0]], dtype=np.float32),
+        np.array([[-1e20]], dtype=np.float32),
+        np.array([[1.0]], dtype=np.float32),
+    ]
+    assert reduce_block_scores(blocks, "sequential")[0, 0] == 1.0
+    assert reduce_block_scores(blocks, "tree")[0, 0] == 0.0
+
+
+def test_accumulation_order_study_matches_committed_json() -> None:
+    """Regenerate sequential and tree reductions from pinned captures."""
+    committed = json.loads(ACCUMULATION_JSON.read_text())
+    regenerated = []
+    for source in committed["captures"]:
+        path = REPO_ROOT / source["source"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == source["sha256"]
+        with np.load(path, allow_pickle=False) as capture:
+            q, k = capture["q"], capture["k"]
+        for scale_type in ("FP32", "E4M3-search"):
+            for order in ("sequential", "tree"):
+                regenerated.append({
+                    **evaluate_accumulation_order(q, k, order, 16, scale_type),
+                    "source": source["source"],
+                })
+    for actual, recorded in zip(regenerated, committed["metrics"], strict=True):
         for key in actual:
             if isinstance(actual[key], float):
                 assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)

@@ -21,6 +21,7 @@ SCALE_TYPES = ("FP32", "E8M0-floor", "E8M0-nearest", "E8M0-ceil")
 OUTPUT_FORMATS = ("FP32", "FP16", "BF16")
 PREPROCESSING_TYPES = ("none", "k-center", "hadamard", "k-center+hadamard")
 ELEMENT_FORMATS = ("FP4", "INT4", "adaptive")
+ACCUMULATION_ORDERS = ("sequential", "tree")
 
 
 def render_t512_table(metrics: list[dict[str, float | int | str]]) -> str:
@@ -591,6 +592,93 @@ def evaluate_element_formats(
     }
 
 
+def reduce_block_scores(
+    block_scores: list[np.ndarray], accumulation_order: str,
+) -> np.ndarray:
+    """Reduce FP32 block scores in sequential or balanced-tree order."""
+    if accumulation_order not in ACCUMULATION_ORDERS or not block_scores:
+        raise ValueError("unknown accumulation order or empty block list")
+    if accumulation_order == "sequential":
+        result = np.zeros_like(block_scores[0], dtype=np.float32)
+        for block in block_scores:
+            result = np.add(result, block, dtype=np.float32)
+        return result
+    level = [np.asarray(block, dtype=np.float32) for block in block_scores]
+    while len(level) > 1:
+        level = [
+            np.add(level[index], level[index + 1], dtype=np.float32)
+            if index + 1 < len(level) else level[index]
+            for index in range(0, len(level), 2)
+        ]
+    return level[0]
+
+
+def evaluate_accumulation_order(
+    q: np.ndarray, k: np.ndarray, accumulation_order: str,
+    block_size: int = 16, scale_type: str = "E4M3-search",
+) -> dict[str, float | int | str]:
+    """Measure score and softmax changes from cross-block FP32 add order."""
+    q = np.asarray(q, dtype=np.float32)
+    k = np.asarray(k, dtype=np.float32)
+    quantizer = quantize_blocks_study
+    q_half, q_scale, q_clips = quantizer(q, block_size, scale_type)
+    k_half, k_scale, k_clips = quantizer(k, block_size, scale_type)
+    blocks = []
+    for block in range(q_scale.shape[1]):
+        start = block * block_size
+        stop = min(start + block_size, q.shape[1])
+        exact_quarters = q_half[:, start:stop] @ k_half[:, start:stop].T
+        score = exact_quarters.astype(np.float32) * np.float32(.25)
+        score *= q_scale[:, block, None]
+        score *= k_scale[None, :, block]
+        blocks.append(score)
+    sequential = reduce_block_scores(blocks, "sequential")
+    scores = reduce_block_scores(blocks, accumulation_order)
+    reference = q @ k.T
+    difference = scores.astype(np.float64) - reference.astype(np.float64)
+    divisor = math.sqrt(q.shape[1])
+    ref_probability = softmax(reference / divisor)
+    probability = softmax(scores / divisor)
+    tiny = np.finfo(np.float64).tiny
+    kl = np.sum(ref_probability * (
+        np.log(np.maximum(ref_probability, tiny))
+        - np.log(np.maximum(probability, tiny))
+    ), axis=1)
+    tv = 0.5 * np.sum(np.abs(ref_probability - probability), axis=1)
+    top_k = min(5, q.shape[0])
+    ref_top = np.argsort(ref_probability, axis=1, kind="stable")[:, -top_k:]
+    actual_top = np.argsort(probability, axis=1, kind="stable")[:, -top_k:]
+    overlap = [
+        len(set(ref_top[row]) & set(actual_top[row])) / top_k
+        for row in range(q.shape[0])
+    ]
+    order_difference = scores.astype(np.float64) - sequential.astype(np.float64)
+    return {
+        "T": q.shape[0], "D_HEAD": q.shape[1], "block_size": block_size,
+        "scale_type": scale_type, "accumulation_order": accumulation_order,
+        "mean_kl_divergence": float(np.mean(kl)),
+        "mean_total_variation": float(np.mean(tv)),
+        "top1_agreement": float(np.mean(
+            np.argmax(ref_probability, axis=1) == np.argmax(probability, axis=1)
+        )),
+        "top5_index_agreement": float(np.mean(overlap)),
+        "mean_abs_error": float(np.mean(np.abs(difference))),
+        "relative_frobenius_error": float(
+            np.linalg.norm(difference)
+            / max(np.linalg.norm(reference.astype(np.float64)), 1e-30)
+        ),
+        "score_bit_difference_fraction_vs_sequential": float(np.mean(
+            scores.view(np.uint32) != sequential.view(np.uint32)
+        )),
+        "max_abs_score_difference_vs_sequential": float(
+            np.max(np.abs(order_difference))
+        ),
+        "clipped_input_fraction": float(
+            (q_clips + k_clips) / (q.size + k.size)
+        ),
+    }
+
+
 def evaluate_output_format(
     q: np.ndarray, k: np.ndarray, block_size: int, scale_type: str,
     output_format: str,
@@ -631,6 +719,10 @@ def main() -> None:
         help="compare fixed and per-block-selected FP4 and INT4",
     )
     parser.add_argument(
+        "--accumulation-study", action="store_true",
+        help="compare sequential and tree FP32 cross-block addition",
+    )
+    parser.add_argument(
         "--captures", type=Path, nargs="+",
         help="multiple pinned Q/K captures for the preprocessing study",
     )
@@ -656,7 +748,21 @@ def main() -> None:
             generator.standard_normal((size, args.depth), dtype=np.float32),
         ) for size in args.sizes]
         source = {"source": "synthetic_normal", "seed": args.seed}
-    if args.element_format_study:
+    if args.accumulation_study:
+        if not args.captures and not args.npz:
+            raise ValueError("--accumulation-study requires --npz or --captures")
+        metrics = [
+            {
+                **evaluate_accumulation_order(
+                    q, k, accumulation_order, args.block_size, scale_type
+                ),
+                "source": str(args.captures[index]) if args.captures else str(args.npz),
+            }
+            for index, (q, k) in enumerate(matrices)
+            for scale_type in ("FP32", "E4M3-search")
+            for accumulation_order in ACCUMULATION_ORDERS
+        ]
+    elif args.element_format_study:
         if not args.captures and not args.npz:
             raise ValueError("--element-format-study requires --npz or --captures")
         metrics = [

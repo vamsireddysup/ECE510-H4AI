@@ -54,7 +54,8 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: Codex, 2026-09-29. Working on M1 softmax-invariant preprocessing.
+Active agent: none. Codex completed M1 preprocessing, element-format, and
+accumulation-order studies on 2026-09-29. Continue with the exponent bound.
 
 ## Current state
 
@@ -98,14 +99,17 @@ Updated 2026-09-29 by Codex.
   INT4 blocks improve mean KL, TV, top-5, and Frobenius error, but lose 0.34
   top-1 points and regress on the larger-model capture. The result supports a
   layer-selective P1 mode, not a global default.
+- **M1 accumulation order is settled.** A balanced tree changes up to 29.4% of
+  score bit patterns but no top-k result and at most `1.53e-5` per score. M2
+  keeps sequential order to preserve the bit-exact contract.
 - **M0 is complete.** The gate run finished after the handoff was written:
   LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
   LVS, and **zero antenna violations**, then stopped correctly at the hold
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step.** M1 item 3 under "Picking this up": sequential versus
-  tree cross-block accumulation.
+- **Exact next step.** M1 item 4 under "Picking this up": exponent-only score
+  bounds and the softmax cost of skipping scores or whole tiles.
 
 ### Gotchas
 
@@ -167,6 +171,17 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M1 accumulation-order result
+
+**Done.** Added `--accumulation-study` for sequential and balanced-tree FP32
+cross-block reduction under FP32 and searched E4M3 scales. Tree order changes
+24.5% to 29.4% of score bit patterns but by no more than `1.53e-5`; all top-1
+and top-5 results are unchanged and KL moves below `1e-9`. Sequential remains
+the M2 reference because it preserves the current bit-exact contract.
+
+**Verification.** The model suite regenerates all 16 rows and capture hashes.
+Next is the exponent-only score bound study.
 
 ### 2026-09-29 — Codex — M1 element-format result
 

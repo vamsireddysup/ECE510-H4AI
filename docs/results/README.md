@@ -33,6 +33,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Block-scale format study](data/scale-format-study.csv) | FP32, E4M3, and E8M0 scale rules across the four pinned captures |
 | [Preprocessing study](data/preprocessing-study.json) | K centering and Hadamard rotation under FP32 and searched E4M3 scales |
 | [Element-format study](data/element-format-study.json) | Fixed FP4, fixed INT4, and reconstruction-selected blocks under searched E4M3 scales |
+| [Accumulation-order study](data/accumulation-order-study.json) | Sequential and balanced-tree FP32 cross-block reductions |
 | [Output format sweep](data/output-format-sweep.csv) | FP32, FP16, and BF16 output scores across the four pinned captures |
 | [CPU baseline](data/cpu-baseline.csv) | Reference-BLAS and OpenBLAS medians, throughput, and fraction of peak |
 | [Replicated-engine measurements](data/replicated-engine-measured.csv) | Measured engine-count cycles, beats, and model error |

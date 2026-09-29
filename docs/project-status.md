@@ -151,6 +151,9 @@ softmax metrics across all four captures, so neither becomes the default.
 Per-block FP4/INT4 selection lowers mean KL, TV, Frobenius error, and raises
 top-5, but loses 0.34 top-1 points and regresses on the larger-model capture.
 It remains a layer-selective P1 candidate rather than a global default.
+Sequential versus tree cross-block addition is also settled: a tree changes up
+to 29.4% of score bit patterns but moves no top-k result and changes scores by
+at most `1.53e-5`. M2 keeps sequential order to preserve bit exactness.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep

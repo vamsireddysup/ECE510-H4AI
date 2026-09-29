@@ -1,5 +1,13 @@
 # Latest verification
 
+## September 29 accumulation-order study
+
+Sequential and balanced-tree FP32 reduction were compared over four Bs=16 block
+scores under FP32 and searched E4M3 scales. Tree order changes 24.5% to 29.4% of
+score bit patterns but by at most `1.53e-5`; no capture changes top-1 or top-5.
+M2 keeps sequential order to preserve the existing bit-exact reference. The
+model suite regenerates all 16 rows.
+
 ## September 29 element-format study
 
 Fixed FP4, fixed INT4, and reconstruction-selected per-block formats were
