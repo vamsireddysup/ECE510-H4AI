@@ -129,19 +129,39 @@ module qkt_engine #(
     assign kc_beat = fill_start ? 32'd0 : fill_beat;
     assign calc_active = calc_busy || calc_start;
 
-    function automatic signed [4:0] decode(input logic [3:0] code);
-        logic signed [4:0] magnitude;
-        case (code[2:0])
-            3'd0: magnitude = 5'sd0;
-            3'd1: magnitude = 5'sd1;
-            3'd2: magnitude = 5'sd2;
-            3'd3: magnitude = 5'sd3;
-            3'd4: magnitude = 5'sd4;
-            3'd5: magnitude = 5'sd6;
-            3'd6: magnitude = 5'sd8;
-            default: magnitude = 5'sd12;
+    function automatic signed [9:0] e2m1_product(
+        input logic [3:0] a, input logic [3:0] b
+    );
+        logic a_zero, b_zero, a_three, b_three;
+        logic [1:0] a_shift, b_shift;
+        logic [2:0] total_shift;
+        logic [7:0] coefficient, magnitude;
+        logic signed [9:0] signed_magnitude;
+        a_zero = a[2:0] == 0;
+        b_zero = b[2:0] == 0;
+        a_three = a[2:0] == 3 || a[2:0] == 5 || a[2:0] == 7;
+        b_three = b[2:0] == 3 || b[2:0] == 5 || b[2:0] == 7;
+        case (a[2:0])
+            3'd2, 3'd5: a_shift = 1;
+            3'd4, 3'd7: a_shift = 2;
+            3'd6:       a_shift = 3;
+            default:    a_shift = 0;
         endcase
-        decode = code[3] ? -magnitude : magnitude;
+        case (b[2:0])
+            3'd2, 3'd5: b_shift = 1;
+            3'd4, 3'd7: b_shift = 2;
+            3'd6:       b_shift = 3;
+            default:    b_shift = 0;
+        endcase
+        total_shift = a_shift + b_shift;
+        case ({a_three, b_three})
+            2'b00: coefficient = 8'd1;
+            2'b11: coefficient = 8'd9;
+            default: coefficient = 8'd3;
+        endcase
+        magnitude = (a_zero || b_zero) ? 0 : coefficient << total_shift;
+        signed_magnitude = {2'b00, magnitude};
+        e2m1_product = (a[3] ^ b[3]) ? -signed_magnitude : signed_magnitude;
     endfunction
 
     logic scale_start, scale_launch;
@@ -362,8 +382,9 @@ module qkt_engine #(
                     for (int i = 0; i < TILE_SIZE; i++)
                         for (int j = 0; j < TILE_SIZE; j++)
                             acc_bank[calc_acc_bank][0][i][j] <=
-                                ACC_W'(decode(q_row[4*i +: 4]) *
-                                       decode(k_bank[calc_k_bank][j][0]));
+                                ACC_W'(e2m1_product(
+                                    q_row[4*i +: 4],
+                                    k_bank[calc_k_bank][j][0]));
                     /* verilator lint_on BLKLOOPINIT */
                 end else if (calc_busy) begin
                     /* verilator lint_off BLKLOOPINIT */
@@ -372,9 +393,10 @@ module qkt_engine #(
                             acc_bank[calc_acc_bank][32'(calc_depth)/SCALE_BLOCK_SIZE][i][j] <=
                                 acc_bank[calc_acc_bank]
                                         [32'(calc_depth)/SCALE_BLOCK_SIZE][i][j] +
-                                ACC_W'(decode(q_row[4*i +: 4]) *
-                                       decode(k_bank[calc_k_bank][j]
-                                           [calc_depth[DEPTH_INDEX_W-1:0]]));
+                                ACC_W'(e2m1_product(
+                                    q_row[4*i +: 4],
+                                    k_bank[calc_k_bank][j]
+                                        [calc_depth[DEPTH_INDEX_W-1:0]]));
                     /* verilator lint_on BLKLOOPINIT */
                     if (q_row_last) begin
                         calc_busy <= 1'b0; acc_valid[calc_acc_bank] <= 1'b1;

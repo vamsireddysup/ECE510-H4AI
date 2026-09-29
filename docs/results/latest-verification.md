@@ -9,6 +9,11 @@ integer path, a 56.24% reduction. The archived FP32 product ROM maps to
 228.97 um2 but has an incompatible FP32 reduction contract. These are mapped,
 wire-free areas; no timing or power claim is made.
 
+The selected expression is also integrated in the active engine. `make test`,
+the T=64/128/512 large suite, and the T=512 RTL precision run pass without a
+score, cycle, counter, or error-metric change. The precision run still reports
+relative Frobenius error 0.132942637 and mean absolute error 0.842930886.
+
 ## September 29 decoder validation
 
 Two 512x64 post-RoPE Q/K heads were captured from the first and last layers of

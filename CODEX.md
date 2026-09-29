@@ -54,7 +54,7 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: Codex, 2026-09-29. Completing M1 software and cost studies.
+Active agent: Codex, 2026-09-29. Implementing M2 P0 physical closure work.
 
 ## Current state
 
@@ -112,7 +112,8 @@ Updated 2026-09-29 by Codex.
   selects an exact E2M1 shift/add product. It is formally equivalent to the
   current integer product and maps 56.24% smaller in the standalone probe. The
   archived ROM is smaller in isolation but emits FP32 and excludes reduction
-  cost.
+  cost. The selected expression is active in `qkt_engine`; all large and RTL
+  precision suites retain identical scores and cycles.
 - **M0 is complete.** The gate run finished after the handoff was written:
   LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
   LVS, and **zero antenna violations**, then stopped correctly at the hold
@@ -182,6 +183,17 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M2 shift-add integration
+
+**Done.** Replaced every active generic FP4 multiply with the ADR 0009 exact
+E2M1 exponent/shift/add expression. This is a structural substitution only;
+the signed half-unit product and quarter-unit accumulator contracts do not
+change.
+
+**Verification.** `make test`, T=64/128/512 integration, and T=512 RTL
+precision all pass. Every score and cycle count is unchanged. Next is the
+block-streaming accumulator that removes the routed congestion source.
 
 ### 2026-09-29 — Codex — M1 complete, multiplier decision
 
@@ -260,17 +272,3 @@ the existing 13-bit Bs=16 accumulator covers all native product bounds.
 
 **Verification.** The model suite regenerates all 12 rows and capture hashes.
 Next is sequential versus tree cross-block accumulation.
-
-### 2026-09-29 — Codex — M1 preprocessing result
-
-**Done.** Added K channel-mean centering and normalized Walsh-Hadamard rotation
-behind `--preprocessing-study`, including their combination, FP32 and searched
-E4M3 scales, and all four pinned captures. The record measures raw score error
-after row-mean removal, because K centering intentionally adds a softmax-inert
-row shift. Neither transform becomes the default: searched E4M3 baseline mean
-KL/top-1 is 0.02114/90.82%; K centering gives 0.02712/89.16%, and Hadamard gives
-0.02165/90.53%. Capture-level directions differ.
-
-**Verified.** `make test` passes with 33 model tests, eleven lint configurations,
-and both integration depths. A provenance test checks all 32 study rows and all
-four capture hashes. Next is per-block FP4 versus INT4.

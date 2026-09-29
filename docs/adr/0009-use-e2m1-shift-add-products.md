@@ -5,7 +5,7 @@ Accepted, September 2026.
 ## Decision
 
 Replace the generic signed multiply in each FP4 product lane with exact E2M1
-shift/add logic when the M2 compute datapath is rewritten. Keep the signed
+shift/add logic. Keep the signed
 half-unit product and exact integer block accumulator defined by ADR 0001.
 
 Do not restore the archived FP32 product ROM to the active datapath.
@@ -45,10 +45,11 @@ half units, block accumulators remain exact quarter units, and score conversion
 still happens once per block. Existing bit-exact integration references remain
 valid.
 
-The change lands with M2 rather than as a standalone edit. M2 already rewrites
-the accumulator dataflow, and measuring a separate complete-top route for this
-small combinational substitution would not resolve the current accumulator-net
-congestion blocker.
+The active engine now uses the shift/add expression. All small and T=64/128/512
+integration suites retain identical scores, cycles, and counters, and the T=512
+RTL precision run remains bit-exact with the software model. A separate
+complete-top route for this small substitution would not resolve the current
+accumulator-net congestion blocker, so its physical effect is measured with M2.
 
 The probe establishes mapped area only. It does not establish routed timing,
 dynamic power, or energy. M2 must report those properties on the integrated

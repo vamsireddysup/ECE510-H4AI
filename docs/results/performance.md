@@ -373,7 +373,7 @@ The shift/add form is formally equivalent to the active integer product on all
 256 input pairs and cuts like-for-like mapped area by 56.24%. The FP32 ROM is
 smaller in isolation but would require FP32 accumulation or per-product
 conversion, costs absent from its row. [ADR 0009](../adr/0009-use-e2m1-shift-add-products.md)
-selects shift/add for the M2 accumulator rewrite. The complete-top effect,
+selects shift/add, which is now active in `qkt_engine`. The complete-top effect,
 timing, and energy remain M2 measurements.
 
 

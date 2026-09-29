@@ -202,7 +202,8 @@ engines. Only the `sk` index differs per engine.
 
 The shared Q banks are read one cycle ahead into a private per-engine register,
 so the engine-crossing array read is register to register and no longer shares a
-combinational path with decode, multiply, and accumulate. The read address is a
+combinational path with E2M1 exponent selection, shift/add product, and
+accumulate. The read address is a
 counter, so this costs no cycles; depth 0 of a row can be written in the same
 cycle `q_valid` is set, and that one nibble per row is snooped off the write beat
 at a compile-time-constant beat and lane.

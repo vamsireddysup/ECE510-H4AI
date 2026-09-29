@@ -228,6 +228,20 @@ handoff and rules, and claimed the lock. The atomic task is K channel-mean
 centering and Hadamard rotation across all four pinned captures, behind a new
 precision-study flag that does not change existing record shapes.
 
+### 2026-09-29 — Codex — M1 preprocessing result
+
+**Done.** Added K channel-mean centering and normalized Walsh-Hadamard rotation
+behind `--preprocessing-study`, including their combination, FP32 and searched
+E4M3 scales, and all four pinned captures. The record measures raw score error
+after row-mean removal, because K centering intentionally adds a softmax-inert
+row shift. Neither transform becomes the default: searched E4M3 baseline mean
+KL/top-1 is 0.02114/90.82%; K centering gives 0.02712/89.16%, and Hadamard gives
+0.02165/90.53%. Capture-level directions differ.
+
+**Verified.** `make test` passes with 33 model tests, eleven lint configurations,
+and both integration depths. A provenance test checks all 32 study rows and all
+four capture hashes. Next is per-block FP4 versus INT4.
+
 ## Related
 
 - [Agent rules and handoff protocol](agent-rules.md)
