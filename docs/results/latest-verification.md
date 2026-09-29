@@ -1,5 +1,19 @@
 # Latest verification
 
+## September 29 LibreLane M0 gate
+
+LibreLane 3.0.14 completed the 4x4, `D_HEAD=4`, `T_MAX=16`, Bs=16,
+one-engine top through final GDS on a 900 um die. Detailed-route, Magic, and
+KLayout DRC are zero; LVS matches uniquely; final antenna violations are zero.
+This passes the M0 toolchain gate.
+
+The 20 ns physical run is not timing closed. Worst slow-corner setup slack is
+-2.0313 ns over 202 endpoints, and hold slack is -0.0605 ns on one endpoint.
+The final metrics also report 5,061 maximum-slew and 145 maximum-capacitance
+violations. The vectorless 18.6 mW estimate is rejected as an energy result.
+Full provenance and limits are in the
+[physical-design record](physical-design.md).
+
 ## September 28 baseline, model, and output-format run
 
 I refreshed the CPU baseline with host provenance, closed the cycle model,

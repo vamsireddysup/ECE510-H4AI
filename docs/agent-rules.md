@@ -22,6 +22,10 @@ it automatically. There is no `CLAUDE.md`.
   log since the newest handoff entry. Stop if another agent holds the lock.
 - After every verified commit, update the current state and add a handoff
   entry, then push. The handoff is never more than one step behind the code.
+- Re-read the lock and check `HEAD` immediately before committing. If either
+  changed, reconcile first. Once an agent hands off a background run, the
+  receiving agent owns recording its result; the former agent must not resume
+  and commit after the lock changes.
 - Neither agent can read its own credit percentage, so there is no reliable
   "at 80%" trigger. Stop deliberately when the owner says so, when a context or
   usage warning appears, or when the next step will not fit: finish the atomic
@@ -126,10 +130,10 @@ the register-based K-reuse experiment using a labeled slow-corner leakage and
 off-chip-energy projection. Do not derive active latency from the archived
 15 ns array-only constraint.
 
-`scripts/cycle_model.py` also models replicated engines. N=1 is exact against
-the 24 recorded configurations; N greater than one is explicitly projected.
-The current decision keeps ordered output through an internal tile reorder
-buffer, so replication does not itself change the stream format. See
+`scripts/cycle_model.py` also models replicated engines and is exact against
+all 32 recorded configurations. The current implementation assigns K tile
+columns round-robin and retires engines in order, so replication does not
+change the stream format or require a general reorder buffer. See
 `results/performance.md` before proposing a replicated top.
 
 For every published benchmark or synthesis result, record:

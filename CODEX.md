@@ -26,6 +26,12 @@ Keep this file under about 24 KB. Codex truncates project instructions at
    what keeps the two from drifting apart.
 5. Set the lock to your agent name and the date.
 
+Before committing, re-read the lock and run `git status --short --branch` plus
+`git log -1 --oneline`. If `HEAD` moved or another agent owns the lock, stop and
+reconcile instead of committing over the other session. An agent that hands off
+a live external run also hands off responsibility for recording its result; it
+must not resume later and commit after the receiver has claimed the lock.
+
 **During the session.** After every verified commit, update "Current state"
 and add a handoff entry. Include the handoff in the work commit, or commit it
 separately as `handoff: <what>`. Push it. The handoff is never more than one
@@ -53,14 +59,15 @@ Active agent: Codex, 2026-09-29. Claude stopped on 2026-09-29 on the owner's
 
 ## Current state
 
-Updated 2026-09-29 by Claude (Opus 5.5).
+Updated 2026-09-29 by Codex.
 
 - **Branch and commit.** `master`, pushed to
   `vamsireddysup/FP4-transformer-attention-accelerator`. CI and `make test`
   pass.
 - **Active plan.** The research-backed roadmap, milestones M0 to M4, is in
   [docs/project-status.md](docs/project-status.md#roadmap-milestones-m0-to-m4).
-  The current milestone is **M0, housekeeping and toolchain**.
+  M0 is complete. The current milestone is **M1, arithmetic decisions in
+  software**.
 - **Where the design is.** 4x4 FP4 QK^T engine with 1x16 FP32 block scales,
   exact integer block accumulation, `ENGINES` replication (1 to 16), protocol
   versions 5 and 6 by default. All 32 recorded cycle configurations re-simulate
@@ -152,6 +159,20 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — reconciled concurrent M0 result
+
+**Reconciled.** Commit `513c728` appeared while Codex held the lock. Claude's
+post-handoff process recorded the same completed M0 run Codex was reviewing.
+Codex discarded its duplicate uncommitted CSV and documentation edits, reviewed
+Claude's commit, and retained its single authoritative result. The protocol now
+requires a lock and `HEAD` recheck immediately before every commit, and assigns
+recording responsibility for handed-off background runs to the receiving agent.
+
+**Verified.** The M0 result matches the final LibreLane metrics: clean detailed
+route, Magic and KLayout DRC, LVS, and antenna checks; setup WNS -2.0313 ns,
+hold WNS -0.0605 ns, 5,061 slew violations, and 145 capacitance violations.
+M0 is complete and M1 preprocessing is next.
 
 ### 2026-09-29 — Codex — session start
 
