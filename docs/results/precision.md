@@ -442,6 +442,52 @@ generated rows and capture hashes are in
 [`data/accumulation-order-study.json`](data/accumulation-order-study.json), and
 a model test regenerates every row.
 
+## Exponent-only score bound
+
+M1 measured whether sign and exponent bits can safely identify attention scores
+that are too far below their row maximum to matter. For each quantized operand,
+the model replaces its magnitude by the enclosing powers of two. Same-sign
+products use the upper endpoints; opposite-sign products use the lower
+endpoints, because that is the least-negative product. Their sum is therefore a
+conservative upper bound on the signed score without multiplying mantissas.
+
+The threshold is `rowmax - tau` after division by `sqrt(D_HEAD)`. `rowmax` is
+the unpruned searched-E4M3 FP4 row maximum, so this is a two-pass opportunity,
+not yet a proposed streaming implementation. A score is safe to skip only when
+its upper bound is below the threshold. A 4x4 output tile is safe only when all
+16 scores pass. These are **measured software-model results** across the four
+pinned captures with NumPy 1.26.4; aggregate values are unweighted capture
+means.
+
+| Tau | Oracle scores below threshold | Safely bounded scores | Bound recall | Safe 4x4 tiles | Removed probability, score skips | Removed probability, tile skips |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 99.48% | 57.71% | 58.00% | 18.62% | 2.060% | 0.01561% |
+| 2 | 98.60% | 46.78% | 47.32% | 14.81% | 0.770% | 0.00204% |
+| 4 | 92.13% | 28.83% | 29.77% | 8.66% | 0.049% | 0.00011% |
+| 6 | 79.09% | 17.56% | 18.47% | 4.19% | 0.00150% | 0.000009% |
+| 8 | 65.91% | 10.25% | 11.39% | 1.45% | 0.000044% | 0.0000006% |
+
+At tau=4, safe score coverage ranges from 5.83% on tiny layer 0 head 0 to
+46.38% on tiny layer 1 head 1. Whole-tile coverage ranges from zero to 18.38%.
+This variation rules out a fixed performance claim from these four heads.
+Across every tau and capture, pruning preserves the unpruned FP4 top-1 and
+top-5 sets. The mean reverse KL to the unpruned distribution is 0.000491 at
+tau=4. Forward KL is intentionally not reported: hard pruning assigns zero
+probability and makes `KL(P_unpruned || P_pruned)` infinite.
+
+The result supports keeping exponent-first skipping as a later experiment, but
+does not select hardware. It needs a row-maximum pass or predictor, and the
+cost of producing these signed interval sums must be lower than the exact dot
+products they avoid. Whole-tile skipping is directly compatible with the
+current 4x4 engine and has negligible measured softmax cost at tau=4, but only
+8.66% mean coverage.
+
+Reproduce the 20 rows with `--exponent-bound-study` and the four pinned
+`--captures`. The generated record and capture hashes are in
+[`data/exponent-bound-study.json`](data/exponent-bound-study.json); the model
+suite regenerates every row and asserts that the safe mask never includes a
+score above its threshold.
+
 ## Output score format
 
 The replicated engine is bound by the 64-bit output port, which carries two FP32

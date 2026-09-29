@@ -154,6 +154,10 @@ It remains a layer-selective P1 candidate rather than a global default.
 Sequential versus tree cross-block addition is also settled: a tree changes up
 to 29.4% of score bit patterns but moves no top-k result and changes scores by
 at most `1.53e-5`. M2 keeps sequential order to preserve bit exactness.
+The exponent-only bound is also measured. At a four-logit margin it safely
+identifies 28.83% of scores and 8.66% of complete 4x4 tiles on average with no
+top-k change, but it requires a row maximum and coverage varies from zero to
+18.38% of tiles by capture. It remains a later experiment rather than M2 scope.
 
 **M2, P0 closure: the first routed milestone.** Replace the per-tile
 accumulator banks with a block-streaming accumulator that hands each 16-deep

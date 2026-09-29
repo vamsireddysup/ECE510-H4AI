@@ -101,14 +101,19 @@ Updated 2026-09-29 by Codex.
 - **M1 accumulation order is settled.** A balanced tree changes up to 29.4% of
   score bit patterns but no top-k result and at most `1.53e-5` per score. M2
   keeps sequential order to preserve the bit-exact contract.
+- **M1 exponent-bound opportunity is measured.** At a four-logit margin, a
+  conservative sign-and-exponent bound safely identifies 28.83% of scores and
+  8.66% of complete 4x4 tiles on average, with no top-k change. It requires a
+  row maximum and capture-level tile coverage ranges from zero to 18.38%, so it
+  remains a later experiment.
 - **M0 is complete.** The gate run finished after the handoff was written:
   LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
   LVS, and **zero antenna violations**, then stopped correctly at the hold
   checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
   in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **Exact next step.** M1 item 4 under "Picking this up": exponent-only score
-  bounds and the softmax cost of skipping scores or whole tiles.
+- **Exact next step.** M1 item 5 under "Picking this up": add two pinned modern
+  decoder captures with `D_HEAD=64`.
 
 ### Gotchas
 
@@ -170,6 +175,18 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Codex — M1 exponent-bound result
+
+**Done.** Added a conservative score upper bound that keeps operand signs and
+power-of-two magnitude intervals but performs no mantissa multiplication. At a
+four-logit margin it safely covers 28.83% of scores and 8.66% of 4x4 tiles on
+average, removing 0.049% and 0.00011% of probability mass. Top-1 and top-5 are
+unchanged, but tile coverage spans zero to 18.38% by capture and a row-maximum
+pass is assumed, so no RTL is selected.
+
+**Verification.** The model suite regenerates all 20 rows and asserts bound
+safety. Next is two modern decoder captures with `D_HEAD=64`.
 
 ### 2026-09-29 — Codex — M1 exponent-bound start
 

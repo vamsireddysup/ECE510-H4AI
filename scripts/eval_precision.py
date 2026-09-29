@@ -22,6 +22,7 @@ OUTPUT_FORMATS = ("FP32", "FP16", "BF16")
 PREPROCESSING_TYPES = ("none", "k-center", "hadamard", "k-center+hadamard")
 ELEMENT_FORMATS = ("FP4", "INT4", "adaptive")
 ACCUMULATION_ORDERS = ("sequential", "tree")
+EXPONENT_BOUND_TAUS = (1.0, 2.0, 4.0, 6.0, 8.0)
 
 
 def render_t512_table(metrics: list[dict[str, float | int | str]]) -> str:
@@ -679,6 +680,153 @@ def evaluate_accumulation_order(
     }
 
 
+def _exponent_interval(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return power-of-two lower and upper bounds on absolute values."""
+    magnitude = np.abs(values.astype(np.float64))
+    safe = np.where(magnitude > 0, magnitude, 1.0)
+    lower = np.where(magnitude > 0, np.exp2(np.floor(np.log2(safe))), 0.0)
+    upper = np.where(magnitude > 0, np.exp2(np.ceil(np.log2(safe))), 0.0)
+    return lower, upper
+
+
+def _exponent_dot_upper(q_values: np.ndarray, k_values: np.ndarray) -> np.ndarray:
+    """Upper-bound every signed dot using only sign and magnitude exponent.
+
+    Same-sign products use the upper endpoint of each exponent bucket.
+    Opposite-sign products use the lower endpoints, because the least-negative
+    product is the upper endpoint for that term. Summing these term bounds is a
+    conservative upper bound on the signed dot product.
+    """
+    q_lower, q_upper = _exponent_interval(q_values)
+    k_lower, k_upper = _exponent_interval(k_values)
+    q_positive, q_negative = q_values > 0, q_values < 0
+    k_positive, k_negative = k_values > 0, k_values < 0
+    return (
+        (q_upper * q_positive) @ (k_upper * k_positive).T
+        + (q_upper * q_negative) @ (k_upper * k_negative).T
+        - (q_lower * q_positive) @ (k_lower * k_negative).T
+        - (q_lower * q_negative) @ (k_lower * k_positive).T
+    )
+
+
+def _whole_tile_mask(score_mask: np.ndarray, tile_size: int) -> tuple[np.ndarray, int]:
+    """Expand all-eligible output tiles into a score mask."""
+    tiled = np.zeros_like(score_mask, dtype=bool)
+    tile_count = 0
+    eligible = 0
+    for row in range(0, score_mask.shape[0], tile_size):
+        for column in range(0, score_mask.shape[1], tile_size):
+            tile_count += 1
+            block = score_mask[row:row + tile_size, column:column + tile_size]
+            if np.all(block):
+                eligible += 1
+                tiled[row:row + tile_size, column:column + tile_size] = True
+    return tiled, eligible
+
+
+def _skip_cost(probability: np.ndarray, mask: np.ndarray) -> dict[str, float]:
+    """Measure hard-pruning cost against the unpruned FP4 probability."""
+    kept = np.where(mask, 0.0, probability)
+    normalizer = np.sum(kept, axis=1, keepdims=True)
+    pruned = kept / normalizer
+    tiny = np.finfo(np.float64).tiny
+    reverse_kl = np.sum(
+        pruned * (
+            np.log(np.maximum(pruned, tiny))
+            - np.log(np.maximum(probability, tiny))
+        ), axis=1,
+    )
+    top_k = min(5, probability.shape[1])
+    original_top = np.argsort(probability, axis=1, kind="stable")[:, -top_k:]
+    pruned_top = np.argsort(pruned, axis=1, kind="stable")[:, -top_k:]
+    overlap = [
+        len(set(original_top[row]) & set(pruned_top[row])) / top_k
+        for row in range(probability.shape[0])
+    ]
+    return {
+        "mean_removed_probability_mass": float(np.mean(np.sum(
+            np.where(mask, probability, 0.0), axis=1
+        ))),
+        "mean_reverse_kl_to_unpruned": float(np.mean(reverse_kl)),
+        "top1_agreement_to_unpruned": float(np.mean(
+            np.argmax(probability, axis=1) == np.argmax(pruned, axis=1)
+        )),
+        "top5_index_agreement_to_unpruned": float(np.mean(overlap)),
+    }
+
+
+def evaluate_exponent_bound(
+    q: np.ndarray, k: np.ndarray, tau: float, block_size: int = 16,
+    tile_size: int = 4,
+) -> dict[str, float | int | str]:
+    """Measure safe sign-and-exponent score pruning at one logit margin.
+
+    ``tau`` is measured after the attention temperature division by sqrt(D).
+    The row maximum is the unpruned quantized row maximum. The bound never uses
+    a product mantissa, but it does retain each operand sign so negative terms
+    can tighten the signed upper bound.
+    """
+    if q.ndim != 2 or k.shape != q.shape or tau < 0 or tile_size <= 0:
+        raise ValueError("q/k shape, tau, or tile_size is invalid")
+    q = np.asarray(q, dtype=np.float32)
+    k = np.asarray(k, dtype=np.float32)
+    q_half, q_scale, _ = quantize_blocks_study(q, block_size, "E4M3-search")
+    k_half, k_scale, _ = quantize_blocks_study(k, block_size, "E4M3-search")
+    scores = np.zeros((q.shape[0], q.shape[0]), dtype=np.float32)
+    upper = np.zeros_like(scores, dtype=np.float64)
+    for block in range(q_scale.shape[1]):
+        start = block * block_size
+        stop = min(start + block_size, q.shape[1])
+        integer_dot = q_half[:, start:stop] @ k_half[:, start:stop].T
+        block_score = integer_dot.astype(np.float32) * np.float32(0.25)
+        block_score *= q_scale[:, block, None]
+        block_score *= k_scale[None, :, block]
+        scores += block_score
+        q_values = (
+            q_half[:, start:stop].astype(np.float64) * 0.5
+            * q_scale[:, block, None]
+        )
+        k_values = (
+            k_half[:, start:stop].astype(np.float64) * 0.5
+            * k_scale[:, block, None]
+        )
+        upper += _exponent_dot_upper(q_values, k_values)
+    # One upward representable step protects the mathematical bound from the
+    # float64 additions used by this software experiment.
+    upper = np.nextafter(upper, np.inf)
+    if np.any(upper < scores.astype(np.float64)):
+        raise AssertionError("exponent upper bound understated a quantized score")
+
+    divisor = math.sqrt(q.shape[1])
+    logits = scores.astype(np.float64) / divisor
+    upper_logits = upper / divisor
+    threshold = np.max(logits, axis=1, keepdims=True) - tau
+    oracle_mask = logits < threshold
+    safe_mask = upper_logits < threshold
+    if np.any(safe_mask & ~oracle_mask):
+        raise AssertionError("safe skip mask includes a score above the threshold")
+    tile_mask, eligible_tiles = _whole_tile_mask(safe_mask, tile_size)
+    tile_rows = math.ceil(q.shape[0] / tile_size)
+    tile_count = tile_rows * tile_rows
+    probability = softmax(logits)
+    score_cost = _skip_cost(probability, safe_mask)
+    tile_cost = _skip_cost(probability, tile_mask)
+    oracle_count = int(np.count_nonzero(oracle_mask))
+    return {
+        "T": q.shape[0], "D_HEAD": q.shape[1],
+        "block_size": block_size, "scale_type": "E4M3-search",
+        "tile_size": tile_size, "tau": tau,
+        "tau_domain": "score/sqrt(D_HEAD)",
+        "oracle_score_fraction": float(np.mean(oracle_mask)),
+        "safe_score_fraction": float(np.mean(safe_mask)),
+        "safe_bound_recall": float(np.count_nonzero(safe_mask) / max(oracle_count, 1)),
+        "safe_whole_tile_fraction": eligible_tiles / tile_count,
+        "safe_whole_tile_score_fraction": float(np.mean(tile_mask)),
+        **{f"score_skip_{key}": value for key, value in score_cost.items()},
+        **{f"tile_skip_{key}": value for key, value in tile_cost.items()},
+    }
+
+
 def evaluate_output_format(
     q: np.ndarray, k: np.ndarray, block_size: int, scale_type: str,
     output_format: str,
@@ -723,6 +871,10 @@ def main() -> None:
         help="compare sequential and tree FP32 cross-block addition",
     )
     parser.add_argument(
+        "--exponent-bound-study", action="store_true",
+        help="measure safe sign-and-exponent score and whole-tile skipping",
+    )
+    parser.add_argument(
         "--captures", type=Path, nargs="+",
         help="multiple pinned Q/K captures for the preprocessing study",
     )
@@ -748,7 +900,18 @@ def main() -> None:
             generator.standard_normal((size, args.depth), dtype=np.float32),
         ) for size in args.sizes]
         source = {"source": "synthetic_normal", "seed": args.seed}
-    if args.accumulation_study:
+    if args.exponent_bound_study:
+        if not args.captures and not args.npz:
+            raise ValueError("--exponent-bound-study requires --npz or --captures")
+        metrics = [
+            {
+                **evaluate_exponent_bound(q, k, tau, args.block_size),
+                "source": str(args.captures[index]) if args.captures else str(args.npz),
+            }
+            for index, (q, k) in enumerate(matrices)
+            for tau in EXPONENT_BOUND_TAUS
+        ]
+    elif args.accumulation_study:
         if not args.captures and not args.npz:
             raise ValueError("--accumulation-study requires --npz or --captures")
         metrics = [

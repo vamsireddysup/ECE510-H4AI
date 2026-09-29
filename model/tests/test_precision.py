@@ -11,11 +11,13 @@ import pytest
 
 from scripts.eval_precision import (
     BLOCK_SIZES,
+    EXPONENT_BOUND_TAUS,
     SCALE_TYPES,
     evaluate,
     evaluate_preprocessing,
     evaluate_element_formats,
     evaluate_accumulation_order,
+    evaluate_exponent_bound,
     hadamard_rotate,
     preprocess_qk,
     quantize_element_blocks,
@@ -34,6 +36,7 @@ ACTIVATION_JSON = REPO_ROOT / "docs/results/data/bert-tiny-layer0-head0-precisio
 PREPROCESSING_JSON = REPO_ROOT / "docs/results/data/preprocessing-study.json"
 ELEMENT_FORMAT_JSON = REPO_ROOT / "docs/results/data/element-format-study.json"
 ACCUMULATION_JSON = REPO_ROOT / "docs/results/data/accumulation-order-study.json"
+EXPONENT_BOUND_JSON = REPO_ROOT / "docs/results/data/exponent-bound-study.json"
 
 
 def test_e8m0_rounding_rules() -> None:
@@ -192,6 +195,37 @@ def test_accumulation_order_study_matches_committed_json() -> None:
                     "source": source["source"],
                 })
     for actual, recorded in zip(regenerated, committed["metrics"], strict=True):
+        for key in actual:
+            if isinstance(actual[key], float):
+                assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)
+            else:
+                assert actual[key] == recorded[key]
+
+
+def test_exponent_bound_preserves_the_row_maximum() -> None:
+    """A safe threshold must retain the unpruned maximum in every row."""
+    q = np.array([[1, 2, -1, 0], [-2, 1, 0.5, 3]], dtype=np.float32)
+    row = evaluate_exponent_bound(q, q, tau=0.0, block_size=4, tile_size=1)
+    assert row["score_skip_top1_agreement_to_unpruned"] == 1.0
+    assert row["safe_score_fraction"] <= row["oracle_score_fraction"]
+
+
+def test_exponent_bound_study_matches_committed_json() -> None:
+    """Regenerate every safe-bound row from the four pinned captures."""
+    committed = json.loads(EXPONENT_BOUND_JSON.read_text())
+    regenerated = []
+    for source in committed["captures"]:
+        path = REPO_ROOT / source["source"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == source["sha256"]
+        with np.load(path, allow_pickle=False) as capture:
+            q, k = capture["q"], capture["k"]
+        for tau in EXPONENT_BOUND_TAUS:
+            regenerated.append({
+                **evaluate_exponent_bound(q, k, tau, 16),
+                "source": source["source"],
+            })
+    for actual, recorded in zip(regenerated, committed["metrics"], strict=True):
+        assert actual.keys() == recorded.keys()
         for key in actual:
             if isinstance(actual[key], float):
                 assert actual[key] == pytest.approx(recorded[key], rel=1e-6, abs=1e-12)

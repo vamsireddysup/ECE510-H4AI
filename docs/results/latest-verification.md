@@ -1,5 +1,15 @@
 # Latest verification
 
+## September 29 exponent-bound study
+
+A conservative sign-and-exponent interval bound was measured on all four pinned
+captures. At a four-logit margin it safely identifies 28.83% of scores and
+8.66% of complete 4x4 tiles while removing 0.049% and 0.00011% of probability
+mass, respectively. All top-1 and top-5 sets remain unchanged. Coverage varies
+substantially by head, and the model assumes the quantized row maximum is
+available, so this remains a later hardware experiment. The model suite
+regenerates all 20 rows and checks bound safety.
+
 ## September 29 accumulation-order study
 
 Sequential and balanced-tree FP32 reduction were compared over four Bs=16 block
