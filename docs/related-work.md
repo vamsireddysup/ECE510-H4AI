@@ -3,7 +3,7 @@
 This records the prior work closest to each research track and what, if
 anything, this project could add. Read it before describing any result as new.
 
-**Status: full-text review done for four papers, 2026-09-29.** The
+**Status: full-text review done for six papers, 2026-09-29.** The
 first version of this page was written from abstracts and summaries, and three
 of its claims were wrong. Those corrections are recorded below rather than
 quietly edited away, because they changed what this project can claim. The
@@ -63,8 +63,9 @@ Rows marked *abstract* have not had a full-text review yet.
 | | [Four Over Six](https://arxiv.org/html/2512.02010v4), [ScaleSearch](https://arxiv.org/html/2605.12464v1) *(abstract)* | Per-block scale-to-4-or-6; MSE search over scale offsets, applied to Q and K | Accuracy only, no hardware cost. |
 | Softmax-invariant preprocessing | [SageAttention3](https://www.alphaxiv.org/overview/2505.11594v2), [QuaRot](https://arxiv.org/pdf/2404.00456) *(abstract)* | K mean-subtraction; Hadamard rotation leaves `QK^T` exact | Measured here and **not adopted**: neither improves all four softmax metrics across all four captures. |
 | Exponent-first sparsity | [BitStopper](https://arxiv.org/html/2512.06457) | Bit-serial MSB-first score refinement that prunes tokens without a separate prediction stage; TSMC 28 nm, 6.84 mm², 703 mW, 11.36 TOPS/W | **Confirmed by full text.** It is bit-serial over integer operands, a different mechanism from reading FP4's two exponent bits. Our M1 study found a safe sign-and-exponent bound covers 28.83% of scores but **no whole 4x4 tile in either decoder head**, so it is not a general feature here. |
-| | [LAPA](https://arxiv.org/html/2512.07855) *(abstract)* | Log-domain prediction to skip weak scores, 28 nm, 3.208 mm² | Separate speculation unit taking 52% of area. |
-| MX hardware generally | [Jack Unit](https://arxiv.org/pdf/2507.04772), [MX-SAFE](https://arxiv.org/html/2605.24391v2) *(abstract)* | Precision-scalable MX MAC at 16 nm; MX core at 65 nm | Proprietary nodes, not attention-specific. |
+| | [LAPA](https://arxiv.org/html/2512.07855) | Log-domain prediction to skip weak scores; 28 nm, 3.208 mm², 474 mW, 2,892 GOPS | **Confirmed by full text.** Its speculation unit takes 52% of the area, so the prediction is the dominant cost. Our exponent bound would be free by comparison, and the M1 finding is that it does not pay off on decoder tiles. |
+| MX hardware generally | [Jack Unit](https://arxiv.org/pdf/2507.04772) | Precision-scalable MAC covering MXINT and MXFP on one datapath; **commercial 65 nm**, 400 MHz, 32x32 array, **2.01x area and 1.84x power** against a commercial MAC | **Corrected by full text:** it is 65 nm, not 16 nm, and the reduction is 2.01x/1.84x rather than a 1.2x-to-2.0x range. It is a general MX MAC evaluated with proprietary DesignWare IP as the baseline, not attention-specific and not reproducible outside that IP. |
+| | [MX-SAFE](https://arxiv.org/html/2605.24391v2) *(abstract)* | MX core at 65 nm, 500 MHz | Not attention-specific. |
 
 ## What this project can honestly claim
 
@@ -85,10 +86,12 @@ precisely.
 3. **One concrete, previously unreported co-design finding.** At 32-bit block
    scales, finer scale resolution costs area; at 8-bit E4M3 scales it does not.
    Searched E4M3 is simultaneously more accurate on every softmax metric across
-   six pinned heads and 4.89x smaller in the mapped scaling path than the FP32
-   default. Published work chooses E4M3 for accuracy, or prices MX hardware
-   generally; the measured statement that the accuracy-optimal scale format is
-   also the cheaper one for this operator is ours.
+   six pinned heads, 4.89x smaller in the mapped scaling path, and **exact**,
+   because a 13-bit accumulator times two 4-bit significands fits FP32's
+   significand, where the FP32 scale path rounds twice. Published work chooses
+   E4M3 for accuracy, or prices MX hardware generally in a proprietary node; the
+   measured statement that for this operator the accuracy-optimal scale format
+   is also the cheaper *and* the exact one is ours.
 
 **What it should not claim.** Not the block structure, not FP4 attention, not
 softmax-metric evaluation, not per-block FP4/INT4 with a flag in the scale, and
@@ -100,8 +103,9 @@ milestone M2 measurement, which does not exist yet.
 The rows marked *abstract* still need full texts read: LAPA, then Jack Unit and
 MX-SAFE, then Four Over Six, ScaleSearch, SageAttention3, and QuaRot. Record
 each correction in the table above rather than editing this page silently.
-MXAttention and BitStopper were reviewed and matched their abstracts, so only
-two of the six reviewed papers held up unchanged.
+Of the six reviewed, MXAttention, BitStopper, and LAPA matched their abstracts;
+Shift-Accumulate Attention, MixFP4, and Jack Unit did not. Treat any
+abstract-level row as unverified.
 
 ## Related
 
