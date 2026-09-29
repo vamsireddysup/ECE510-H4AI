@@ -71,11 +71,12 @@ Updated 2026-09-29 by Claude (Opus 5.5).
   dominated by `acc_bank` nets. M2's block-streaming accumulator is the planned
   fix.
 - **No valid dynamic power number exists yet.** That is M2's deliverable.
-- **Uncommitted.** `scripts/sta/placed_timing.tcl`, a three-corner post-placement
-  timing script written for M2. Commit it with M0 step 1.
-- **Exact next step.** M0 step 1: record the P0.7b F4 floorplan result in
-  `docs/results/physical-design.md` with a CSV, using the numbers in the newest
-  handoff entry, before any `build/physical` tree is deleted.
+- **Uncommitted.** Nothing.
+- **Exact next step.** M0 step 2: confirm no OpenLane container or process is
+  running (`docker ps`, `pgrep -fa run_physical`), then delete every
+  `build/physical/*` tree, which the owner approved on 2026-09-29. Reviewed
+  numbers already live in `docs/results/data/`. Then M0 step 3, install
+  LibreLane.
 
 ### Gotchas
 
@@ -95,6 +96,20 @@ Updated 2026-09-29 by Claude (Opus 5.5).
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5.5) — M0 step 1
+
+**Done.** Recorded the P0.7b F4 floorplan sweep in
+`docs/results/physical-design.md` and `docs/results/data/floorplan-sweep.csv`
+before deleting the run trees. Each run has two congestion reports: the
+design-repair global route and the final global route with antenna repair.
+The 1800 um and 2200 um points at density 0.45 passed the first with zero
+overflow and left 24 and 14 overflowing gcells in the second. Committed
+`scripts/sta/placed_timing.tcl` for M2.
+
+**Verified.** `make test` passes.
+
+**Next.** M0 step 2, as in "Current state".
 
 ### 2026-09-29 — Claude (Opus 5.5) — through `4f3fcd5`, plus this handoff commit
 

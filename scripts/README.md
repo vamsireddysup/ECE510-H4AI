@@ -26,6 +26,7 @@ All of them run from the repository root.
 | `sweep_synthesis.sh` | `./scripts/sweep_synthesis.sh PREFIX "PERIODS" "STRATEGY|STRATEGY" [JOBS]` | Docker, pinned OpenLane image | one synthesis-only `run_physical.sh` run per period and strategy, `JOBS` at a time |
 | `check_cycle_model.py` | `python3 scripts/check_cycle_model.py` | Verilator, Python | re-simulates every recorded cycle-model configuration and fails on any mismatch |
 | `collect_synthesis.py` | `python3 scripts/collect_synthesis.py "build/physical/GLOB" --csv FILE` | Python, Docker, pinned OpenLane image | cells, mapped area, and typical and slow worst path per synthesis run |
+| `sta/placed_timing.tcl` | inside the OpenLane image as `openroad -exit`, with `RUN_DIR` and `ODB` set | OpenROAD in the pinned image | area, utilization, and slow, typical, and fast worst setup and hold slack of a placed database, with placement-estimated wires |
 | `sta/endpoint_paths.tcl` | inside the OpenLane image as `sta -exit -no_init`, with `RUN_DIR`, `LIB`, and `PATHS` set | OpenSTA in the pinned image | ranked worst setup endpoints with the RTL register behind each instance |
 | `rank_endpoints.py` | `python3 scripts/rank_endpoints.py STA_OUTPUT [--csv FILE] [--top N]` | Python | endpoints grouped by owning block, plus the worst endpoint per block pair |
 | `sweep_routed_timing.sh` | run after a completed physical run | Docker, pinned OpenLane image, routed netlist and maximum-RC SPEF | `build/physical/<run-name>/timing-sweep.{tcl,log}` with multi-corner setup and hold at each requested period |

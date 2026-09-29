@@ -1,0 +1,13 @@
+die_um,target_density,git_revision,clock_period_ns,synth_clock_period_ns,outcome,suggested_min_density,placed_area_um2,utilization_pct,repair_route_overflow_gcells,repair_route_acc_bank_refs,final_route_overflow_gcells,final_route_acc_bank_refs,status
+1300,0.45,4f3fcd5,20,8,GPL-0302: target density below utilization; cannot place,0.68,,,,,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1300,0.55,4f3fcd5,20,8,GPL-0302: target density below utilization; cannot place,0.68,,,,,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1300,0.65,4f3fcd5,20,8,GPL-0302: target density below utilization; cannot place,0.68,,,,,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1500,0.45,4f3fcd5,20,8,GPL-0302: target density below utilization; cannot place,0.51,,,,,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1500,0.55,4f3fcd5,20,8,GRT-0119: global-route congestion in design repair,,1132098,51,4921,4657,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1500,0.65,4f3fcd5,20,8,GRT-0119: global-route congestion in design repair,,1132098,51,8314,4261,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1800,0.45,4f3fcd5,20,8,Global route completed; GRT-0232 congestion during antenna repair,,1149437,36,0,0,24,26,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1800,0.55,e6b68e5,20,8,GRT-0119: global-route congestion in design repair,,1149437,36,1046,1092,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+1800,0.65,4f3fcd5,20,8,GRT-0119: global-route congestion in design repair,,1149437,36,4997,4393,,,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+2200,0.45,4f3fcd5,20,8,Reached antenna repair; run stopped externally before completion,,1177682,25,0,0,14,13,measured; OpenLane 1.1.1; timing repair off; stopped at global route
+2200,0.55,,20,8,not run; sweep stopped externally,,,,,,,,not run
+2200,0.65,,20,8,not run; sweep stopped externally,,,,,,,,not run

@@ -466,6 +466,56 @@ three more cycles per Bs=16 score), and the multiply-accumulate (a second CALC
 stage). Each costs cycles and changes the cycle model, so it is a design
 decision, not a timing fix. I have not made it.
 
+### F4: floorplan sweep, stopped without a routable point
+
+F4 ran the requested grid, die 1300, 1500, 1800, and 2200 um crossed with
+target density 0.45, 0.55, and 0.65, at RTL revision `4f3fcd5` (the 1800 um,
+0.55 pilot at `e6b68e5`, identical RTL). A new `global-route` mode synthesizes
+at an 8 ns target with `DELAY 0`, confirmed by a netlist byte-identical to the
+F3.5 run, then places and routes against a **20 ns** constraint with timing
+repair off. The 20 ns constraint is a stated choice: the 18.241 ns F3.5
+slow-corner mapped minimum period plus about 10% for wires and clock tree.
+These are **measured** OpenLane 1.1.1 outcomes. The sweep was stopped externally
+before its last three points finished.
+
+Congestion is reported twice. The design-repair step runs its own global route
+first; the flow's final global route with antenna repair runs after it.
+
+| Die | Density | Outcome | Placed area | Utilization | Repair-route overflow | Final-route overflow |
+| ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| 1300 | 0.45, 0.55, 0.65 | GPL-0302, cannot place; minimum density 0.68 | | | | |
+| 1500 | 0.45 | GPL-0302; minimum density 0.51 | | | | |
+| 1500 | 0.55 | GRT-0119 congestion | 1,132,098 um² | 51% | 4,921 gcells | |
+| 1500 | 0.65 | GRT-0119 congestion | 1,132,098 um² | 51% | 8,314 gcells | |
+| 1800 | 0.45 | Final route done; GRT-0232 in antenna repair | 1,149,437 um² | 36% | 0 | 24 gcells |
+| 1800 | 0.55 | GRT-0119 congestion | 1,149,437 um² | 36% | 1,046 gcells | |
+| 1800 | 0.65 | GRT-0119 congestion | 1,149,437 um² | 36% | 4,997 gcells | |
+| 2200 | 0.45 | Reached antenna repair, then stopped externally | 1,177,682 um² | 25% | 0 | 14 gcells |
+| 2200 | 0.55, 0.65 | Not run | | | | |
+
+The machine-readable record, including the `acc_bank` share of every
+congestion report, is [`data/floorplan-sweep.csv`](data/floorplan-sweep.csv).
+
+**Exit condition not met: no floorplan in the grid routed.** Two things block
+it, and neither is die size:
+
+- **The accumulator banks cause the congestion.** In every failing report,
+  `acc_bank` nets account for nearly all overflow entries: 4,657 references
+  against 4,921 overflowing gcells at 1500 um and 0.55, and 1,092 against 1,046
+  at 1800 um and 0.55. The banks hold 1,664 flops per engine and feed both the
+  accumulate path and the scaler's 32-to-1 read mux.
+- **Higher density routes worse, not better.** At 1800 um the repair-route
+  overflow goes from 0 to 1,046 to 4,997 gcells as density rises from 0.45 to
+  0.55 to 0.65. Only the two 0.45 points cleared the design-repair route, and
+  both still had final-route overflow, 24 and 14 gcells.
+
+The premise that a smaller die would cut wire length assumed the old
+Bs=32 `AREA 0` netlist of 860,627 um². The current Bs=16 `DELAY 0` netlist
+places at 1.13 to 1.18 million um², so 1300 um cannot place at all. The
+structural fix, a block-streaming accumulator that stops holding every block's
+partial sums, is roadmap milestone M2, and the floorplan sweep moves there with
+densities down to 0.25. F5 and F6 did not start.
+
 ## Related
 
 - [Project status](../project-status.md)
