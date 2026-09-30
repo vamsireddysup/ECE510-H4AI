@@ -150,10 +150,25 @@ Updated 2026-09-29 by Codex.
   What survives is the open-PDK priced co-design, the maintained bit-exactness,
   and the specific finding that searched E4M3 is both more accurate and 4.89x
   smaller than FP32 scales.
-- **Exact next step.** Replace the FP32 scale path with the ADR 0008
-  searched-E4M3 scaler (protocol version 7), which also shortens the scaling
-  path that now sets setup timing. Then a signoff run with timing repair
-  enabled, and gate-level switching activity for the first valid power number.
+- **Annotated power is reproducible.** `make gate-power RUN=<librelane run>`
+  simulates a routed netlist at gate level and reports per-corner power with
+  activity annotated, refusing to print a number when nothing annotates.
+- **In flight.** `m2-signoff-40ns`, a full signoff run at 40 ns with timing
+  repair enabled and margins set, in detailed routing for over an hour. Check
+  `build/m2-signoff.out` and `build/librelane/m2-signoff-40ns/pnr.log`. When it
+  finishes: record DRC, LVS, antenna, slew, and per-corner setup and hold, then
+  re-run `make gate-power RUN=m2-signoff-40ns` so the power number carries
+  extracted SPEF parasitics rather than estimated wires.
+- **Exact next step after that.** Replace the FP32 scale path with the ADR 0008
+  searched-E4M3 scaler as protocol version 7. A verified drop-in already exists:
+  the scaler in the scratchpad adds a `SCALE_FORMAT` parameter, keeps the FP32
+  path bit-identical (3,000 cases checked) and is bit-exact in E4M3 (4,000
+  cases). Its E4M3 latency is 3 cycles against 6, so `SCALE_PIPELINE_LATENCY` in
+  `scripts/cycle_model.py` goes from 7 to 4 and the recorded cycle counts move.
+  Scores change too, because the new path is exact where the old rounded twice,
+  so the model and testbench must adopt the exact reference together with the
+  RTL. Power says why it is worth doing: the clock tree and sequential cells are
+  five sixths of total power, and E4M3 removes flops as well as multiplier area.
 
 ### Gotchas
 
