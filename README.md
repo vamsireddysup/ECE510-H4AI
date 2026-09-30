@@ -49,15 +49,21 @@ rather than quoting a speedup.
 | Result | Human-scale value | Evidence |
 | --- | --- | --- |
 | 4x4, one score lane, T=512 | 1,050,690 cycles; **32.05 ms at 32.9 MHz** | Projected latency from measured RTL simulation and a routed 30.5 ns setup bound; hold fails |
-| 16x16, four score lanes, T=512 | 264,474 cycles; **8.07 ms** | Projected from block-streaming RTL simulation and the 4x4 period; 16x16 route is blocked |
+| 16x16, four score lanes, T=512 | 264,474 cycles; **8.07 ms** | Projected from block-streaming RTL simulation and the old 4x4 period; 16x16 has no route |
 | Eight replicated 4x4 engines with K reuse | 135,274 cycles; **4.13 ms**, 96.9% of the output-port floor | Measured RTL simulation; latency projected from the 4x4 period, and the replicated top has no synthesis or route |
 | CPU, same T=512 problem | **0.293 ms** one thread, **0.142 ms** four cores with OpenBLAS | Measured; 81.29% of the single-core AVX-512 peak |
 | Selected `Bs=16` precision | **9.70%** relative Frobenius error on pinned real BERT activations | Measured software model |
-| Routed 4x4 physical result | **4.84 mm²** die; DRC and LVS clean | Measured EDA output; hold is -1.2765 ns and power is invalid |
+| Block-streaming route, 4x4 | **Zero routing overflow on every metal layer**; 0 antenna, slew, and capacitance violations; hold **+0.4007 ns** at the slow corner | Measured LibreLane global-route checkpoint; setup misses by 9.94 ns at 30 ns |
+| Selected E4M3 block scales | More accurate than FP32 on every softmax metric, **4.89x smaller** scaling path, and **exact** where FP32 rounds twice | Measured software model plus mapped Sky130 area |
+| Older routed 4x4 result | **4.84 mm²** die; DRC and LVS clean | Superseded OpenLane 1.1.1 output; hold was -1.2765 ns and power invalid |
 
-The 30.5 ns number is a routed setup bound, not a timing-closed clock. Antenna,
-slew, fanout, and hold violations remain. See [physical design](docs/results/physical-design.md)
-and [performance results](docs/results/performance.md) for provenance and limits.
+Two limits matter. The 30.5 ns above is an old setup-only bound from a
+superseded route, not a timing-closed clock. And the design now routes without
+congestion but does not yet meet setup: the slow-corner minimum period is
+39.94 ns before timing repair. **There is still no valid power number**, which is
+the remaining goal of the current milestone. See
+[physical design](docs/results/physical-design.md) and
+[performance results](docs/results/performance.md) for provenance and limits.
 
 ## Choose a path
 
