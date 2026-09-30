@@ -8,7 +8,8 @@
 #   env LIBERTY   Liberty file for the corner
 #   env SDC       constraints
 #   env VCD       gate-level VCD covering one complete command
-#   env SCOPE     VCD scope of the design instance, for example TOP.dut
+#   env SCOPE     VCD scope of the design instance, slash-separated, for
+#                 example tb_gate_power/dut. A dotted path annotates nothing.
 #   env DESIGN    top module name
 read_liberty $::env(LIBERTY)
 read_verilog $::env(NETLIST)
