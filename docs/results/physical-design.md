@@ -660,6 +660,57 @@ still needs: the ADR 0008 E4M3 scaler, a signoff run with timing repair enabled
 and margins set, and gate-level switching activity for the first valid dynamic
 power number.
 
+## The first valid power number
+
+Every power figure this project had before was rejected, because nothing
+annotated switching activity: the tool assumed a default toggle rate. This one
+is annotated from a gate-level simulation of the routed netlist, so it is the
+first usable power measurement here.
+
+**Method.** `scripts/gen_gate_stimulus.py` emits one complete protocol-version-5
+command as hex beats. `tb/gate/tb_gate_power.v` drives that command through the
+routed netlist under Icarus Verilog 12.0 with the Sky130 HD functional cell
+models, and dumps a full-depth VCD. `scripts/sta/annotated_power.tcl` reads the
+netlist and VCD into OpenSTA 2.7.0 and reports power per corner. Numerical
+correctness is not this testbench's job; the C++ integration suite proves that.
+This one asserts only that the command completes and that every expected beat
+moves, because a stalled command would understate power.
+
+**Measured**, at revision `8ffc662`, `T=8`, `D_HEAD=64`, 4x4, Bs=16, one score
+lane, on the block-streaming global-route netlist at a 40 ns period, with
+**257,686 pin activities annotated**:
+
+| Corner | Total | Internal | Switching | Leakage | Clock share |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `ss_100C_1v60` | 18.600 mW | 14.800 mW | 3.270 mW | 0.502 mW | 33.1% |
+| `tt_025C_1v80` | 23.100 mW | 18.800 mW | 4.300 mW | 0.000327 mW | 33.6% |
+| `ff_n40C_1v95` | 26.800 mW | 21.600 mW | 5.170 mW | 0.00096 mW | 33.8% |
+
+The 354-cycle `T=8` command therefore costs 263 to 379 nJ, or **4.12 to
+5.93 nJ per score**. The rows are in
+[`data/m2-annotated-power.csv`](data/m2-annotated-power.csv).
+
+**What the number says.** The clock tree is a third of total power at every
+corner, and sequential cells are about half, so this design is dominated by
+holding state and distributing the clock rather than by arithmetic. That is the
+expected shape for a 4x4 array with two-bank Q, K, and score storage at T_MAX=16,
+and it says where to look next: the E4M3 scaler removes flops as well as
+multiplier area, and the replicated-engine work amortizes one clock tree over
+more arithmetic.
+
+**Limits, stated plainly.** This is the global-route netlist **without extracted
+parasitics**, so wire capacitance is estimated rather than from SPEF; a signoff
+run with RCX will move it. It is one command at `T=8`, not the T=512 workload, so
+it is representative of activity, not of a full sequence. It is not a
+timing-closed operating point: setup misses at 30 ns and this power is reported
+at 40 ns. And per-score energy scales with the clock period, which is not yet
+final.
+
+The guard against the old failure mode is in the script: if zero pin activities
+annotate, it prints the reason and exits non-zero rather than reporting a
+default-activity estimate. OpenSTA separates VCD hierarchy with `/`, not `.`, and
+a dotted scope silently annotates nothing.
+
 ## Related
 
 - [Project status](../project-status.md)

@@ -55,13 +55,14 @@ rather than quoting a speedup.
 | Selected `Bs=16` precision | **9.70%** relative Frobenius error on pinned real BERT activations | Measured software model |
 | Block-streaming route, 4x4 | **Zero routing overflow on every metal layer**; 0 antenna, slew, and capacitance violations; hold **+0.4007 ns** at the slow corner | Measured LibreLane global-route checkpoint; setup misses by 9.94 ns at 30 ns |
 | Selected E4M3 block scales | More accurate than FP32 on every softmax metric, **4.89x smaller** scaling path, and **exact** where FP32 rounds twice | Measured software model plus mapped Sky130 area |
+| First valid power | **18.6 to 26.8 mW** across three corners; **4.12 to 5.93 nJ per score**; clock tree is 33% of it | Measured with 257,686 pin activities annotated from a gate-level VCD; no extracted parasitics yet |
 | Older routed 4x4 result | **4.84 mm²** die; DRC and LVS clean | Superseded OpenLane 1.1.1 output; hold was -1.2765 ns and power invalid |
 
 Two limits matter. The 30.5 ns above is an old setup-only bound from a
 superseded route, not a timing-closed clock. And the design now routes without
 congestion but does not yet meet setup: the slow-corner minimum period is
-39.94 ns before timing repair. **There is still no valid power number**, which is
-the remaining goal of the current milestone. See
+39.94 ns before timing repair. The first valid power number now exists, annotated from
+gate-level switching, but at 40 ns on a netlist without extracted parasitics. See
 [physical design](docs/results/physical-design.md) and
 [performance results](docs/results/performance.md) for provenance and limits.
 

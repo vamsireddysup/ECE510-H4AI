@@ -83,7 +83,12 @@ Updated 2026-09-29 by Codex.
   **+0.4007 ns** against -1.2765 ns before. Recorded in
   `docs/results/physical-design.md`. What remains is frequency: setup misses by
   9.94 ns at 30 ns, so the slow-corner minimum period is 39.94 ns.
-- **No valid dynamic power number exists yet.** That is M2's deliverable.
+- **The first valid power number exists.** 18.6 to 26.8 mW across three corners
+  and 4.12 to 5.93 nJ per score, from a gate-level VCD with 257,686 pin
+  activities annotated. The clock tree is 33% of total power and sequential
+  cells about half, so this design is dominated by state and clocking, not
+  arithmetic. Caveats: global-route netlist without SPEF, one T=8 command, and
+  40 ns rather than a closed period.
 - **Toolchain.** LibreLane 3.0.14 is installed by
   `scripts/install_librelane.sh` (venv `~/.local/share/fp4-accel/librelane-venv`,
   ciel 2.6.1, Sky130 `8afc8346a57fe1ab7934ba5a6056ea8b43078e71` in `~/.ciel`,
@@ -210,6 +215,31 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-29 — Claude (Opus 5) — first valid power number
+
+**Done.** Built the missing half of M2's deliverable:
+`scripts/gen_gate_stimulus.py`, `tb/gate/tb_gate_power.v`, and
+`scripts/sta/annotated_power.tcl`. A gate-level Icarus run of the routed
+netlist passes (128 input and 32 output beats) and dumps a 72 MB VCD; OpenSTA
+annotates **257,686 pin activities** and reports 18.6 to 26.8 mW across the
+three corners, 4.12 to 5.93 nJ per score for the 354-cycle T=8 command.
+Recorded in `docs/results/physical-design.md` and
+`docs/results/data/m2-annotated-power.csv`.
+
+**The trap, worth knowing.** OpenSTA separates VCD hierarchy with **`/`**, not
+`.`. With `tb_gate_power.dut` it printed "Annotated 0 pin activities" and then
+reported a perfectly plausible 21.2 mW that was pure default-toggle guesswork.
+`tb_gate_power/dut` annotates 257,686. `annotated_power.tcl` now exits non-zero
+when nothing annotates, so that failure cannot be published again.
+
+**What the number says.** The clock tree is a third of total power at every
+corner and sequential cells about half, so state and clocking dominate, not
+arithmetic. That points at the E4M3 scaler, which removes flops as well as
+multiplier area, and at replication, which amortizes one clock tree.
+
+**Limits.** Global-route netlist **without SPEF**, one T=8 command rather than
+T=512, and 40 ns rather than a timing-closed period.
 
 ### 2026-09-29 — Claude (Opus 5) — prior-art gate satisfied; E4M3 exactness
 

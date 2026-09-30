@@ -30,6 +30,7 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | Block-scale format study | `python3 scripts/eval_precision.py --npz CAPTURE --scale-study` | FP32, E4M3, and E8M0 scale rules on the pinned captures, with scale storage and the hardware scale operation each implies | Silicon cost of any rule; that needs the scaler synthesis comparison |
 | Output score format | `python3 scripts/eval_precision.py --npz CAPTURE --output-formats` | FP32, FP16, and BF16 softmax agreement on the pinned captures | Anything about FP16 range outside these four captures; no RTL implements a 16-bit score |
 | Mapped area | `./scripts/run_synthesis.sh TILE DEPTH TMAX [REUSE]` | Sky130 HD standard-cell area for the complete top at the typical corner | Timing, routing, congestion, or power |
+| Annotated power | gate-level simulation then `scripts/sta/annotated_power.tcl` | Per-corner power and energy per score with switching activity from a real command, and that the command completed | Anything at a timing-closed period, or with extracted parasitics unless the run used SPEF |
 | Physical run | `./scripts/run_physical.sh` | Complete-top route, extracted timing, DRC, LVS, antenna, and qualified power status | Timing closure until every setup, hold, slew, and fanout gate passes |
 
 ## What the integration test covers

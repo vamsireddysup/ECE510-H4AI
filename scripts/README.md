@@ -31,6 +31,8 @@ All of them run from the repository root.
 | `sweep_synthesis.sh` | `./scripts/sweep_synthesis.sh PREFIX "PERIODS" "STRATEGY|STRATEGY" [JOBS]` | Docker, pinned OpenLane image | one synthesis-only `run_physical.sh` run per period and strategy, `JOBS` at a time |
 | `check_cycle_model.py` | `python3 scripts/check_cycle_model.py` | Verilator, Python | re-simulates every recorded cycle-model configuration and fails on any mismatch |
 | `collect_synthesis.py` | `python3 scripts/collect_synthesis.py "build/physical/GLOB" --csv FILE` | Python, Docker, pinned OpenLane image | cells, mapped area, and typical and slow worst path per synthesis run |
+| `gen_gate_stimulus.py` | `python3 scripts/gen_gate_stimulus.py --seq T --out FILE.vh` | Python, NumPy | one complete version-5 command as hex beats for gate-level simulation |
+| `sta/annotated_power.tcl` | inside the LibreLane image as `sta -exit -no_init`, with `NETLIST`, `LIBERTY`, `SDC`, `VCD`, `SCOPE`, `DESIGN` set | OpenSTA in the pinned image | per-corner power with switching activity annotated from a VCD; exits non-zero if nothing annotates |
 | `sta/placed_timing.tcl` | inside the OpenLane image as `openroad -exit`, with `RUN_DIR` and `ODB` set | OpenROAD in the pinned image | area, utilization, and slow, typical, and fast worst setup and hold slack of a placed database, with placement-estimated wires |
 | `sta/endpoint_paths.tcl` | inside the OpenLane image as `sta -exit -no_init`, with `RUN_DIR`, `LIB`, and `PATHS` set | OpenSTA in the pinned image | ranked worst setup endpoints with the RTL register behind each instance |
 | `rank_endpoints.py` | `python3 scripts/rank_endpoints.py STA_OUTPUT [--csv FILE] [--top N]` | Python | endpoints grouped by owning block, plus the worst endpoint per block pair |

@@ -1,0 +1,4 @@
+corner,period_ns,command_cycles,scores,total_power_mw,internal_power_mw,switching_power_mw,leakage_power_mw,sequential_group_mw,combinational_group_mw,clock_group_mw,clock_share_pct,command_energy_nj,energy_per_score_pj,annotated_pin_activities,status
+tt_025C_1v80,40,354,64,23.1,18.8,4.3,0.000327,12.0,3.36,7.76,33.6,327.096,5110.88,257686,measured; VCD-annotated gate-level activity; routed netlist without SPEF
+ss_100C_1v60,40,354,64,18.6,14.8,3.27,0.502,9.44,2.99,6.15,33.1,263.376,4115.25,257686,measured; VCD-annotated gate-level activity; routed netlist without SPEF
+ff_n40C_1v95,40,354,64,26.8,21.6,5.17,0.00096,13.9,3.82,9.05,33.8,379.488,5929.5,257686,measured; VCD-annotated gate-level activity; routed netlist without SPEF
