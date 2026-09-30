@@ -27,9 +27,6 @@ read_power_activities -scope $::env(SCOPE) -vcd $::env(VCD)
 
 puts "=== annotated power"
 report_power
-# Fail loudly rather than publish a default-activity estimate as measured.
-if {[sta::power_annotated_pin_count] == 0} {
-    puts "ERROR: zero pin activities annotated; the -scope path is wrong."
-    puts "OpenSTA separates VCD hierarchy with '/', for example tb_gate_power/dut."
-    exit 1
-}
+# read_power_activities prints "Annotated N pin activities"; the caller checks
+# that N is greater than zero, because a zero-annotation run still prints a
+# complete and plausible default-activity report.
