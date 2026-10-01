@@ -54,8 +54,7 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: Claude (Opus 5), 2026-09-29. Verifying the M1 and M2 handoff,
-then resuming the stopped M2 physical checkpoint.
+No agent active. Last handoff: Claude (Opus 5), 2026-09-30, handing to Codex.
 
 ## Current state
 
@@ -153,13 +152,24 @@ Updated 2026-09-29 by Codex.
 - **Annotated power is reproducible.** `make gate-power RUN=<librelane run>`
   simulates a routed netlist at gate level and reports per-corner power with
   activity annotated, refusing to print a number when nothing annotates.
-- **In flight.** `m2-signoff-40ns`, a full signoff run at 40 ns with timing
-  repair enabled and margins set, in detailed routing for over an hour. Check
-  `build/m2-signoff.out` and `build/librelane/m2-signoff-40ns/pnr.log`. When it
-  finishes: record DRC, LVS, antenna, slew, and per-corner setup and hold, then
-  re-run `make gate-power RUN=m2-signoff-40ns` so the power number carries
-  extracted SPEF parasitics rather than estimated wires.
-- **Exact next step after that.** Replace the FP32 scale path with the ADR 0008
+- **Setup closes; hold does not.** The `m2-signoff-40ns` run reached post-route
+  STA with extracted parasitics before the session ended. Detailed routing
+  finished with **0 violations**, DRC passed, antennas are 4 nets and 4 pins, and
+  **setup passes at all nine corners**: worst +9.8463 ns at 40 ns, a routed
+  setup-limited minimum period of **30.15 ns**. **Hold fails at the slow corner
+  at -1.6856 ns.** Recorded in `docs/results/physical-design.md` and
+  `docs/results/data/m2-signoff-40ns.csv`. The run stopped before Magic and
+  KLayout DRC, LVS, and GDS, so the M2 gate is **not** met.
+- **Exact next step.** Re-run the same signoff point with larger hold margins,
+  `PL_RESIZER_HOLD_SLACK_MARGIN=0.3 GRT_RESIZER_HOLD_SLACK_MARGIN=0.3
+  PL_RESIZER_SETUP_SLACK_MARGIN=0.1 GRT_RESIZER_SETUP_SLACK_MARGIN=0.05
+  SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-signoff-hold 40 full`,
+  and let it reach GDS. Hold failures are period-independent, so a slower clock
+  will not help; the global-route checkpoint passed hold at +0.4007 ns with
+  repair off, so enabling setup repair introduced these paths. Then
+  `make gate-power RUN=m2-signoff-hold`, which picks up the nominal SPEF
+  automatically and upgrades the power number from estimated to extracted wires.
+- **Then.** Replace the FP32 scale path with the ADR 0008
   searched-E4M3 scaler as protocol version 7. A verified drop-in already exists:
   the scaler in the scratchpad adds a `SCALE_FORMAT` parameter, keeps the FP32
   path bit-identical (3,000 cases checked) and is bit-exact in E4M3 (4,000
@@ -230,6 +240,40 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-09-30 — Claude (Opus 5) — signoff reaches extraction; session end
+
+**Stopped** because the owner is handing over to Codex. The tree is clean and
+everything is pushed; `make test` passes. Nothing is half-finished in the
+repository.
+
+**Done.** The `m2-signoff-40ns` run was killed by the session ending, but it had
+already gone much further than the previous checkpoint, so its results are
+recorded rather than discarded: detailed routing **0 violations**, DRC checker
+passed, antennas 4 nets and 4 pins, longest net 1,795.89 um, RCX extraction
+complete with a 123 MB nominal SPEF, and nine-corner post-route STA.
+
+**The headline.** With timing repair enabled and extracted parasitics,
+**setup closes at every corner**, worst +9.8463 ns at 40 ns, which is a routed
+setup-limited minimum period of **30.15 ns**. **Hold fails at the slow corner at
+-1.6856 ns**, while typical and fast pass. The global-route checkpoint passed
+hold at +0.4007 ns with repair off, so enabling setup repair introduced these
+paths: an ordinary setup-versus-hold trade, fixable with larger hold margins,
+not a structural problem. Because the run stopped before Magic and KLayout DRC,
+LVS, and GDS, **the M2 gate is not met**.
+
+**Everything this session, in order.** Verified Codex's M1 and M2 handoff
+independently, 32 of 32 cycle configurations exact. Resumed the interrupted
+checkpoint and got the **first congestion-free route**, zero overflow on every
+metal layer. Completed the **full-text prior-art review** of all nine cited
+papers, of which three did not match their abstracts, which cost us the
+per-block FP4/INT4 novelty track. Found and recorded that **E4M3 scale
+application is exact**. Built the gate-level power path and produced the
+project's **first valid power number**, 18.6 to 26.8 mW and 4.12 to 5.93 nJ per
+score with 257,686 annotated pin activities. Rotated the handoff log.
+
+**Left ready but not integrated.** A verified E4M3 `score_scaler` drop-in exists
+outside `rtl/`; see the note above for where and what it changes.
 
 ### 2026-09-29 — Claude (Opus 5) — first valid power number
 

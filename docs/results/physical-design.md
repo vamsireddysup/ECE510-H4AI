@@ -711,6 +711,58 @@ annotate, it prints the reason and exits non-zero rather than reporting a
 default-activity estimate. OpenSTA separates VCD hierarchy with `/`, not `.`, and
 a dotted scope silently annotates nothing.
 
+## M2 signoff run: setup closes, hold does not
+
+This is the first run to take the block-streaming design through detailed
+routing and parasitic extraction with timing repair enabled. **Measured** with
+LibreLane 3.0.14 at revision `8ffc662`, 4x4, `D_HEAD=64`, `T_MAX=16`, Bs=16, one
+score lane, synthesized at 8 ns and placed and routed at **40 ns**, with
+placement setup and hold margins of 0.1 ns and global-route margins of 0.05 and
+0.1 ns.
+
+| Item | Result |
+| --- | ---: |
+| Detailed-route violations | **0** |
+| Detailed-route DRC checker | passed |
+| Antenna violations | 4 nets, 4 pins |
+| Longest net | 1,795.89 um |
+| Parasitic extraction | complete, 123 MB nominal SPEF |
+| Corners evaluated | 9 |
+
+Post-route timing with extracted parasitics:
+
+| Corner | Setup slack | Hold slack |
+| --- | ---: | ---: |
+| `nom_ss_100C_1v60` | **+10.8879 ns** | **-1.3852 ns** |
+| `nom_tt_025C_1v80` | +22.5014 ns | +0.3065 ns |
+| `nom_ff_n40C_1v95` | +25.7369 ns | +0.1006 ns |
+| worst of all nine | **+9.8463 ns** | **-1.6856 ns** |
+
+**Setup now closes at every corner.** The worst setup slack is +9.85 ns at 40 ns,
+so the setup-limited minimum period is **30.15 ns**, and that is a routed number
+with extracted parasitics rather than the earlier mapped estimate. Timing repair
+plus a realistic constraint did the work the 30 ns global-route checkpoint could
+not.
+
+**Hold does not close.** Worst hold slack is -1.6856 ns at the slow corner,
+while typical and fast pass. Hold failures are period-independent, so a slower
+clock will not fix them; they need larger hold margins during repair, or hold
+buffering targeted at the slow corner specifically. The earlier global-route
+checkpoint passed hold at +0.4007 ns with repair **off**, so enabling setup
+repair is what introduced these paths, which is a normal and fixable
+setup-versus-hold trade rather than a structural problem.
+
+**The run did not finish.** It was stopped after post-route STA, before Magic
+and KLayout DRC, LVS, and GDS. There is therefore no signoff DRC or LVS result
+and no GDS from this run, and the M2 gate is not met. The rows are in
+[`data/m2-signoff-40ns.csv`](data/m2-signoff-40ns.csv).
+
+**What to do next, in order.** Re-run the same point with larger hold margins,
+for example `PL_RESIZER_HOLD_SLACK_MARGIN=0.3` and
+`GRT_RESIZER_HOLD_SLACK_MARGIN=0.3`, and let it reach GDS. Then re-run
+`make gate-power RUN=m2-signoff-40ns`, which will pick up the nominal SPEF
+automatically and upgrade the power number from estimated to extracted wires.
+
 ## Related
 
 - [Project status](../project-status.md)

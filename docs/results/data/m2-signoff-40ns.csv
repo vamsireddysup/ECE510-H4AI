@@ -1,0 +1,17 @@
+stage,metric,value,unit,status
+detailed-route,route_violations,0,violations,measured; extracted parasitics; run stopped before GDS
+detailed-route,drc_checker,passed,status,measured; extracted parasitics; run stopped before GDS
+antenna-check,violating_nets,4,nets,measured; extracted parasitics; run stopped before GDS
+antenna-check,violating_pins,4,pins,measured; extracted parasitics; run stopped before GDS
+wirelength,longest_net,1795.89,um,measured; extracted parasitics; run stopped before GDS
+rcx,spef_extracted,yes,status,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,setup_ws_worst,9.8463,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,setup_ws_nom_ss,10.8879,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,setup_ws_nom_tt,22.5014,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,setup_ws_nom_ff,25.7369,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,setup_min_period,30.154,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,hold_ws_worst,-1.6856,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,hold_ws_nom_ss,-1.3852,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,hold_ws_nom_tt,0.3065,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,hold_ws_nom_ff,0.1006,ns,measured; extracted parasitics; run stopped before GDS
+post-pnr-sta,corners_evaluated,9,corners,measured; extracted parasitics; run stopped before GDS
