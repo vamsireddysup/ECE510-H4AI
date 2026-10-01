@@ -182,6 +182,20 @@ project's first valid dynamic power and energy per score. Gate: setup and hold
 non-negative at every corner; zero slew, fanout, DRC, and LVS violations;
 antenna resolved or explicitly accepted.
 
+**Open decision, and the gate cannot be judged until it is made: "zero slew
+violations" against which limit?** The gate was written before the two limits
+were known to differ. The project constrains transition to 0.75 ns and
+capacitance to 0.2 pF, while Sky130's own per-pin limits are 1.5 ns and, for
+example, 0.353 pF on `buf_4`. On the same netlist that is 15,977 and 989
+violations against the project constraints but 272 and 23 against the library,
+a 60-fold difference, so the two readings give opposite verdicts on M2. See
+[the physical-design record](results/physical-design.md). Taking the library
+limit is the normal signoff meaning of a violation and keeps the project's
+tighter number as reported margin; taking the project constraint is a stricter
+bar the design has never met and which no recorded run was repaired against at
+the slow corner. This is the owner's call, not an agent's, because it decides
+what M2 closing means rather than how to achieve it.
+
 **M3, P1 tracks against the M2 baseline, measured after routing.** 3a,
 format-selectable multiplication including the wide shared and packed options.
 3b, per-block FP4 or INT4 selected by a one-bit flag in a separately versioned

@@ -158,6 +158,12 @@ Updated 2026-10-01 by Codex.
   `./scripts/run_routed_sta.sh m2-signoff-fixed-io 6.0 40` and the
   `LIBRARY_LIMITS=1` variant. Takes about 3 h 39 min; re-launch with the exact
   command above, which uses `--overwrite`.
+- **Open decision for the owner, and M2 cannot be judged without it: "zero
+  slew violations" against which limit?** Project constraints give 15,977 and
+  989; library per-pin limits give 272 and 23. The two readings give opposite
+  verdicts on the M2 gate, which was written before anyone knew they differed.
+  Recorded in [docs/project-status.md](docs/project-status.md). An agent should
+  not quietly pick the reading that makes the gate pass.
 - **Fixed-netlist STA re-check exists.** `./scripts/run_routed_sta.sh RUN
   MIN_DELAY [PERIOD]` re-runs setup and hold on an already routed netlist with
   extracted parasitics under a chosen input minimum delay, over three Liberty
