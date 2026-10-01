@@ -25,7 +25,11 @@ module score_scaler #(
     input logic clk, rst_n,
     input logic [LANES-1:0] launch_valid,
     input logic signed [LANES*ACC_W-1:0] acc_in,
+    // The scale ports are one width for both formats: FP32 uses all 32 bits,
+    // E4M3 only the low 7, so the upper bits are deliberately unread there.
+    /* verilator lint_off UNUSEDSIGNAL */
     input logic [LANES*32-1:0] q_scale_in, k_scale_in,
+    /* verilator lint_on UNUSEDSIGNAL */
     input logic [LANES*INDEX_W-1:0] index_in,
     output logic [LANES-1:0] result_valid,
     output logic [LANES*32-1:0] result,
@@ -95,17 +99,19 @@ module score_scaler #(
             // E4M3 block scales are positive by construction, and the host
             // quantizer never emits a zero or subnormal scale, so no sign bit
             // is carried and the exponent field is always nonzero.
-            logic sign_1, valid_1, zero_1;
+            logic sign_1, valid_1, zero_1, low_zero_1;
             logic [23:0] sig_1;
             logic signed [10:0] exp_sum_1;
             logic [3:0] q_sig_1, k_sig_1;
-            logic [7:0] q_code, k_code;
-            assign q_code = q_scale_in[lane*32 +: 8];
-            assign k_code = k_scale_in[lane*32 +: 8];
+            // Bit 7 of the byte is an unused sign: block scales are positive.
+            logic [6:0] q_code, k_code;
+            assign q_code = q_scale_in[lane*32 +: 7];
+            assign k_code = k_scale_in[lane*32 +: 7];
 
             always_ff @(posedge clk) begin
                 if (!rst_n) begin
                     valid_1 <= 1'b0; zero_1 <= 1'b0; sign_1 <= 1'b0;
+                    low_zero_1 <= 1'b0;
                     sig_1 <= '0; exp_sum_1 <= '0;
                     q_sig_1 <= '0; k_sig_1 <= '0;
                 end else begin
@@ -117,23 +123,32 @@ module score_scaler #(
                     exp_sum_1 <= 11'($signed({3'b0, converted[30:23]})) +
                                  11'($signed({7'b0, q_code[6:3]})) +
                                  11'($signed({7'b0, k_code[6:3]})) - 11'sd14;
+                    low_zero_1 <= converted[5:0] == 6'h0;
                     q_sig_1 <= {1'b1, q_code[2:0]};
                     k_sig_1 <= {1'b1, k_code[2:0]};
                 end
             end
 
-            // The raw product lies in [2^29, 2^32) and the true significand is
-            // raw / 2^29, in [1, 8), so normalization is at most two octaves.
-            logic [39:0] product_2;
+            // The raw product is sig_1 * q_sig_1 * k_sig_1, whose true
+            // significand is raw / 2^29 and lies in [1, 8). The accumulator
+            // contributes at most ACC_W-1 significant bits and each E4M3
+            // significand three more, so the low six bits of raw are always
+            // zero for ACC_W <= 17 and are shifted out here without loss. The
+            // p_product_exact assertion below checks that. What remains is
+            // significand * 2^23, so normalization is at most two octaves.
+            logic [25:0] product_2;
+            logic [5:0] discarded_2;
             logic signed [10:0] exp_sum_2;
             logic sign_2, valid_2, zero_2;
             always_ff @(posedge clk) begin
                 if (!rst_n) begin
-                    product_2 <= '0; exp_sum_2 <= '0;
+                    product_2 <= '0; discarded_2 <= '0; exp_sum_2 <= '0;
                     sign_2 <= 1'b0; valid_2 <= 1'b0; zero_2 <= 1'b0;
                 end else begin
-                    product_2 <= 40'(sig_1) * 40'({4'b0, q_sig_1})
-                                            * 40'({4'b0, k_sig_1});
+                    product_2 <= 26'((32'(sig_1) * 32'({28'b0, q_sig_1})
+                                                 * 32'({28'b0, k_sig_1})) >> 6);
+                    discarded_2 <= 6'(32'(sig_1) * 32'({28'b0, q_sig_1})
+                                                 * 32'({28'b0, k_sig_1}));
                     exp_sum_2 <= exp_sum_1;
                     sign_2 <= sign_1; valid_2 <= valid_1; zero_2 <= zero_1;
                 end
@@ -142,15 +157,15 @@ module score_scaler #(
             logic [22:0] fraction_3;
             logic signed [10:0] exp_adjust;
             always_comb begin
-                if (product_2[31]) begin            // significand in [4, 8)
+                if (product_2[25]) begin            // significand in [4, 8)
                     exp_adjust = exp_sum_2 + 11'sd2;
-                    fraction_3 = product_2[30:8];
-                end else if (product_2[30]) begin   // significand in [2, 4)
+                    fraction_3 = product_2[24:2];
+                end else if (product_2[24]) begin   // significand in [2, 4)
                     exp_adjust = exp_sum_2 + 11'sd1;
-                    fraction_3 = product_2[29:7];
+                    fraction_3 = product_2[23:1];
                 end else begin                      // significand in [1, 2)
                     exp_adjust = exp_sum_2;
-                    fraction_3 = product_2[28:6];
+                    fraction_3 = product_2[22:0];
                 end
             end
             always_ff @(posedge clk) begin
@@ -180,4 +195,29 @@ module score_scaler #(
         end
         assign result_index[lane*INDEX_W +: INDEX_W] = index_pipe[SCALE_LATENCY-1];
     end
+
+`ifndef SYNTHESIS
+    if (SCALE_FORMAT != 0) begin : g_e4m3_checks
+        for (genvar lane = 0; lane < LANES; lane++) begin : g_lane_check
+            // ADR 0008's exactness argument, checked rather than asserted in
+            // prose: the six product bits this path discards are always zero,
+            // so applying an E4M3 block scale rounds nothing.
+            property p_product_exact;
+                @(posedge clk) disable iff (!rst_n)
+                g_lane[lane].g_e4m3.valid_2 |->
+                    g_lane[lane].g_e4m3.discarded_2 == 6'h0;
+            endproperty
+            assert property (p_product_exact);
+
+            // The conversion feeds at most ACC_W-1 significant bits, so its own
+            // low mantissa bits are zero too. If this fires, ACC_W has grown
+            // past 17 and the exactness argument no longer holds.
+            property p_conversion_headroom;
+                @(posedge clk) disable iff (!rst_n)
+                g_lane[lane].g_e4m3.valid_1 |-> g_lane[lane].g_e4m3.low_zero_1;
+            endproperty
+            assert property (p_conversion_headroom);
+        end
+    end
+`endif
 endmodule

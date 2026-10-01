@@ -11,7 +11,8 @@ module qkt_engine #(
     parameter int SCALE_BLOCK_SIZE = 16,
     parameter int SCORE_LANES = 1,
     parameter int ENGINES = 1,
-    parameter int ENGINE_ID = 0
+    parameter int ENGINE_ID = 0,
+    parameter int SCALE_FORMAT = 0
 )(
     input logic clk, rst_n,
     input logic command_active, flush,
@@ -298,7 +299,8 @@ module qkt_engine #(
         end
     end
     score_scaler #(.ACC_W(ACC_W), .INDEX_W(TAG_W),
-                   .LANES(SCALER_LANES)) u_scaler (
+                   .LANES(SCALER_LANES),
+                   .SCALE_FORMAT(SCALE_FORMAT)) u_scaler (
         .clk, .rst_n, .launch_valid(scaler_launch_valid),
         .acc_in(scaler_acc), .q_scale_in(scaler_q_scale),
         .k_scale_in(scaler_k_scale), .index_in(scaler_index_in),

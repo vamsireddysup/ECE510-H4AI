@@ -10,7 +10,10 @@ module qkt_chiplet_top #(
     parameter int K_REUSE = 0,
     parameter int SCALE_BLOCK_SIZE = 16,
     parameter int SCORE_LANES = 1,
-    parameter int ENGINES = 1
+    parameter int ENGINES = 1,
+    // 0 selects FP32 block scales, 1 selects the ADR 0008 E4M3 scales carried
+    // in the low byte of each scale word. See docs/stream-protocol.md.
+    parameter int SCALE_FORMAT = 0
 )(
     input logic clk, rst_n,
     input logic awvalid, output logic awready, input logic [31:0] awaddr,
@@ -59,9 +62,11 @@ module qkt_chiplet_top #(
     logic [31:0] compute_cycles, scale_cycles;
     logic [3:0] error_code;
     logic [31:0] protocol_version;
-    assign protocol_version = (SCALE_BLOCK_SIZE == 16) ?
-        (K_REUSE_EN ? 32'd6 : 32'd5) :
-        (K_REUSE_EN ? 32'd4 : 32'd3);
+    assign protocol_version = (SCALE_FORMAT != 0) ?
+        (K_REUSE_EN ? 32'd8 : 32'd7) :
+        ((SCALE_BLOCK_SIZE == 16) ?
+            (K_REUSE_EN ? 32'd6 : 32'd5) :
+            (K_REUSE_EN ? 32'd4 : 32'd3));
     axi4_lite_ctrl u_ctrl (
         .clk, .rst_n(rst_sync_n), .awvalid, .awready, .awaddr, .wvalid, .wready,
         .wdata, .wstrb, .arvalid, .arready,
@@ -149,7 +154,8 @@ module qkt_chiplet_top #(
 
         qkt_engine #(
             .TILE_SIZE(TILE_SIZE), .D_HEAD(D_HEAD), .K_REUSE(K_REUSE), .SCALE_BLOCK_SIZE(SCALE_BLOCK_SIZE),
-            .SCORE_LANES(SCORE_LANES), .ENGINES(ENGINES), .ENGINE_ID(e)
+            .SCORE_LANES(SCORE_LANES), .ENGINES(ENGINES), .ENGINE_ID(e),
+            .SCALE_FORMAT(SCALE_FORMAT)
         ) u_engine (
             .clk, .rst_n(eng_rst_n[e]), .command_active, .flush(start), .matrix_size,
             .q_valid_in(q_valid),

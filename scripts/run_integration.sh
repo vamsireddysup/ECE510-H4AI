@@ -11,6 +11,7 @@ tile=4
 scale_block="${SCALE_BLOCK_SIZE:-16}"
 score_lanes="${SCORE_LANES:-1}"
 engines="${ENGINES:-1}"
+scale_format="${SCALE_FORMAT:-0}"
 if [[ "${1:-}" == '--reuse' ]]; then
     depths=(4 64)
     tmax=16
@@ -43,17 +44,18 @@ else
     extra_flags=''
 fi
 for depth in "${depths[@]}"; do
-    build_dir="$repo_root/build/integration/b${tile}-t${tmax}-d${depth}-reuse${reuse}-sb${scale_block}-sl${score_lanes}-e${engines}"
+    build_dir="$repo_root/build/integration/b${tile}-t${tmax}-d${depth}-reuse${reuse}-sb${scale_block}-sl${score_lanes}-e${engines}-sf${scale_format}"
     mkdir -p "$build_dir"
     work_dir="$(mktemp -d /tmp/ece510-integration.XXXXXX)"
     cp "$repo_root/tb/integration/tb_qkt_chiplet.cpp" "$work_dir/tb_qkt_chiplet.cpp"
     (
         cd "$work_dir"
         verilator --cc "${RTL_SOURCES[@]}" --exe tb_qkt_chiplet.cpp \
-            --build -Wall -Wno-fatal -CFLAGS "-DTEST_B=${tile} -DTEST_D=${depth} -DTEST_TMAX=${tmax} -DTEST_SCALE_BLOCK=${scale_block} ${extra_flags}" \
+            --build -Wall -Wno-fatal -CFLAGS "-DTEST_B=${tile} -DTEST_D=${depth} -DTEST_TMAX=${tmax} -DTEST_SCALE_BLOCK=${scale_block} -DTEST_SCALE_FORMAT=${scale_format} ${extra_flags}" \
             -GTILE_SIZE="$tile" -GD_HEAD="$depth" -GT_MAX="$tmax" -GK_REUSE="$reuse" \
             -GSCALE_BLOCK_SIZE="$scale_block" \
             -GSCORE_LANES="$score_lanes" -GENGINES="$engines" \
+            -GSCALE_FORMAT="$scale_format" \
             -o tb_qkt_chiplet --Mdir obj --top-module qkt_chiplet_top
     ) > "$build_dir/build.log" 2>&1
     "$work_dir/obj/tb_qkt_chiplet" | tee "$build_dir/run.log"

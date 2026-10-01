@@ -20,6 +20,12 @@
 #ifndef TEST_B
 #define TEST_B 4
 #endif
+#ifndef TEST_SCALE_FORMAT
+// 0 selects FP32 block scales, 1 the ADR 0008 E4M3 scales. E4M3 scales are
+// positive and carried as one byte, and applying them is exact, so the
+// reference below rounds once per block instead of twice.
+#define TEST_SCALE_FORMAT 0
+#endif
 #ifndef TEST_SCALE_BLOCK
 #define TEST_SCALE_BLOCK 16
 #endif
@@ -36,7 +42,8 @@ static constexpr bool REUSE=true;
 static constexpr bool REUSE=false;
 #endif
 static constexpr uint32_t PROTOCOL_VERSION =
-    BS == 16 ? (REUSE ? 6u : 5u) : (REUSE ? 4u : 3u);
+    TEST_SCALE_FORMAT == 1 ? (REUSE ? 8u : 7u)
+                           : (BS == 16 ? (REUSE ? 6u : 5u) : (REUSE ? 4u : 3u));
 static Vqkt_chiplet_top dut;
 static uint64_t cycles=0;
 static bool legacy_mode=false;
@@ -132,6 +139,29 @@ static int code(int row,int depth,int salt) {
     }
     return (row*7+depth*3+salt)%16;
 }
+#if TEST_SCALE_FORMAT==1
+// E4M3 codes: 4-bit exponent with bias 7, 3-bit mantissa, no sign. Every value
+// used here is exactly representable, so the model and the RTL agree by
+// construction rather than by tolerance.
+static int qscale_code(int row,int block=0) {
+    if(legacy_mode) return 0x38;                          // 1.0
+    static const int v[]={0x38,0x40,0x3C,0x30};           // 1, 2, 1.5, 0.5
+    if(varied_scales) return v[(row+block)%4];
+    return (row+block)%2 ? 0x40:0x38;                     // 2, 1
+}
+static int kscale_code(int row,int block=0) {
+    if(legacy_mode) return 0x38;
+    static const int v[]={0x3C,0x30,0x48,0x28};           // 1.5, 0.5, 4, 0.25
+    if(varied_scales) return v[(row+block)%4];
+    return (row+block)%2 ? 0x30:0x38;                     // 0.5, 1
+}
+static double e4m3_value(int code) {
+    const int e=(code>>3)&0xF, m=code&0x7;
+    return e==0 ? (m/8.0)*std::pow(2.0,-6) : (1.0+m/8.0)*std::pow(2.0,e-7);
+}
+static float qscale(int row,int block=0) { return float(e4m3_value(qscale_code(row,block))); }
+static float kscale(int row,int block=0) { return float(e4m3_value(kscale_code(row,block))); }
+#else
 static float qscale(int row,int block=0) {
     if(precision_mode) return precision_qscale[row*BLOCKS+block];
     if(legacy_mode) return 1.0f;
@@ -144,12 +174,40 @@ static float kscale(int row,int block=0) {
     if(varied_scales) { static const float v[]={1.5f,-.5f,2.0f,.75f}; return v[(row+block)%4]; }
     return (row+block)%2 ? .5f:1.0f;
 }
+#endif
+
+// What the host puts in each 32-bit scale slot: full FP32, or the E4M3 byte.
+static uint32_t qscale_word(int row,int block=0) {
+#if TEST_SCALE_FORMAT==1
+    return uint32_t(qscale_code(row,block));
+#else
+    return bits(qscale(row,block));
+#endif
+}
+static uint32_t kscale_word(int row,int block=0) {
+#if TEST_SCALE_FORMAT==1
+    return uint32_t(kscale_code(row,block));
+#else
+    return bits(kscale(row,block));
+#endif
+}
+
+// One block's contribution to a score. The E4M3 path is exact, so it rounds
+// once; the FP32 path rounds twice, once per hardware multiplier.
+static float scaled_block(int sum,int row,int col,int block) {
+#if TEST_SCALE_FORMAT==1
+    return float(double(sum)*0.25*e4m3_value(qscale_code(row,block))
+                                 *e4m3_value(kscale_code(col,block)));
+#else
+    return (sum*0.25f)*qscale(row,block)*kscale(col,block);
+#endif
+}
 static void send_scales(int t, int malformed=0) {
     for(int b=0;b<t*BLOCKS;b++) {
         // Scale order is Q[0..T-1], then K[0..T-1].
         auto value=[&](int idx)->uint32_t {
-            return bits(idx<t*BLOCKS ? qscale(idx/BLOCKS,idx%BLOCKS) :
-                kscale((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS));
+            return idx<t*BLOCKS ? qscale_word(idx/BLOCKS,idx%BLOCKS) :
+                kscale_word((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS);
         };
         uint32_t lo=value(2*b), hi=value(2*b+1);
         send_beat((uint64_t(hi)<<32)|lo,
@@ -179,7 +237,7 @@ static float expected(int row,int col) {
         int sum=0, stop=std::min(D,(block+1)*BS);
         for(int d=block*BS;d<stop;d++)
             sum+=half(code(row,d,1))*half(code(col,d,5));
-        score+=(sum*0.25f)*qscale(row,block)*kscale(col,block);
+        score+=scaled_block(sum,row,col,block);
     }
     return score;
 }
@@ -187,8 +245,8 @@ struct StreamBeat { uint64_t data; bool last; int gap; };
 static void append_scales(std::vector<StreamBeat>& stream,int t) {
     for(int b=0;b<t*BLOCKS;b++) {
         auto value=[&](int idx)->uint32_t {
-            return bits(idx<t*BLOCKS ? qscale(idx/BLOCKS,idx%BLOCKS) :
-                kscale((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS));
+            return idx<t*BLOCKS ? qscale_word(idx/BLOCKS,idx%BLOCKS) :
+                kscale_word((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS);
         };
         stream.push_back({(uint64_t(value(2*b+1))<<32)|value(2*b),b==t*BLOCKS-1,
                           STRESS_STALLS ? b%3 : 0});
