@@ -927,3 +927,51 @@ measured in a full run rather than asserted here.
 
 The reviewed rows are in
 [`data/m2-slew-cap-limits.csv`](data/m2-slew-cap-limits.csv).
+
+## The hold repair caused the slew violations it was never needed for
+
+Tracing the 270 real slew violations to their drivers closes the loop on the
+input-delay finding. Every violating pin's driver, at the worst corner:
+
+| Driver cell | Violating pins driven |
+| --- | ---: |
+| `clkdlybuf4s25_1` | 216 |
+| `o2111a_2` | 28 |
+| `nand3_1` | 15 |
+| `dlygate4sd3_1` | 3 |
+| Six other cells | 8 |
+
+**81% of the real slew violations are driven by a delay cell.**
+`clkdlybuf4s25_1` and `dlygate4sd3_1` exist to add delay, not to drive load;
+they are deliberately weak, so they produce slow transitions. 192 of the
+violating pins are `mux2_2` data inputs, all 192 driven by `clkdlybuf4s25_1`,
+and none of the violations is on a mux select pin, so this is a drive-strength
+problem rather than a fanout one.
+
+Those delay cells are there because of the constraint. The run's own metrics
+report **12,743 hold buffers out of 130,096 standard cells, 9.8% of the
+design**, and 19,237 timing-repair buffers in total. The hold-buffer cell is
+`dlygate4sd3_1`, and its count matches the 12,742 `dlygate4sd3_1` instances in
+the netlist. So the resizer inserted roughly one delay cell for every ten
+standard cells to repair 1,838 hold violations that the section above shows were
+an artifact of a 3.0 ns input minimum delay, and those weak delay cells then
+drove 81% of the remaining real slew violations.
+
+The chain is: an under-specified input delay produced phantom hold failures;
+repairing them inserted 12,743 delay cells at a 0.3 ns margin; those cells
+caused the slew violations and cost area. One wrong constraint accounts for the
+hold result, a tenth of the cell count, and most of the slew failures.
+
+This predicts that a run at the corrected 6.0 ns input delay, with hold margins
+back down from 0.3 ns, should insert far fewer hold buffers, use less area, and
+carry fewer slew violations, with setup unchanged. It is a falsifiable
+prediction and it needs a full run, because nothing about it can be tested on a
+netlist whose buffers are already placed.
+
+The stronger clock driving cell suggested above was checked on the frozen
+netlist first and is **not** the answer here: `SYNTH_CLK_DRIVING_CELL` set to
+`clkbuf_16/X` removes exactly the two clock-input pins it was expected to and
+nothing else, 272 slew violations to 270. It is worth keeping for the insertion
+delay it may save when CTS is free to rebuild the tree, but it is a small effect
+and it is confounded with the constraint change, so it is deliberately left out
+of the next run.

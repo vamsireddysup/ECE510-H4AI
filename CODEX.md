@@ -60,7 +60,7 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: none. Last owner: Claude (Opus 5), 2026-10-01.
+Active agent: Claude (Opus 5), 2026-10-01. Last owner: Claude (Opus 5), 2026-10-01.
 
 ## Current state
 

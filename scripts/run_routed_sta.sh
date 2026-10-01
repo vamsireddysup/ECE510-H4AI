@@ -9,6 +9,8 @@
 # Set LIBRARY_LIMITS=1 to drop the project's design-wide slew and capacitance
 # constraints and check against the library's own per-pin limits instead, which
 # separates electrical violations from the project's chosen margin.
+# Set SYNTH_CLK_DRIVING_CELL to model a stronger clock source than the
+# SYNTH_DRIVING_CELL the SDC otherwise falls back to for the clock input.
 set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
@@ -31,12 +33,12 @@ netlist="$final/nl/qkt_chiplet_top.nl.v"
 [[ -f "$netlist" ]] || { printf 'No routed netlist: %s\n' "$netlist" >&2; exit 1; }
 
 limit_env="MAX_TRANSITION_CONSTRAINT=0.75 MAX_CAPACITANCE_CONSTRAINT=0.2"
-suffix=""
+suffix="${SYNTH_CLK_DRIVING_CELL:+-clkdrv}"
 if [[ "${LIBRARY_LIMITS:-0}" == 1 ]]; then
     # Unset rather than widened: the SDC applies each limit only when its
     # variable exists, so omitting them leaves the library's per-pin limits.
     limit_env=""
-    suffix="-liblimits"
+    suffix="$suffix-liblimits"
 fi
 
 work="$tool_root/build/sta/$run_name/min$min_delay$suffix"
@@ -58,6 +60,7 @@ for corner in ss_100C_1v60 tt_025C_1v80 ff_n40C_1v95; do
             IO_MIN_DELAY_CONSTRAINT=$min_delay \
             MAX_FANOUT_CONSTRAINT=30 $limit_env \
             SYNTH_DRIVING_CELL=sky130_fd_sc_hd__inv_2/Y OUTPUT_CAP_LOAD=33.442 \
+            ${SYNTH_CLK_DRIVING_CELL:+SYNTH_CLK_DRIVING_CELL=$SYNTH_CLK_DRIVING_CELL} \
             CLOCK_UNCERTAINTY_CONSTRAINT=0.25 CLOCK_TRANSITION_CONSTRAINT=0.15 \
             TIME_DERATING_CONSTRAINT=5 \
             sta -exit -no_init $tool_root/scripts/sta/routed_hold.tcl" > "$log" 2>&1
