@@ -388,6 +388,16 @@ inputs: exact integer block dot, exact conversion, exact scale application. The
 condition is `ACC_W <= 17`, satisfied at every supported block size, and it
 fails for the 43-bit accumulator P1's FP8 support would need.
 
+### The isolated area saving does not transfer
+
+Integrating the format and synthesizing the complete top in the same wire-free
+flow measures 47,251 cells and 257,186.66 um² against 53,005 and 257,495.71 for
+FP32: **10.9% fewer cells but only 0.12% less area**. The 4.89x above is a
+standalone-probe number and should not be quoted for the whole design. Mapped
+area here is dominated by flip-flops, and `sq` and `sk` still store 32 bits per
+scale, so the four-times storage saving is not yet realized. See
+[ADR 0008](../adr/0008-e4m3-block-scales.md) for the accounting.
+
 ### Reading the two halves together
 
 E4M3 with a scale search is **more accurate than the FP32 default on every

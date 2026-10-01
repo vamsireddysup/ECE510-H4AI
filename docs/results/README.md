@@ -32,6 +32,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Endpoint ranking at 10 ns](data/endpoint-ranking-10ns.csv) | P0.7b F1 worst endpoint per block pair at the slow and typical corners |
 | [Critical-path attribution](data/critical-path-attribution.csv) | Mapped path, slack, cells, and area after each timing change |
 | [Replicated-engine cycles](data/replicated-engine-cycles.csv) | Engine-count sweeps for protocols v3/v4 and tile sizes 4/8/16 |
+| [E4M3 integrated cost](data/e4m3-integrated-cost.csv) | Complete-top cells, area, and cycles for FP32 against E4M3 scales |
 | [Scaler format cost](data/scaler-format-cost.csv) | Mapped Sky130 area of one score lane's scaling path per scale format |
 | [FP4 multiplier cost](data/fp4-multiplier-cost.csv) | Mapped Sky130 area of generic, E2M1 shift/add, and FP32 ROM product structures |
 | [Integrated FP4 multiplier cost](data/fp4-multiplier-integrated-cost.csv) | Same-flow complete-top generic versus E2M1 shift/add mapping |

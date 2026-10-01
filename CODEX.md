@@ -168,21 +168,33 @@ Updated 2026-09-29 by Codex.
   Hold failures are period-independent, so a slower clock will not help. The
   global-route checkpoint passed hold at +0.4007 ns with repair off, so enabling
   setup repair introduced these paths.
-- **`score_scaler` now carries both scale formats.** `SCALE_FORMAT=0` is the
-  default and is bit-identical and cycle-identical to before; `SCALE_FORMAT=1`
-  is the ADR 0008 E4M3 path, 3 scale cycles rather than 6 and exact. Nothing
-  selects it yet. `make test-unit` checks both against a double-precision
-  reference, 4,000 pairs each.
-- **Exact next step after that.** Switch the default to `SCALE_FORMAT=1` as
-  protocol version 7. The RTL already exists and is checked by `make test-unit`;
-  this step is the rest of the contract, and it **does** change results. Scores
-  change because the path is exact where the old one rounded twice;
-  `SCALE_PIPELINE_LATENCY` in `scripts/cycle_model.py` goes from 7 to 4; scale
-  storage narrows to one byte; and the scale packet carries eight scales per
-  beat instead of two. RTL, software model, testbench, and cycle model move in
-  one commit. Power says why it is worth doing: the clock tree and sequential
-  cells are five sixths of total power, and E4M3 removes flops as well as
-  multiplier area.
+- **E4M3 is selectable end to end.** `SCALE_FORMAT=1` on the top is protocol
+  version 7, or 8 with K reuse, and passes every integration suite with each
+  score bit-exact against a single-rounding reference, including T=512,
+  `ENGINES=8`, and K reuse. Default stays `SCALE_FORMAT=0` and is unchanged.
+  Lint covers fourteen sets, three of them E4M3.
+- **ADR 0008's area claim is corrected.** Integrated, E4M3 is **10.9% fewer
+  cells but only 0.12% less area**, not 4.89x. The probe number does not
+  transfer, exactly as ADR 0009 found for the multiplier: the removed cells are
+  small combinational ones and mapped area is dominated by flops. **`sq` and
+  `sk` are still 32-bit**, so the four-times scale-storage saving is unrealized
+  and that is where the area should come from. Accuracy, exactness, and three
+  fewer cycles are all confirmed.
+- **Exact next step after that: narrow the scale storage.** This is the step
+  that pays for E4M3 in area. Change `sq` and `sk` in
+  `rtl/top/qkt_chiplet_top.sv` from `logic [31:0]` to one byte when
+  `SCALE_FORMAT=1`, and pack eight scales per 64-bit beat in `FE_SCALES`
+  instead of two. That changes the input-beat count, so
+  `scripts/cycle_model.py` and the testbench's scale sender move with it, and
+  the recorded E4M3 beat counts change. At `T_MAX=16` it frees 3,072 flops; the
+  saving scales with `T_MAX`, and flops are what dominates mapped area here.
+  Expect the cycle model's recorded E4M3 rows to need regenerating, not the
+  FP32 ones.
+- **Then, separately.** Decide whether E4M3 becomes the *default*. It is not
+  yet, deliberately: every recorded result is FP32, so flipping the default
+  invalidates them all at once. Do it only after the storage narrowing is
+  measured, and regenerate the recorded cycle and precision rows in the same
+  commit.
 
 
 ### Gotchas
@@ -252,6 +264,43 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-10-01 — Claude (Opus 5) — E4M3 selectable end to end; area claim corrected
+
+**Done, in a one-hour window the owner set.** `SCALE_FORMAT` is plumbed through
+the top and engine, so E4M3 block scales are now selectable in the real design
+as protocol version 7, or 8 with K reuse.
+
+- Every integration suite passes with E4M3, each score **bit-exact** against a
+  single-rounding reference: the directed suites, T=512, `ENGINES=8`, and K
+  reuse. The testbench carries E4M3 codes on the wire and rounds once per block
+  rather than twice, matching the hardware.
+- Two new assertions check ADR 0008's exactness argument rather than asserting
+  it in prose: the six product bits the path discards are always zero, and the
+  conversion leaves enough headroom. They fail loudly if `ACC_W` grows past 17,
+  which P1's 43-bit FP8 accumulator would do.
+- Lint covers fourteen parameter sets, three E4M3. Default `SCALE_FORMAT=0` is
+  untouched: `make test`, 32 of 32 cycle configurations, and the T=512
+  precision run all reproduce exactly.
+
+**The finding that matters, and it is a correction.** Integrated, E4M3 gives
+**10.9% fewer cells but only 0.12% less area**, against the standalone probe's
+4.89x. ADR 0008, the precision record, and the results index now say so. The
+cause is the same one ADR 0009 recorded for the multiplier, and I should have
+expected it: the probe removes small combinational cells while mapped area here
+is dominated by flip-flops. **`sq` and `sk` are still 32 bits wide**, so the
+four-times scale-storage saving the ADR claims has not actually been taken yet.
+That is the next step and it is where the area is.
+
+**What survives unchanged:** better accuracy on every softmax metric across six
+pinned heads, exact scale application where FP32 rounds twice, and three fewer
+cycles per command.
+
+**In flight.** The `m2-signoff-hold` run from the previous session was still in
+place-and-route when this session ended; see the state above for how to check
+it. It was launched from the committed RTL before the `SCALE_FORMAT` plumbing,
+which does not change `SCALE_FORMAT=0` behavior, so its result is still valid
+for the default build.
 
 ### 2026-10-01 — Claude (Opus 5) — E4M3 scale path landed, first unit check
 
@@ -445,19 +494,5 @@ for a clean completed checkpoint. The values already obtained are committed in
 `docs/results/data/m2-block-stream-checkpoint.csv`. All RTL verification was
 completed and pushed in `bb85cde`; only documentation from this physical
 checkpoint is in the handoff commit.
-
-### 2026-09-29 — Codex — M2 block streaming implemented
-
-**Done.** Replaced two tile-by-block accumulator banks with two single-block
-ping-pong banks. Completed blocks stream through one set of score lanes, and a
-partial-score array plus FP32 adder preserves left-to-right block rounding.
-The 4x4 T=512 default improves by six cycles to 1,050,690 with every score bit
-unchanged. Wider arrays now expose the real per-block scaling cost: 8x8 L2 is
-526,458 cycles and 16x16 L4 is 264,474.
-
-**Verification.** Eleven lint configurations and directed plus large integration
-suites pass. The updated cycle model exactly reproduces all 32 recorded
-configurations. Next map and route this structural checkpoint, then integrate
-the ADR 0008 E4M3 scaler.
 
 Older entries are in [docs/handoff-log.md](docs/handoff-log.md).

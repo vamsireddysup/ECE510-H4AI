@@ -6,6 +6,20 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-09-29 — Codex — M2 block streaming implemented
+
+**Done.** Replaced two tile-by-block accumulator banks with two single-block
+ping-pong banks. Completed blocks stream through one set of score lanes, and a
+partial-score array plus FP32 adder preserves left-to-right block rounding.
+The 4x4 T=512 default improves by six cycles to 1,050,690 with every score bit
+unchanged. Wider arrays now expose the real per-block scaling cost: 8x8 L2 is
+526,458 cycles and 16x16 L4 is 264,474.
+
+**Verification.** Eleven lint configurations and directed plus large integration
+suites pass. The updated cycle model exactly reproduces all 32 recorded
+configurations. Next map and route this structural checkpoint, then integrate
+the ADR 0008 E4M3 scaler.
+
 ### 2026-09-29 — Codex — M2 block-streaming start
 
 **Started.** Confirmed clean synchronized `master` at `df6edb1`, read the shared

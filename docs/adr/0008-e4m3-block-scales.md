@@ -43,7 +43,7 @@ per-head improvement claim. E8M0-UOS remains worse on every decoder aggregate.
 | Scale format | Cells | Mapped area | Against FP32 |
 | --- | ---: | ---: | ---: |
 | FP32 | 6,761 | 52,280 um² | |
-| E4M3 | 1,360 | 10,695 um² | 4.89x smaller |
+| E4M3 | 1,360 | 10,695 um² | 4.89x smaller in isolation |
 | E8M0 | 367 | 3,780 um² | 13.83x smaller |
 
 Scale storage falls by four times as well, from 4,096 to 1,024 bits at
@@ -111,6 +111,35 @@ existing bit-exactness property against the updated software model.
 
 The E4M3 probe flushes subnormal and overflowed results to zero, matching the
 existing FP32 units. The quantizer never emits a zero or subnormal block scale.
+
+## Integrated cost, measured after the decision
+
+The decision above used a standalone probe. Integrating the format and
+synthesizing the complete top in the same wire-free flow gives a much smaller
+area result, and the record should say so plainly:
+
+| Scale format | Cells | Mapped area | T=512 cycles |
+| --- | ---: | ---: | ---: |
+| FP32 | 53,005 | 257,495.71 um² | 1,050,690 |
+| E4M3 | 47,251 | 257,186.66 um² | 1,050,687 |
+
+That is **10.9% fewer cells but only 0.12% less area**, against the probe's
+4.89x. The probe's number does not transfer, for the same reason
+[ADR 0009](0009-use-e2m1-shift-add-products.md) already recorded for the
+multiplier: the cells removed are small combinational ones, while mapped area
+here is dominated by flip-flops.
+
+The missing piece is storage. `sq` and `sk` are still 32-bit arrays, so the
+four-times scale-storage saving this ADR claims is **not yet realized**: at
+`T_MAX=16` that is 3,072 flip-flops still carrying bits the format no longer
+uses, and the gap grows with `T_MAX`. Narrowing the arrays and the scale packet
+to one byte is the remaining work, and it is where the area should come from.
+
+**The decision stands, on different grounds than it was made.** Accuracy, the
+exactness property, and three fewer cycles per command are all confirmed in the
+integrated design. The area argument is reduced to 0.12% until storage narrows,
+so it should not be quoted as 4.89x for the complete design. The rows are in
+[`data/e4m3-integrated-cost.csv`](../results/data/e4m3-integrated-cost.csv).
 
 ## Alternatives considered
 
