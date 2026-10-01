@@ -110,6 +110,44 @@ Updated 2026-10-01 by Codex.
   the **clock input port itself** at 2.033 ns, because the SDC falls back to an
   `inv_2` for the clock input when `SYNTH_CLK_DRIVING_CELL` is unset. Keep the
   tighter project limit as a deliberate margin, but report against both.
+- **The phantom hold repair is what caused the slew violations.** 81% of the
+  270 real slew violations are driven by a delay cell: 216 by `clkdlybuf4s25_1`
+  and 3 by `dlygate4sd3_1`, cells that exist to add delay and are deliberately
+  weak. 192 violating pins are `mux2_2` data inputs, all driven by
+  `clkdlybuf4s25_1`, none on a select pin, so it is drive strength, not fanout.
+  The run reports **12,743 hold buffers out of 130,096 standard cells, 9.8% of
+  the design**, inserted to repair the 1,838 hold violations that the input
+  delay fabricated. One wrong constraint explains the hold result, a tenth of
+  the cell count, and most of the slew failures.
+- **A stronger clock driving cell is not the answer.** Checked on the frozen
+  netlist before spending a run: `SYNTH_CLK_DRIVING_CELL=clkbuf_16/X` removes
+  exactly the two clock-input pins and nothing else, 272 to 270. Keep it for
+  the insertion delay it may save once CTS can rebuild the tree, but it is
+  small and it confounds the constraint change.
+- **In flight, launched 2026-10-01 from clean revision `a2108dc`.**
+  `m2-signoff-fixed-io`, the falsifiable test of the chain above: the corrected
+  6.0 ns input minimum delay with hold margins back down from 0.3 to 0.05.
+
+  ```
+  PL_RESIZER_HOLD_SLACK_MARGIN=0.05 GRT_RESIZER_HOLD_SLACK_MARGIN=0.05 \
+  PL_RESIZER_SETUP_SLACK_MARGIN=0.1 GRT_RESIZER_SETUP_SLACK_MARGIN=0.05 \
+  SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-signoff-fixed-io 40 full
+  ```
+
+  **Predicted:** far fewer than 12,743 hold buffers, less than 1.00373 mm2 of
+  standard-cell area, fewer than 15,977 slew violations, hold non-negative at
+  all nine corners, and setup unchanged near +9.4961 ns. Record the outcome
+  whether or not it matches; a miss is the more interesting result and means
+  something else drives the delay-cell insertion. Check
+  `build/m2-signoff-fixed-io.out`,
+  `build/librelane/m2-signoff-fixed-io/pnr.log`, and whether
+  `build/librelane/m2-signoff-fixed-io/runs/pnr/final/` exists. If it reached
+  GDS, record nine-corner timing, DRC, LVS, antenna, cell counts, and
+  `design__instance__count__hold_buffer`, then run
+  `make gate-power RUN=m2-signoff-fixed-io`. Compare with
+  `./scripts/run_routed_sta.sh m2-signoff-fixed-io 6.0 40` and the
+  `LIBRARY_LIMITS=1` variant. Takes about 3 h 39 min; re-launch with the exact
+  command above, which uses `--overwrite`.
 - **Fixed-netlist STA re-check exists.** `./scripts/run_routed_sta.sh RUN
   MIN_DELAY [PERIOD]` re-runs setup and hold on an already routed netlist with
   extracted parasitics under a chosen input minimum delay, over three Liberty
@@ -133,45 +171,35 @@ Updated 2026-10-01 by Codex.
   with a quarter of the scale storage. E8M0 is 13.83x smaller but costs 2.34
   points of top-1, so it is rejected and the reopening condition is recorded.
   The RTL change lands with the M2 accumulator rework, as protocol version 7.
-- **M1 preprocessing is measured.** K channel-mean centering and normalized
-  Hadamard rotation have mixed capture-level effects. Neither improves KL, TV,
-  top-1, and top-5 together across all four captures, so neither becomes the
-  default. The 32-row record is machine-checked.
-- **M1 element-format selection is measured.** Reconstruction-selected FP4 or
-  INT4 blocks improve mean KL, TV, top-5, and Frobenius error, but lose 0.34
-  top-1 points and regress on the larger-model capture. The result supports a
-  layer-selective P1 mode, not a global default.
-- **M1 accumulation order is settled.** A balanced tree changes up to 29.4% of
-  score bit patterns but no top-k result and at most `1.53e-5` per score. M2
-  keeps sequential order to preserve the bit-exact contract.
-- **M1 exponent-bound opportunity is measured.** At a four-logit margin, a
-  conservative sign-and-exponent bound safely identifies 28.83% of scores and
-  8.66% of complete 4x4 BERT tiles on average, with no top-k change. It requires
-  a row maximum and does not identify a complete tile in either decoder head.
-- **M1 decoder validation is pinned.** Two post-RoPE SmolLM2-135M heads at
-  `D_HEAD=64` retain searched E4M3's aggregate advantage. Preprocessing and
-  adaptive FP4/INT4 remain layer-dependent. The exponent bound covers no whole
-  4x4 decoder tile at tau=4, so it is not a general P0 feature.
+- **M1's other five studies are closed and recorded**, in
+  [docs/results](docs/results/) and the ADRs; read those rather than re-deriving
+  them. In one line each: **preprocessing** (K centering, Hadamard rotation)
+  improves no capture on all four metrics, so neither is default;
+  **element-format selection** gains mean KL, TV, top-5, and Frobenius error but
+  loses 0.34 top-1 and regresses on the larger capture, so it is a
+  layer-selective P1 mode, not a global default; **accumulation order** keeps
+  sequential, since a balanced tree moves up to 29.4% of score bit patterns but
+  no top-k result and at most `1.53e-5` per score; the **exponent bound** safely
+  identifies 28.83% of scores and 8.66% of 4x4 BERT tiles at tau=4 but no
+  complete decoder tile, so it is not a general P0 feature; **decoder
+  validation** on two post-RoPE SmolLM2-135M heads at `D_HEAD=64` keeps searched
+  E4M3's aggregate advantage.
 - **M1 multiplier structure is settled.** [ADR 0009](docs/adr/0009-use-e2m1-shift-add-products.md)
-  selects an exact E2M1 shift/add product. It is formally equivalent to the
-  current integer product and maps 56.24% smaller in the standalone probe. A
-  same-flow complete-top comparison saves 3,313 cells but only 0.046% area, so
-  the standalone area projection is rejected. The
-  archived ROM is smaller in isolation but emits FP32 and excludes reduction
-  cost. The selected expression is active in `qkt_engine`; all large and RTL
-  precision suites retain identical scores and cycles.
-- **M0 is complete.** The gate run finished after the handoff was written:
-  LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
-  LVS, and **zero antenna violations**, then stopped correctly at the hold
-  checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
-  in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
+  selects an exact E2M1 shift/add product, active in `qkt_engine`, formally
+  equivalent to the integer product and 56.24% smaller in the standalone probe.
+  A same-flow complete-top comparison saves 3,313 cells but only 0.046% area, so
+  **the standalone projection is rejected** — the same probe-does-not-transfer
+  trap as ADR 0008's area claim. All precision suites retain identical scores
+  and cycles.
+- **M0 is complete.** LibreLane took the `D_HEAD=4` RTL to GDS with zero DRC,
+  LVS, and antenna violations, stopping correctly at the hold checker (setup
+  -2.03 ns, hold -0.06 ns slow, 20 ns). Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **The prior-art gate is satisfied.** All nine cited papers have been read in
-  full; three did not match their abstracts. Only three report synthesized
-  hardware, none in an open PDK. `docs/related-work.md` states plainly what this
-  project can and cannot claim, so results may now be positioned against it.
-  Per-block FP4/INT4 is **not** a novelty track: MixFP4 publishes the mechanism,
-  the scale-sign-bit encoding, and the tensor-core area.
+- **The prior-art gate is satisfied.** All nine cited papers read in full;
+  three did not match their abstracts, and only three report synthesized
+  hardware, none in an open PDK. See `docs/related-work.md` for what this
+  project can and cannot claim. Per-block FP4/INT4 is **not** a novelty track:
+  MixFP4 publishes the mechanism, the scale-sign-bit encoding, and the area.
 - **Annotated power is reproducible.** `make gate-power RUN=<librelane run>`
   simulates a routed netlist at gate level and reports per-corner power with
   activity annotated, refusing to print a number when nothing annotates.
@@ -442,51 +470,5 @@ tree. The rerun annotates 284,357 pins and gives 23.3 to 33.7 mW, or 5.15 to
 **Next.** One-byte E4M3 scale storage and eight packed scale bytes per beat are
 implemented and passing in the isolated `codex/e4pack` worktree; integrate it
 after this physical-result commit.
-
-### 2026-10-01 — Codex — received E4M3 and signoff handoff
-
-**Started.** Confirmed clean synchronized `master` at `2b7fe73`, read Claude's
-E4M3 implementation and corrected integrated-area result, and claimed the
-in-flight `m2-signoff-hold` run. It is still active in detailed routing. The
-next code task after recording that result is one-byte E4M3 scale storage and
-eight scales per input beat, with protocol, model, tests, and measured records
-updated together.
-
-### 2026-10-01 — Claude (Opus 5) — E4M3 selectable end to end; area claim corrected
-
-**Done, in a one-hour window the owner set.** `SCALE_FORMAT` is plumbed through
-the top and engine, so E4M3 block scales are now selectable in the real design
-as protocol version 7, or 8 with K reuse.
-
-- Every integration suite passes with E4M3, each score **bit-exact** against a
-  single-rounding reference: the directed suites, T=512, `ENGINES=8`, and K
-  reuse. The testbench carries E4M3 codes on the wire and rounds once per block
-  rather than twice, matching the hardware.
-- Two new assertions check ADR 0008's exactness argument rather than asserting
-  it in prose: the six product bits the path discards are always zero, and the
-  conversion leaves enough headroom. They fail loudly if `ACC_W` grows past 17,
-  which P1's 43-bit FP8 accumulator would do.
-- Lint covers fourteen parameter sets, three E4M3. Default `SCALE_FORMAT=0` is
-  untouched: `make test`, 32 of 32 cycle configurations, and the T=512
-  precision run all reproduce exactly.
-
-**The finding that matters, and it is a correction.** Integrated, E4M3 gives
-**10.9% fewer cells but only 0.12% less area**, against the standalone probe's
-4.89x. ADR 0008, the precision record, and the results index now say so. The
-cause is the same one ADR 0009 recorded for the multiplier, and I should have
-expected it: the probe removes small combinational cells while mapped area here
-is dominated by flip-flops. **`sq` and `sk` are still 32 bits wide**, so the
-four-times scale-storage saving the ADR claims has not actually been taken yet.
-That is the next step and it is where the area is.
-
-**What survives unchanged:** better accuracy on every softmax metric across six
-pinned heads, exact scale application where FP32 rounds twice, and three fewer
-cycles per command.
-
-**In flight.** The `m2-signoff-hold` run from the previous session was still in
-place-and-route when this session ended; see the state above for how to check
-it. It was launched from the committed RTL before the `SCALE_FORMAT` plumbing,
-which does not change `SCALE_FORMAT=0` behavior, so its result is still valid
-for the default build.
 
 Older entries are in [docs/handoff-log.md](docs/handoff-log.md).

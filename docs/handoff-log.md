@@ -6,6 +6,52 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-10-01 — Codex — received E4M3 and signoff handoff
+
+**Started.** Confirmed clean synchronized `master` at `2b7fe73`, read Claude's
+E4M3 implementation and corrected integrated-area result, and claimed the
+in-flight `m2-signoff-hold` run. It is still active in detailed routing. The
+next code task after recording that result is one-byte E4M3 scale storage and
+eight scales per input beat, with protocol, model, tests, and measured records
+updated together.
+
+### 2026-10-01 — Claude (Opus 5) — E4M3 selectable end to end; area claim corrected
+
+**Done, in a one-hour window the owner set.** `SCALE_FORMAT` is plumbed through
+the top and engine, so E4M3 block scales are now selectable in the real design
+as protocol version 7, or 8 with K reuse.
+
+- Every integration suite passes with E4M3, each score **bit-exact** against a
+  single-rounding reference: the directed suites, T=512, `ENGINES=8`, and K
+  reuse. The testbench carries E4M3 codes on the wire and rounds once per block
+  rather than twice, matching the hardware.
+- Two new assertions check ADR 0008's exactness argument rather than asserting
+  it in prose: the six product bits the path discards are always zero, and the
+  conversion leaves enough headroom. They fail loudly if `ACC_W` grows past 17,
+  which P1's 43-bit FP8 accumulator would do.
+- Lint covers fourteen parameter sets, three E4M3. Default `SCALE_FORMAT=0` is
+  untouched: `make test`, 32 of 32 cycle configurations, and the T=512
+  precision run all reproduce exactly.
+
+**The finding that matters, and it is a correction.** Integrated, E4M3 gives
+**10.9% fewer cells but only 0.12% less area**, against the standalone probe's
+4.89x. ADR 0008, the precision record, and the results index now say so. The
+cause is the same one ADR 0009 recorded for the multiplier, and I should have
+expected it: the probe removes small combinational cells while mapped area here
+is dominated by flip-flops. **`sq` and `sk` are still 32 bits wide**, so the
+four-times scale-storage saving the ADR claims has not actually been taken yet.
+That is the next step and it is where the area is.
+
+**What survives unchanged:** better accuracy on every softmax metric across six
+pinned heads, exact scale application where FP32 rounds twice, and three fewer
+cycles per command.
+
+**In flight.** The `m2-signoff-hold` run from the previous session was still in
+place-and-route when this session ended; see the state above for how to check
+it. It was launched from the committed RTL before the `SCALE_FORMAT` plumbing,
+which does not change `SCALE_FORMAT=0` behavior, so its result is still valid
+for the default build.
+
 ### 2026-10-01 — Claude (Opus 5) — E4M3 scale path landed, first unit check
 
 **Done, in a 30-minute window the owner set.**
