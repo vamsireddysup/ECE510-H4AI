@@ -112,33 +112,27 @@ existing bit-exactness property against the updated software model.
 The E4M3 probe flushes subnormal and overflowed results to zero, matching the
 existing FP32 units. The quantizer never emits a zero or subnormal block scale.
 
-## Integrated cost, measured after the decision
+## Integrated cost after packed storage
 
-The decision above used a standalone probe. Integrating the format and
-synthesizing the complete top in the same wire-free flow gives a much smaller
-area result, and the record should say so plainly:
+The first integrated comparison left `sq` and `sk` at 32 bits and therefore
+measured only a 0.12% complete-top area change. The protocol-v7 implementation
+now stores one byte per E4M3 scale and packs eight scales into each 64-bit beat.
+A same-revision, same-flow synthesis gives:
 
-| Scale format | Cells | Mapped area | T=512 cycles |
-| --- | ---: | ---: | ---: |
-| FP32 | 53,005 | 257,495.71 um² | 1,050,690 |
-| E4M3 | 47,251 | 257,186.66 um² | 1,050,687 |
+| Scale format | Cells | Mapped area | Scale storage | T=512 cycles | Input beats |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FP32 | 52,764 | 257,346.82 um² | 4,096 bits | 1,050,690 | 266,240 |
+| E4M3 | 40,892 | 140,592.34 um² | 1,024 bits | 1,049,151 | 264,704 |
 
-That is **10.9% fewer cells but only 0.12% less area**, against the probe's
-4.89x. The probe's number does not transfer, for the same reason
-[ADR 0009](0009-use-e2m1-shift-add-products.md) already recorded for the
-multiplier: the cells removed are small combinational ones, while mapped area
-here is dominated by flip-flops.
+Packed E4M3 therefore removes **22.50% of cells and 45.37% of mapped area**
+(1.83x smaller complete top) in this wire-free Sky130 mapping. It also removes
+1,536 input beats and 1,539 command cycles at T=512. The three-cycle difference
+beyond packet length is the shorter E4M3 scale pipeline. Every score remains
+bit-exact against the E4M3 software reference; FP32 remains the committed build
+default until a routed comparison decides the default separately.
 
-The missing piece is storage. `sq` and `sk` are still 32-bit arrays, so the
-four-times scale-storage saving this ADR claims is **not yet realized**: at
-`T_MAX=16` that is 3,072 flip-flops still carrying bits the format no longer
-uses, and the gap grows with `T_MAX`. Narrowing the arrays and the scale packet
-to one byte is the remaining work, and it is where the area should come from.
-
-**The decision stands, on different grounds than it was made.** Accuracy, the
-exactness property, and three fewer cycles per command are all confirmed in the
-integrated design. The area argument is reduced to 0.12% until storage narrows,
-so it should not be quoted as 4.89x for the complete design. The rows are in
+This result realizes the storage claim that the earlier integration did not. It
+does not establish routed area, frequency, or energy. The reviewed rows are in
 [`data/e4m3-integrated-cost.csv`](../results/data/e4m3-integrated-cost.csv).
 
 ## Alternatives considered

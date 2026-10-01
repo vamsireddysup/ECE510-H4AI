@@ -1,3 +1,3 @@
-configuration,scale_format,cells,mapped_area_um2,scale_storage_bits,t512_cycles,status
-4x4 D_HEAD=64 T_MAX=16 Bs=16 L1 E1,FP32,53005,257495.7088,4096,1050690,measured; Yosys 0.44; Sky130 HD typical; wire-free
-4x4 D_HEAD=64 T_MAX=16 Bs=16 L1 E1,E4M3,47251,257186.6624,4096,1050687,measured; same flow; scale storage not yet narrowed
+configuration,scale_format,cells,mapped_area_um2,scale_storage_bits,t512_cycles,t512_input_beats,status
+4x4 D_HEAD=64 T_MAX=16 Bs=16 L1 E1,FP32,52764,257346.8160,4096,1050690,266240,measured; Yosys 0.44; Sky130 HD typical; wire-free; packed-scale revision
+4x4 D_HEAD=64 T_MAX=16 Bs=16 L1 E1,E4M3,40892,140592.3392,1024,1049151,264704,measured; same flow; eight scale bytes per beat

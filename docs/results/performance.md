@@ -21,7 +21,8 @@ means lanes within one block. At Bs=16, 8x8 L2 measures 526,458 cycles and
 16x16 L4 measures 264,474 cycles; scaling binds both. These replace their
 264,336 and 133,392 pre-M2 performance points. The reviewed rows are in
 [`data/bs16-default-simulation.csv`](data/bs16-default-simulation.csv), and the
-updated closed-form model reproduces all 32 recorded configurations exactly.
+updated closed-form model reproduces all 44 recorded configurations exactly,
+including twelve packed-E4M3 measurements.
 The tables below that describe the older P0.3/P0.4 schedule remain as historical
 comparison evidence.
 

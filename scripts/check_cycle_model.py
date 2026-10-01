@@ -29,12 +29,13 @@ def suite(tile: int, reuse: bool) -> str:
 def main() -> int:
     runs: dict[tuple, list] = defaultdict(list)
     for row in MEASURED:
-        label, seq, tile, depth, reuse, block, lanes, engines, cycles, beats = row
-        runs[(tile, reuse, block, lanes, engines)].append(row)
+        label, seq, tile, depth, reuse, block, lanes, engines, scale_format, cycles, beats = row
+        runs[(tile, reuse, block, lanes, engines, scale_format)].append(row)
     failures = 0
-    for (tile, reuse, block, lanes, engines), rows in runs.items():
+    for (tile, reuse, block, lanes, engines, scale_format), rows in runs.items():
         environment = dict(os.environ, SCALE_BLOCK_SIZE=str(block),
-                           SCORE_LANES=str(lanes), ENGINES=str(engines))
+                           SCORE_LANES=str(lanes), ENGINES=str(engines),
+                           SCALE_FORMAT=str(scale_format))
         output = subprocess.run(
             [str(REPO / "scripts/run_integration.sh"), suite(tile, reuse)],
             cwd=REPO, env=environment, capture_output=True, text=True,

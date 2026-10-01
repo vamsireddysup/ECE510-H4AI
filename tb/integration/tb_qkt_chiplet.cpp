@@ -31,6 +31,8 @@
 #endif
 static constexpr int B=TEST_B, D=TEST_D, TMAX=TEST_TMAX;
 static constexpr int BS=TEST_SCALE_BLOCK, BLOCKS=(D+BS-1)/BS;
+static constexpr int SCALE_BITS=TEST_SCALE_FORMAT == 1 ? 8 : 32;
+static constexpr int SCALES_PER_BEAT=64/SCALE_BITS;
 #ifdef TEST_LARGE
 static constexpr bool STRESS_STALLS=false;
 #else
@@ -176,7 +178,7 @@ static float kscale(int row,int block=0) {
 }
 #endif
 
-// What the host puts in each 32-bit scale slot: full FP32, or the E4M3 byte.
+// What the host puts in each scale slot: full FP32, or the packed E4M3 byte.
 static uint32_t qscale_word(int row,int block=0) {
 #if TEST_SCALE_FORMAT==1
     return uint32_t(qscale_code(row,block));
@@ -203,15 +205,20 @@ static float scaled_block(int sum,int row,int col,int block) {
 #endif
 }
 static void send_scales(int t, int malformed=0) {
-    for(int b=0;b<t*BLOCKS;b++) {
+    const int values=2*t*BLOCKS, beats=(values+SCALES_PER_BEAT-1)/SCALES_PER_BEAT;
+    for(int b=0;b<beats;b++) {
         // Scale order is Q[0..T-1], then K[0..T-1].
         auto value=[&](int idx)->uint32_t {
             return idx<t*BLOCKS ? qscale_word(idx/BLOCKS,idx%BLOCKS) :
                 kscale_word((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS);
         };
-        uint32_t lo=value(2*b), hi=value(2*b+1);
-        send_beat((uint64_t(hi)<<32)|lo,
-                  malformed==1 ? b==0 : (malformed==2 ? false : b==t*BLOCKS-1), STRESS_STALLS ? b%3 : 0);
+        uint64_t beat=0;
+        for(int lane=0;lane<SCALES_PER_BEAT;lane++) {
+            int idx=b*SCALES_PER_BEAT+lane;
+            if(idx<values) beat|=uint64_t(value(idx))<<(lane*SCALE_BITS);
+        }
+        send_beat(beat, malformed==1 ? b==0 :
+                  (malformed==2 ? false : b==beats-1), STRESS_STALLS ? b%3+1 : 0);
         if(malformed==1) return;
     }
 }
@@ -243,13 +250,18 @@ static float expected(int row,int col) {
 }
 struct StreamBeat { uint64_t data; bool last; int gap; };
 static void append_scales(std::vector<StreamBeat>& stream,int t) {
-    for(int b=0;b<t*BLOCKS;b++) {
+    const int values=2*t*BLOCKS, beats=(values+SCALES_PER_BEAT-1)/SCALES_PER_BEAT;
+    for(int b=0;b<beats;b++) {
         auto value=[&](int idx)->uint32_t {
             return idx<t*BLOCKS ? qscale_word(idx/BLOCKS,idx%BLOCKS) :
                 kscale_word((idx-t*BLOCKS)/BLOCKS,(idx-t*BLOCKS)%BLOCKS);
         };
-        stream.push_back({(uint64_t(value(2*b+1))<<32)|value(2*b),b==t*BLOCKS-1,
-                          STRESS_STALLS ? b%3 : 0});
+        uint64_t beat=0;
+        for(int lane=0;lane<SCALES_PER_BEAT;lane++) {
+            int idx=b*SCALES_PER_BEAT+lane;
+            if(idx<values) beat|=uint64_t(value(idx))<<(lane*SCALE_BITS);
+        }
+        stream.push_back({beat,b==beats-1,STRESS_STALLS ? b%3+1 : 0});
     }
 }
 static void append_tile(std::vector<StreamBeat>& stream,int start,int t,int salt) {
@@ -366,7 +378,8 @@ static void run_case(int t) {
     check(read_reg(0x04)==1,"completion or error status");
     check(read_reg(0x0C)==uint32_t(tiles),"tile count");
     int n=(t+B-1)/B;
-    int input_beats=t*BLOCKS+(REUSE ? 2*n : n+n*n)*((B*D+15)/16);
+    int scale_beats=(2*t*BLOCKS+SCALES_PER_BEAT-1)/SCALES_PER_BEAT;
+    int input_beats=scale_beats+(REUSE ? 2*n : n+n*n)*((B*D+15)/16);
     check(read_reg(0x20)==uint32_t(input_beats),"input beat count");
     int output_beats=0;
     for(int qr=0;qr<t;qr+=B)
@@ -429,9 +442,10 @@ int main(int argc,char** argv) {
             extreme_mode=0;
         }
         if(D==4 && B==4) { legacy_mode=true; run_case(4); legacy_mode=false; }
-        write_reg(0x08,4); write_reg(0x00,1); send_scales(4,1);
+        constexpr int malformed_t=TEST_SCALE_FORMAT == 1 ? 8 : 4;
+        write_reg(0x08,malformed_t); write_reg(0x00,1); send_scales(malformed_t,1);
         check(read_reg(0x04)==0x21,"early TLAST status");
-        write_reg(0x08,4); write_reg(0x00,1); send_scales(4,2);
+        write_reg(0x08,malformed_t); write_reg(0x00,1); send_scales(malformed_t,2);
         check(read_reg(0x04)==0x31,"missing TLAST status");
         write_reg(0x08,4); write_reg(0x00,1); send_scales(4);
         if(B*D>16) {

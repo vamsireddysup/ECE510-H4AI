@@ -89,7 +89,7 @@ block. This removes the tile-wide block accumulator and its dynamic read mux.
 ## Cycle cost model
 
 [`scripts/cycle_model.py`](../scripts/cycle_model.py) derives the no-stall command
-count and reproduces all 32 measured configurations exactly. For tile size `B`,
+count and reproduces all 44 measured configurations exactly. For tile size `B`,
 depth `D`, block size `Bs`, score lanes `L`, and block count
 `C=ceil(D/Bs)`, concurrent stage service times are:
 
@@ -100,16 +100,17 @@ depth `D`, block size `Bs`, score lanes `L`, and block count
 | `SCALING` | `C*ceil(B^2/L)` | every score in every block launches once; pipeline latency overlaps launches |
 | `OUTPUT` | `ceil(B^2/2)` | two FP32 scores per accepted output beat |
 
-For `N=(T/B)^2` complete tiles, `Qbeats=ceil(B*D/16)`, and continuously ready
-streams, the exact model is:
+For `N=(T/B)^2` complete tiles, `Qbeats=ceil(B*D/16)`, scale-packet length
+`S=ceil(2*T*C/P)` where `P=2` for FP32 and `P=8` for E4M3, and continuously
+ready streams, the exact model is:
 
 ```text
 pipeline = sum(stage costs) + (N-1) * max(stage costs)
-K reload = T*C + Qbeats + pipeline
-K reuse = T*C + (T/B)*Qbeats + Qbeats + pipeline_without_LOAD_K
+K reload = S + Qbeats + pipeline
+K reuse = S + (T/B)*Qbeats + Qbeats + pipeline_without_LOAD_K
 ```
 
-The leading `T*C` loads the scale packet. K reload then fills the first Q bank;
+The leading `S` loads the scale packet. K reload then fills the first Q bank;
 `LOAD_K` is already part of its tile pipeline. K reuse fills the complete K
 cache and the first Q bank before its tile pipeline. Later Q loads fit behind the
 binding stage for these measured configurations.

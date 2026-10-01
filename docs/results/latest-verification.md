@@ -1,5 +1,19 @@
 # Latest verification
 
+## October 1 packed E4M3 scale storage
+
+Protocol v7/v8 now stores E4M3 block scales as bytes and carries eight scales
+per 64-bit beat. FP32 v5/v6 remains unchanged. Directed, T=64/128/512, K-reuse,
+8x8, Bs=32 padding, and eight-engine suites all produce bit-exact scores. At
+T=512, one v7 engine takes 1,049,151 cycles and 264,704 input beats; eight
+engines take 264,799 cycles. The closed model reproduces all 44 recorded
+configurations exactly.
+
+Same-flow Sky130 mapping measures 40,892 cells and 140,592.34 um2 for packed
+E4M3 against 52,764 cells and 257,346.82 um2 for FP32: 22.50% fewer cells and
+45.37% less wire-free mapped area. This is not a routed result, and the default
+format has not changed.
+
 ## October 1 M2 hold-margin signoff
 
 LibreLane 3.0.14 completed all 80 stages for the 4x4 M2 top at 40 ns and

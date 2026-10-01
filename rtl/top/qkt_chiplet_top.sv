@@ -11,8 +11,7 @@ module qkt_chiplet_top #(
     parameter int SCALE_BLOCK_SIZE = 16,
     parameter int SCORE_LANES = 1,
     parameter int ENGINES = 1,
-    // 0 selects FP32 block scales, 1 selects the ADR 0008 E4M3 scales carried
-    // in the low byte of each scale word. See docs/stream-protocol.md.
+    // 0 selects FP32 block scales, 1 selects packed ADR 0008 E4M3 scales.
     parameter int SCALE_FORMAT = 0
 )(
     input logic clk, rst_n,
@@ -42,6 +41,8 @@ module qkt_chiplet_top #(
     end
 
     localparam int BLOCK_COUNT = (D_HEAD+SCALE_BLOCK_SIZE-1)/SCALE_BLOCK_SIZE;
+    localparam int SCALE_W = (SCALE_FORMAT == 0) ? 32 : 8;
+    localparam int SCALES_PER_BEAT = 64/SCALE_W;
     localparam int TILE_BEATS = (TILE_SIZE*D_HEAD+15)/16;
     localparam int FILL_DEPTHS = (16/TILE_SIZE > 0) ? 16/TILE_SIZE : 1;
     localparam int ENGINE_W = (ENGINES <= 1) ? 1 : $clog2(ENGINES);
@@ -52,7 +53,9 @@ module qkt_chiplet_top #(
     localparam int TILE_ROWS_MAX = (T_MAX+TILE_SIZE-1)/TILE_SIZE;
     localparam int TILE_ROW_W = $clog2(TILE_ROWS_MAX+1);
     localparam int TILE_TOTAL_W = $clog2(TILE_ROWS_MAX*TILE_ROWS_MAX+1);
-    localparam int SCALE_BEATS_MAX = T_MAX*BLOCK_COUNT;
+    localparam int SCALE_VALUES_MAX = 2*T_MAX*BLOCK_COUNT;
+    localparam int SCALE_BEATS_MAX =
+        (SCALE_VALUES_MAX+SCALES_PER_BEAT-1)/SCALES_PER_BEAT;
     localparam int BEAT_W = $clog2(((SCALE_BEATS_MAX > TILE_BEATS) ?
         SCALE_BEATS_MAX : TILE_BEATS) + 1);
 
@@ -82,8 +85,8 @@ module qkt_chiplet_top #(
     } frontend_t;
     frontend_t frontend;
 
-    logic [31:0] sq [0:T_MAX-1][0:BLOCK_COUNT-1];
-    logic [31:0] sk [0:T_MAX-1][0:BLOCK_COUNT-1];
+    logic [SCALE_W-1:0] sq [0:T_MAX-1][0:BLOCK_COUNT-1];
+    logic [SCALE_W-1:0] sk [0:T_MAX-1][0:BLOCK_COUNT-1];
     logic [3:0] q_bank [0:1][0:TILE_SIZE-1][0:D_HEAD-1];
     logic [3:0] k_cache [0:T_MAX-1][0:D_HEAD-1];
 
@@ -141,10 +144,10 @@ module qkt_chiplet_top #(
                 logic [31:0] sq_row, sk_row;
                 assign sq_row = eng_sq_index[(e*SCORE_LANES+lane)*32 +: 32];
                 assign sk_row = eng_sk_index[(e*SCORE_LANES+lane)*32 +: 32];
-                assign eng_sq_data[FLAT*32 +: 32] =
-                    (sq_row < T_MAX) ? sq[sq_row][block] : 32'h0;
-                assign eng_sk_data[FLAT*32 +: 32] =
-                    (sk_row < T_MAX) ? sk[sk_row][block] : 32'h0;
+                assign eng_sq_data[FLAT*32 +: 32] = (sq_row < T_MAX) ?
+                    {{(32-SCALE_W){1'b0}}, sq[sq_row][block]} : 32'h0;
+                assign eng_sk_data[FLAT*32 +: 32] = (sk_row < T_MAX) ?
+                    {{(32-SCALE_W){1'b0}}, sk[sk_row][block]} : 32'h0;
             end
         end
         assign eng_k_wr_valid[e] = !K_REUSE_EN && s_tvalid && s_tready &&
@@ -282,17 +285,22 @@ module qkt_chiplet_top #(
                 if (s_tvalid && s_tready) begin
                     case (frontend)
                         FE_SCALES: begin
-                            for (int lane = 0; lane < 2; lane++) begin
-                                if (load_beat*2+lane < 32'(cmd_size)*BLOCK_COUNT)
-                                    sq[(load_beat*2+lane)/BLOCK_COUNT]
-                                      [(load_beat*2+lane)%BLOCK_COUNT] <=
-                                        s_tdata[32*lane +: 32];
-                                else if (load_beat*2+lane < 2*32'(cmd_size)*BLOCK_COUNT)
-                                    sk[(load_beat*2+lane-32'(cmd_size)*BLOCK_COUNT)/BLOCK_COUNT]
-                                      [(load_beat*2+lane-32'(cmd_size)*BLOCK_COUNT)%BLOCK_COUNT] <=
-                                        s_tdata[32*lane +: 32];
+                            for (int lane = 0; lane < SCALES_PER_BEAT; lane++) begin
+                                if (load_beat*SCALES_PER_BEAT+lane <
+                                    32'(cmd_size)*BLOCK_COUNT)
+                                    sq[(load_beat*SCALES_PER_BEAT+lane)/BLOCK_COUNT]
+                                      [(load_beat*SCALES_PER_BEAT+lane)%BLOCK_COUNT] <=
+                                        s_tdata[SCALE_W*lane +: SCALE_W];
+                                else if (load_beat*SCALES_PER_BEAT+lane <
+                                         2*32'(cmd_size)*BLOCK_COUNT)
+                                    sk[(load_beat*SCALES_PER_BEAT+lane-
+                                        32'(cmd_size)*BLOCK_COUNT)/BLOCK_COUNT]
+                                      [(load_beat*SCALES_PER_BEAT+lane-
+                                        32'(cmd_size)*BLOCK_COUNT)%BLOCK_COUNT] <=
+                                        s_tdata[SCALE_W*lane +: SCALE_W];
                             end
-                            if (32'(load_beat)+1 == 32'(cmd_size)*BLOCK_COUNT) begin
+                            if ((32'(load_beat)+1)*SCALES_PER_BEAT >=
+                                2*32'(cmd_size)*BLOCK_COUNT) begin
                                 if (!s_tlast) begin
                                     error_code <= 4'h3; done <= 1; command_active <= 0;
                                 end else begin

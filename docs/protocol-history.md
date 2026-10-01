@@ -1,6 +1,6 @@
 # Stream protocol version history
 
-This table explains why six protocol numbers appear in results and tests. Read
+This table explains why eight protocol numbers appear in results and tests. Read
 the current wire contract in [stream protocol](stream-protocol.md); this page is
 only the compatibility history.
 
@@ -12,10 +12,13 @@ only the compatibility history.
 | 4 | One FP32 scale per 32 reduction elements | Load K once into a command-level register cache | Tested compatibility experiment |
 | 5 | One FP32 scale per 16 reduction elements | Reload K tiles | Current default |
 | 6 | One FP32 scale per 16 reduction elements | Load K once into a command-level register cache | Optional current experiment |
+| 7 | One packed E4M3 scale per 16 reduction elements | Reload K tiles | Selectable, tested build |
+| 8 | One packed E4M3 scale per 16 reduction elements | Load K once into a command-level register cache | Selectable, tested experiment |
 
-Odd versions reload K and even versions reuse K. Versions 3 through 6 pack 16
-FP4 values or two FP32 values into each 64-bit beat. Register `0x1C` reports the
-compiled version, so software can reject a mismatched packet format.
+Odd versions reload K and even versions reuse K. Versions 3 through 6 pack two
+FP32 scales per 64-bit beat. Versions 7 and 8 pack eight E4M3 scale bytes per
+beat. All versions pack 16 FP4 data values per beat. Register `0x1C` reports
+the compiled version, so software can reject a mismatched packet format.
 
 ## Related
 

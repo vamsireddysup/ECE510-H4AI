@@ -2,7 +2,8 @@
 
 These are the 64-bit AXI4-Stream contracts for the dense FP4 E2M1 QK^T
 engine. The default build uses version 5 (`K_REUSE=0`). An optional K
-scratchpad build uses version 6 (`K_REUSE=1`). Register `0x1C` reports the
+scratchpad build uses version 6 (`K_REUSE=1`). Selectable E4M3 builds use
+version 7 or 8. Register `0x1C` reports the
 compiled version. A command starts when software
 writes bit 0 at `0x00`, after writing sequence length `T` at `0x08`.
 `1 <= T <= T_MAX`; `T_MAX=512` is representable. `D_HEAD` and `TILE_SIZE`
@@ -26,6 +27,13 @@ order:
    tile. After the last K packet for a Q tile, the next Q packet begins; input
    and output packets may be active concurrently.
 
+Version 7 uses the same K-reload traversal as versions 3 and 5, but carries one
+E4M3 scale byte per block. Eight scales occupy each beat, with the earliest in
+bits 7:0. The scale packet contains
+`ceil(2 * T * ceil(D_HEAD / SCALE_BLOCK_SIZE) / 8)` beats; unused bytes in its
+last beat are zero. Version 8 combines this packed scale packet with the K-reuse
+traversal below. Both versions assert `TLAST` on the packed packet's final beat.
+
 In versions 4 and 6, the host sends all K tile packets immediately after scales, in
 increasing K row order. It then sends one Q tile packet for each Q tile row.
 After each Q packet, the engine emits every output tile for that Q row from
@@ -40,6 +48,9 @@ contracts and are no longer emitted by the active RTL. Versions 3 and 4 use
 5 and 6 keep those traversal orders and use 16-element FP32 scale blocks. The
 default is version 5 with `SCALE_BLOCK_SIZE=16`; 1x32 remains a tested
 compatibility parameter. A partial final block uses its own scale.
+Versions 7 and 8 retain 16-element blocks and replace each FP32 block scale
+with an E4M3 byte. `SCALE_FORMAT=1` selects them; the committed build default
+remains FP32 while the format decision is integrated and physically measured.
 
 A tile packet has `ceil(TILE_SIZE * D_HEAD / 16)` beats. Host data for rows
 past `T-1` in an edge tile must be zero. Unused nibbles in the last beat must
@@ -84,7 +95,7 @@ register. A read response holds its data and valid flag until accepted.
 | `0x0C` | Completed output tiles |
 | `0x10` | Core cycles from START through completion |
 | `0x14` | Cycles between the two most recent tile completions; for the first tile, cycles since command start |
-| `0x1C` | Compiled protocol version: `3`/`4` for Bs=32 or `5`/`6` for Bs=16; even versions enable K reuse |
+| `0x1C` | Compiled protocol version: `3`/`4` for FP32 Bs=32, `5`/`6` for FP32 Bs=16, or `7`/`8` for packed E4M3; even versions enable K reuse |
 | `0x20` | Accepted input beats |
 | `0x24` | Accepted output beats |
 | `0x28` | Cycles ready for input while input valid is low |

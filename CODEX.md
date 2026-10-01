@@ -64,16 +64,17 @@ Updated 2026-10-01 by Codex.
 - **Branch and commit.** `master`, pushed to
   `vamsireddysup/FP4-transformer-attention-accelerator`. CI and `make test`
   pass.
-- **Last integrated synthesis.** The M2 block-streaming 4x4 top at `bb85cde`
-  maps to 53,137 cells and 257,922.37 um2. The pre-M2 shift/add checkpoint was
-  82,388 cells and 257,530.74 um2 in the same wire-free flow.
+- **Last integrated synthesis.** Same-flow Sky130 mapping of the 4x4 top gives
+  40,892 cells and 140,592.34 um2 with packed E4M3 scales against 52,764 cells
+  and 257,346.82 um2 with FP32: 22.50% fewer cells and 45.37% less wire-free
+  mapped area. The E4M3 point is not routed yet.
 - **Active plan.** The research-backed roadmap, milestones M0 to M4, is in
   [docs/project-status.md](docs/project-status.md#roadmap-milestones-m0-to-m4).
   M0 and M1 are complete. The next milestone is **M2, P0 physical closure**.
-- **Where the design is.** 4x4 FP4 QK^T engine with 1x16 FP32 block scales,
-  exact integer block accumulation, `ENGINES` replication (1 to 16), protocol
-  versions 5 and 6 by default. All 32 recorded cycle configurations re-simulate
-  exactly (`python3 scripts/check_cycle_model.py`).
+- **Where the design is.** 4x4 FP4 QK^T engine with 1x16 block scales, exact
+  integer block accumulation, and `ENGINES` replication (1 to 16). FP32 v5/v6
+  remains the default; selectable E4M3 v7/v8 stores bytes and packs eight per
+  beat. All 44 recorded cycle configurations re-simulate exactly.
 - **Best timing evidence.** Mapped netlist, `DELAY 0` at an 8 ns target, no
   wires: 18.241 ns slow-corner and 8.998 ns typical-corner minimum period at
   `34d9df5`. This is not a routed or closing frequency.
@@ -263,6 +264,25 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-10-01 — Codex — packed E4M3 storage and stream
+
+**Done.** Narrowed `sq` and `sk` to eight bits when `SCALE_FORMAT=1`, packed
+eight E4M3 values per scale beat, retained two FP32 values per beat, and kept
+the 32-bit engine interface by zero extension. Versions 7 and 8 now implement
+the contract ADR 0008 selected. Padding, malformed `TLAST`, K reuse, Bs=32,
+8x8 L2, and eight-engine cases pass with every score bit-exact.
+
+**Measured.** T=512 v7 falls from 1,050,687 to 1,049,151 cycles and from 266,240
+FP32-format beats to 264,704 packed beats. Eight engines take 264,799 cycles.
+The cycle model reproduces all 44 recorded configurations. Same-flow synthesis
+measures 40,892 cells and 140,592.34 um2 against FP32's 52,764 cells and
+257,346.82 um2, a 45.37% wire-free area reduction. Default selection remains a
+separate routed decision; FP32 is still the default.
+
+**Verified.** `make test`, all 14 lint configurations, 41 model tests, scaler
+unit checks, directed E4M3/Bs=32 tests, large v7/v8 and 8x8 suites, and the
+eight-engine T=512 suite pass.
 
 ### 2026-10-01 — Codex — full M2 signoff outcome and SPEF-aware power
 

@@ -37,6 +37,7 @@ def stage_costs(
 def core_cycles(
     seq: int, tile: int, depth: int, k_reuse: bool = False,
     block_size: int = 16, score_lanes: int = 1, engine_count: int = 1,
+    scale_format: int = 0,
 ) -> int:
     """No-stall cycles; exact at N=1 and an ideal shared-port model at N>1."""
     if engine_count < 1:
@@ -48,7 +49,7 @@ def core_cycles(
     # Scales are command startup. Version 2 then fills the complete K cache.
     # The first Q tile is the final fill stage before the tile pipeline starts;
     # subsequent Q loads fit behind the binding stage with two Q banks.
-    startup = seq * ceil(depth / block_size) + tile_beats
+    startup = scale_beats(seq, depth, block_size, scale_format) + tile_beats
     if k_reuse:
         startup += tile_rows * tile_beats
 
@@ -63,7 +64,8 @@ def core_cycles(
         # Version 3 transfers a distinct K tile for every output tile.
         work["LOAD_K"] = tile_total * stages["LOAD_K"]
     block_count = ceil(depth / block_size)
-    old_scaling = (ceil(tile * tile / score_lanes) + SCALE_PIPELINE_LATENCY
+    scale_pipeline_latency = 4 if scale_format else SCALE_PIPELINE_LATENCY
+    old_scaling = (ceil(tile * tile / score_lanes) + scale_pipeline_latency
                    + ADD_PIPELINE_LATENCY * (block_count - 1))
     streaming_scaling = stages["SCALING"]
     if streaming_scaling <= depth:
@@ -78,8 +80,9 @@ def core_cycles(
         # registered block handoffs overlap 8 cycles per block plus 6 fixed
         # cycles, measured identically at T=64, 128, and 512.
         fill_drain = (sum(stages.values()) - max(stages.values())
-                      - (8 * block_count + 6))
-    beats = input_beats(seq, tile, depth, k_reuse, block_size)
+                      - (8 * block_count + 6)
+                      - (SCALE_PIPELINE_LATENCY-scale_pipeline_latency))
+    beats = input_beats(seq, tile, depth, k_reuse, block_size, scale_format)
 
     # Effective engine count saturates where private work stops exceeding the
     # shared floor. Past that crossover an added engine changes nothing, so
@@ -99,7 +102,7 @@ def core_cycles(
         # Two score banks absorb one tile of overlap. With equal scaling and
         # output service, the ten-cycle final scaler/add drain is paid once per
         # subsequent bank reuse (every two tiles).
-        engine_path += (SCALE_PIPELINE_LATENCY + ADD_PIPELINE_LATENCY) * max(
+        engine_path += (scale_pipeline_latency + ADD_PIPELINE_LATENCY) * max(
             0, ceil(tiles_per_engine / 2) - 1
         )
 
@@ -111,20 +114,29 @@ def core_cycles(
                       - ADD_PIPELINE_LATENCY * max(0, block_count - 2))
     else:
         input_path = (beats + sum(stages.values()) - stages.get("LOAD_K", 0)
-                      - (8 * block_count + 6))
+                      - (8 * block_count + 6)
+                      - (SCALE_PIPELINE_LATENCY-scale_pipeline_latency))
     return max(engine_path, input_path)
 
 
 def input_beats(
     seq: int, tile: int, depth: int, k_reuse: bool = False,
-    block_size: int = 16,
+    block_size: int = 16, scale_format: int = 0,
 ) -> int:
     tile_beats = ceil(tile * depth / 16)
     tile_rows = seq // tile
+    scales = scale_beats(seq, depth, block_size, scale_format)
     if k_reuse:
-        return seq * ceil(depth / block_size) + 2 * tile_rows * tile_beats
-    return (seq * ceil(depth / block_size) + tile_rows * tile_beats
+        return scales + 2 * tile_rows * tile_beats
+    return (scales + tile_rows * tile_beats
             + tile_rows * tile_rows * tile_beats)
+
+
+def scale_beats(seq: int, depth: int, block_size: int, scale_format: int) -> int:
+    """Scale-packet beats: two FP32 values or eight E4M3 values per beat."""
+    values = 2 * seq * ceil(depth / block_size)
+    per_beat = 8 if scale_format else 2
+    return ceil(values / per_beat)
 
 
 def binding_stage(
@@ -157,40 +169,52 @@ def replication_bounds(
 
 # Measured on master with Verilator 5.041 and a continuously ready host.
 # (label, seq, tile, depth, k_reuse, block size, score lanes, engines,
-#  cycles, beats)
+#  scale format, cycles, beats)
 MEASURED = [
-    ("v3 4x4 T=64", 64, 4, 64, False, 32, 1, 1, 16_578, 4_480),
-    ("v3 4x4 T=128", 128, 4, 64, False, 32, 1, 1, 65_858, 17_152),
-    ("v3 4x4 T=512", 512, 4, 64, False, 32, 1, 1, 1_049_666, 265_216),
-    ("v4 4x4 T=64", 64, 4, 64, True, 32, 1, 1, 16_818, 640),
-    ("v4 4x4 T=128", 128, 4, 64, True, 32, 1, 1, 66_354, 1_280),
-    ("v4 4x4 T=512", 512, 4, 64, True, 32, 1, 1, 1_051_698, 5_120),
-    ("v3 8x8 L1 T=64", 64, 8, 64, False, 32, 1, 1, 8_458, 2_432),
-    ("v3 8x8 L1 T=128", 128, 8, 64, False, 32, 1, 1, 33_162, 8_960),
-    ("v3 8x8 L1 T=512", 512, 8, 64, False, 32, 1, 1, 525_450, 134_144),
-    ("v3 16x16 L1 T=64", 64, 16, 64, False, 32, 1, 1, 8_618, 1_408),
-    ("v3 16x16 L1 T=128", 128, 16, 64, False, 32, 1, 1, 33_322, 4_864),
-    ("v3 16x16 L1 T=512", 512, 16, 64, False, 32, 1, 1, 525_610, 68_608),
-    ("v3 8x8 L2 T=512", 512, 8, 64, False, 32, 2, 1, 263_306, 134_144),
-    ("v3 8x8 L4 T=512", 512, 8, 64, False, 32, 4, 1, 263_290, 134_144),
-    ("v3 16x16 L2 T=512", 512, 16, 64, False, 32, 2, 1, 263_466, 68_608),
-    ("v3 16x16 L4 T=512", 512, 16, 64, False, 32, 4, 1, 137_504, 68_608),
-    ("v5 4x4 T=64", 64, 4, 64, False, 16, 1, 1, 16_706, 4_608),
-    ("v5 4x4 T=128", 128, 4, 64, False, 16, 1, 1, 66_114, 17_408),
-    ("v5 4x4 T=512", 512, 4, 64, False, 16, 1, 1, 1_050_690, 266_240),
-    ("v6 4x4 T=64", 64, 4, 64, True, 16, 1, 1, 16_946, 768),
-    ("v6 4x4 T=128", 128, 4, 64, True, 16, 1, 1, 66_610, 1_536),
-    ("v6 4x4 T=512", 512, 4, 64, True, 16, 1, 1, 1_052_722, 6_144),
-    ("v5 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 1, 526_458, 135_168),
-    ("v5 16x16 L4 T=512", 512, 16, 64, False, 16, 4, 1, 264_474, 69_632),
-    ("v5 4x4 N=2", 512, 4, 64, False, 16, 1, 2, 526_418, 266_240),
-    ("v5 4x4 N=4", 512, 4, 64, False, 16, 1, 4, 266_338, 266_240),
-    ("v5 4x4 N=8", 512, 4, 64, False, 16, 1, 8, 266_338, 266_240),
-    ("v5 4x4 N=16", 512, 4, 64, False, 16, 1, 16, 266_338, 266_240),
-    ("v6 4x4 N=2", 512, 4, 64, True, 16, 1, 2, 528_442, 6_144),
-    ("v6 4x4 N=4", 512, 4, 64, True, 16, 1, 4, 266_314, 6_144),
-    ("v6 4x4 N=8", 512, 4, 64, True, 16, 1, 8, 135_274, 6_144),
-    ("v6 4x4 N=16", 512, 4, 64, True, 16, 1, 16, 135_274, 6_144),
+    ("v3 4x4 T=64", 64, 4, 64, False, 32, 1, 1, 0, 16_578, 4_480),
+    ("v3 4x4 T=128", 128, 4, 64, False, 32, 1, 1, 0, 65_858, 17_152),
+    ("v3 4x4 T=512", 512, 4, 64, False, 32, 1, 1, 0, 1_049_666, 265_216),
+    ("v4 4x4 T=64", 64, 4, 64, True, 32, 1, 1, 0, 16_818, 640),
+    ("v4 4x4 T=128", 128, 4, 64, True, 32, 1, 1, 0, 66_354, 1_280),
+    ("v4 4x4 T=512", 512, 4, 64, True, 32, 1, 1, 0, 1_051_698, 5_120),
+    ("v3 8x8 L1 T=64", 64, 8, 64, False, 32, 1, 1, 0, 8_458, 2_432),
+    ("v3 8x8 L1 T=128", 128, 8, 64, False, 32, 1, 1, 0, 33_162, 8_960),
+    ("v3 8x8 L1 T=512", 512, 8, 64, False, 32, 1, 1, 0, 525_450, 134_144),
+    ("v3 16x16 L1 T=64", 64, 16, 64, False, 32, 1, 1, 0, 8_618, 1_408),
+    ("v3 16x16 L1 T=128", 128, 16, 64, False, 32, 1, 1, 0, 33_322, 4_864),
+    ("v3 16x16 L1 T=512", 512, 16, 64, False, 32, 1, 1, 0, 525_610, 68_608),
+    ("v3 8x8 L2 T=512", 512, 8, 64, False, 32, 2, 1, 0, 263_306, 134_144),
+    ("v3 8x8 L4 T=512", 512, 8, 64, False, 32, 4, 1, 0, 263_290, 134_144),
+    ("v3 16x16 L2 T=512", 512, 16, 64, False, 32, 2, 1, 0, 263_466, 68_608),
+    ("v3 16x16 L4 T=512", 512, 16, 64, False, 32, 4, 1, 0, 137_504, 68_608),
+    ("v5 4x4 T=64", 64, 4, 64, False, 16, 1, 1, 0, 16_706, 4_608),
+    ("v5 4x4 T=128", 128, 4, 64, False, 16, 1, 1, 0, 66_114, 17_408),
+    ("v5 4x4 T=512", 512, 4, 64, False, 16, 1, 1, 0, 1_050_690, 266_240),
+    ("v6 4x4 T=64", 64, 4, 64, True, 16, 1, 1, 0, 16_946, 768),
+    ("v6 4x4 T=128", 128, 4, 64, True, 16, 1, 1, 0, 66_610, 1_536),
+    ("v6 4x4 T=512", 512, 4, 64, True, 16, 1, 1, 0, 1_052_722, 6_144),
+    ("v5 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 1, 0, 526_458, 135_168),
+    ("v5 16x16 L4 T=512", 512, 16, 64, False, 16, 4, 1, 0, 264_474, 69_632),
+    ("v5 4x4 N=2", 512, 4, 64, False, 16, 1, 2, 0, 526_418, 266_240),
+    ("v5 4x4 N=4", 512, 4, 64, False, 16, 1, 4, 0, 266_338, 266_240),
+    ("v5 4x4 N=8", 512, 4, 64, False, 16, 1, 8, 0, 266_338, 266_240),
+    ("v5 4x4 N=16", 512, 4, 64, False, 16, 1, 16, 0, 266_338, 266_240),
+    ("v6 4x4 N=2", 512, 4, 64, True, 16, 1, 2, 0, 528_442, 6_144),
+    ("v6 4x4 N=4", 512, 4, 64, True, 16, 1, 4, 0, 266_314, 6_144),
+    ("v6 4x4 N=8", 512, 4, 64, True, 16, 1, 8, 0, 135_274, 6_144),
+    ("v6 4x4 N=16", 512, 4, 64, True, 16, 1, 16, 0, 135_274, 6_144),
+    ("v7 E4M3 4x4 T=64", 64, 4, 64, False, 16, 1, 1, 1, 16_511, 4_416),
+    ("v7 E4M3 4x4 T=128", 128, 4, 64, False, 16, 1, 1, 1, 65_727, 17_024),
+    ("v7 E4M3 4x4 T=512", 512, 4, 64, False, 16, 1, 1, 1, 1_049_151, 264_704),
+    ("v8 E4M3 4x4 T=64", 64, 4, 64, True, 16, 1, 1, 1, 16_751, 576),
+    ("v8 E4M3 4x4 T=128", 128, 4, 64, True, 16, 1, 1, 1, 66_223, 1_152),
+    ("v8 E4M3 4x4 T=512", 512, 4, 64, True, 16, 1, 1, 1, 1_051_183, 4_608),
+    ("v7 E4M3 8x8 L2 T=64", 64, 8, 64, False, 16, 2, 1, 1, 8_375, 2_368),
+    ("v7 E4M3 8x8 L2 T=128", 128, 8, 64, False, 16, 2, 1, 1, 33_015, 8_832),
+    ("v7 E4M3 8x8 L2 T=512", 512, 8, 64, False, 16, 2, 1, 1, 524_919, 133_632),
+    ("v7 E4M3 4x4 N=8 T=64", 64, 4, 64, False, 16, 1, 8, 1, 4_511, 4_416),
+    ("v7 E4M3 4x4 N=8 T=128", 128, 4, 64, False, 16, 1, 8, 1, 17_119, 17_024),
+    ("v7 E4M3 4x4 N=8 T=512", 512, 4, 64, False, 16, 1, 8, 1, 264_799, 264_704),
 ]
 
 
@@ -231,11 +255,11 @@ def main() -> int:
     failures = 0
     print(f"{'configuration':20} {'model':>10} {'measured':>10} {'beats':>9} {'meas':>9}")
     for (label, seq, tile, depth, reuse, block_size, score_lanes, engines,
-         want_cycles, want_beats) in MEASURED:
+         scale_format, want_cycles, want_beats) in MEASURED:
         got_cycles = core_cycles(
-            seq, tile, depth, reuse, block_size, score_lanes, engines
+            seq, tile, depth, reuse, block_size, score_lanes, engines, scale_format
         )
-        got_beats = input_beats(seq, tile, depth, reuse, block_size)
+        got_beats = input_beats(seq, tile, depth, reuse, block_size, scale_format)
         ok = got_cycles == want_cycles and got_beats == want_beats
         failures += not ok
         print(f"{label:20} {got_cycles:>10,} {want_cycles:>10,} "
