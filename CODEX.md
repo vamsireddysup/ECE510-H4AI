@@ -421,16 +421,4 @@ handoff and active dataflow, and claimed the lock. The atomic task removes the
 tile-wide block accumulator read mux while preserving score bits, protocol, and
 recorded cycles unless a measured pipeline dependency requires a model update.
 
-### 2026-09-29 — Codex — integrated multiplier checkpoint
-
-**Done.** Fixed `run_synthesis.sh` path quoting and mapped the 4x4 complete top
-on both sides of the shift/add change. Generic multiplication maps to 85,701
-cells and 257,649.61 um2; shift/add maps to 82,388 cells and 257,530.74 um2.
-The 3,313-cell reduction survives, while the standalone area projection does
-not: full-top area improves only 0.046%.
-
-**Verification.** Both rows use the same Yosys, Sky130 library, parameters, and
-wire-free flow. Next is the block-streaming accumulator and a routed congestion
-measurement.
-
 Older entries are in [docs/handoff-log.md](docs/handoff-log.md).

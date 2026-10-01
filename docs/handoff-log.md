@@ -6,6 +6,18 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-09-29 — Codex — integrated multiplier checkpoint
+
+**Done.** Fixed `run_synthesis.sh` path quoting and mapped the 4x4 complete top
+on both sides of the shift/add change. Generic multiplication maps to 85,701
+cells and 257,649.61 um2; shift/add maps to 82,388 cells and 257,530.74 um2.
+The 3,313-cell reduction survives, while the standalone area projection does
+not: full-top area improves only 0.046%.
+
+**Verification.** Both rows use the same Yosys, Sky130 library, parameters, and
+wire-free flow. Next is the block-streaming accumulator and a routed congestion
+measurement.
+
 ### 2026-09-29 — Codex — M2 shift-add integration
 
 **Done.** Replaced every active generic FP4 multiply with the ADR 0009 exact
