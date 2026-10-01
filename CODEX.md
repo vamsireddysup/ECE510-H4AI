@@ -270,8 +270,21 @@ Newest first. Keep the last eight entries here and move older ones to
 **Done.** Added `SCALE_FORMAT` to LibreLane's synthesized parameter list and
 run manifest. A generated configuration with `SCALE_FORMAT=1` contains the
 expected parameter, so the routed E4M3 comparison can no longer silently build
-the FP32 default. Next is the named E4M3 route; default selection waits for its
-timing, area, and signoff evidence.
+the FP32 default.
+
+**In flight.** The full routed comparison is running as
+`build/librelane/m2-e4m3-signoff-40ns` from revision `86a94ab`:
+
+```text
+SCALE_FORMAT=1 PL_RESIZER_HOLD_SLACK_MARGIN=0.3 \
+GRT_RESIZER_HOLD_SLACK_MARGIN=0.3 PL_RESIZER_SETUP_SLACK_MARGIN=0.1 \
+GRT_RESIZER_SETUP_SLACK_MARGIN=0.05 SYNTH_CLOCK_PERIOD=8 \
+./scripts/run_librelane.sh m2-e4m3-signoff-40ns 40 full
+```
+
+Check `synth.log`, then `pnr.log`; record the final metrics and rerun
+`make gate-power RUN=m2-e4m3-signoff-40ns` if final SPEF is produced. Default
+selection waits for timing, area, and signoff evidence from this run.
 
 ### 2026-10-01 — Codex — packed E4M3 storage and stream
 
