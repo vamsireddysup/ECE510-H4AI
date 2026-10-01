@@ -265,6 +265,14 @@ and get the project's first valid dynamic power number. See
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
 
+### 2026-10-01 — Codex — physical flow accepts scale format
+
+**Done.** Added `SCALE_FORMAT` to LibreLane's synthesized parameter list and
+run manifest. A generated configuration with `SCALE_FORMAT=1` contains the
+expected parameter, so the routed E4M3 comparison can no longer silently build
+the FP32 default. Next is the named E4M3 route; default selection waits for its
+timing, area, and signoff evidence.
+
 ### 2026-10-01 — Codex — packed E4M3 storage and stream
 
 **Done.** Narrowed `sq` and `sk` to eight bits when `SCALE_FORMAT=1`, packed

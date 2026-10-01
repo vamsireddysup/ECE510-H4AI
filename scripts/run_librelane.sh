@@ -7,8 +7,9 @@
 # netlist is far from meeting, so the two periods may differ.
 #   ./scripts/run_librelane.sh RUN_NAME PERIOD [MODE]
 #   MODE: synthesis | global-route | full (default)
-# Overrides: TILE_SIZE D_HEAD T_MAX K_REUSE SCALE_BLOCK_SIZE SCORE_LANES ENGINES,
-# SYNTH_CLOCK_PERIOD, DIE_EDGE, and the names in scripts/librelane_config.py.
+# Overrides: TILE_SIZE D_HEAD T_MAX K_REUSE SCALE_BLOCK_SIZE SCORE_LANES ENGINES
+# SCALE_FORMAT, SYNTH_CLOCK_PERIOD, DIE_EDGE, and the names in
+# scripts/librelane_config.py.
 set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
@@ -68,7 +69,7 @@ fi
     printf 'librelane=%s\nciel=%s\nsky130_pdk=%s\nimage=%s\n' \
         "$LIBRELANE_VERSION" "$CIEL_VERSION" "$SKY130_PDK_REVISION" "$LIBRELANE_IMAGE"
     printf 'image_id=%s\n' "$(docker image inspect "$LIBRELANE_IMAGE" --format '{{.Id}}' 2>/dev/null)"
-    for key in TILE_SIZE D_HEAD T_MAX K_REUSE SCALE_BLOCK_SIZE SCORE_LANES ENGINES \
+    for key in TILE_SIZE D_HEAD T_MAX K_REUSE SCALE_BLOCK_SIZE SCORE_LANES ENGINES SCALE_FORMAT \
                SYNTH_STRATEGY SYNTH_SIZING SYNTH_BUFFERING STD_CELL_LIBRARY \
                DIE_EDGE PL_TARGET_DENSITY_PCT MAX_TRANSITION_CONSTRAINT; do
         printf '%s=%s\n' "$(printf '%s' "$key" | tr 'A-Z' 'a-z')" "${!key:-default}"

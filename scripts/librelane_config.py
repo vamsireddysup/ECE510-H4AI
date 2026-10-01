@@ -37,6 +37,7 @@ OVERRIDES = {
 PARAMETERS = {
     "TILE_SIZE": "4", "D_HEAD": "64", "T_MAX": "16", "K_REUSE": "0",
     "SCALE_BLOCK_SIZE": "16", "SCORE_LANES": "1", "ENGINES": "1",
+    "SCALE_FORMAT": "0",
 }
 
 
