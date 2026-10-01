@@ -139,16 +139,6 @@ Updated 2026-09-29 by Codex.
   project can and cannot claim, so results may now be positioned against it.
   Per-block FP4/INT4 is **not** a novelty track: MixFP4 publishes the mechanism,
   the scale-sign-bit encoding, and the tensor-core area.
-- **Superseded note, kept for the record.** The earlier entry below said only
-  the two nearest papers were reviewed.
-  [docs/related-work.md](docs/related-work.md) now carries a full-text review
-  and corrects three claims the abstract-level version got wrong. Net effect:
-  per-block FP4/INT4 is **not** a strong novelty track, since MixFP4 already
-  publishes the mechanism, the scale-sign-bit encoding, and 3.1% tensor-core
-  area; and softmax-metric evaluation is table stakes, not a differentiator.
-  What survives is the open-PDK priced co-design, the maintained bit-exactness,
-  and the specific finding that searched E4M3 is both more accurate and 4.89x
-  smaller than FP32 scales.
 - **Annotated power is reproducible.** `make gate-power RUN=<librelane run>`
   simulates a routed netlist at gate level and reports per-corner power with
   activity annotated, refusing to print a number when nothing annotates.
@@ -167,31 +157,33 @@ Updated 2026-09-29 by Codex.
   `build/librelane/m2-signoff-hold/runs/pnr/final/` exists. If it reached GDS,
   record DRC, LVS, antenna, and nine-corner timing, then run
   `make gate-power RUN=m2-signoff-hold` for an SPEF-backed power number. If it
-  died, re-launch the command below.
+  died, re-launch it:
+
+  ```
+  PL_RESIZER_HOLD_SLACK_MARGIN=0.3 GRT_RESIZER_HOLD_SLACK_MARGIN=0.3 \
+  PL_RESIZER_SETUP_SLACK_MARGIN=0.1 GRT_RESIZER_SETUP_SLACK_MARGIN=0.05 \
+  SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-signoff-hold 40 full
+  ```
+
+  Hold failures are period-independent, so a slower clock will not help. The
+  global-route checkpoint passed hold at +0.4007 ns with repair off, so enabling
+  setup repair introduced these paths.
 - **`score_scaler` now carries both scale formats.** `SCALE_FORMAT=0` is the
   default and is bit-identical and cycle-identical to before; `SCALE_FORMAT=1`
   is the ADR 0008 E4M3 path, 3 scale cycles rather than 6 and exact. Nothing
   selects it yet. `make test-unit` checks both against a double-precision
   reference, 4,000 pairs each.
-- **Superseded next step, kept for context.** Re-run the same signoff point with larger hold margins,
-  `PL_RESIZER_HOLD_SLACK_MARGIN=0.3 GRT_RESIZER_HOLD_SLACK_MARGIN=0.3
-  PL_RESIZER_SETUP_SLACK_MARGIN=0.1 GRT_RESIZER_SETUP_SLACK_MARGIN=0.05
-  SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-signoff-hold 40 full`,
-  and let it reach GDS. Hold failures are period-independent, so a slower clock
-  will not help; the global-route checkpoint passed hold at +0.4007 ns with
-  repair off, so enabling setup repair introduced these paths. Then
-  `make gate-power RUN=m2-signoff-hold`, which picks up the nominal SPEF
-  automatically and upgrades the power number from estimated to extracted wires.
-- **Then.** Replace the FP32 scale path with the ADR 0008
-  searched-E4M3 scaler as protocol version 7. A verified drop-in already exists:
-  the scaler in the scratchpad adds a `SCALE_FORMAT` parameter, keeps the FP32
-  path bit-identical (3,000 cases checked) and is bit-exact in E4M3 (4,000
-  cases). Its E4M3 latency is 3 cycles against 6, so `SCALE_PIPELINE_LATENCY` in
-  `scripts/cycle_model.py` goes from 7 to 4 and the recorded cycle counts move.
-  Scores change too, because the new path is exact where the old rounded twice,
-  so the model and testbench must adopt the exact reference together with the
-  RTL. Power says why it is worth doing: the clock tree and sequential cells are
-  five sixths of total power, and E4M3 removes flops as well as multiplier area.
+- **Exact next step after that.** Switch the default to `SCALE_FORMAT=1` as
+  protocol version 7. The RTL already exists and is checked by `make test-unit`;
+  this step is the rest of the contract, and it **does** change results. Scores
+  change because the path is exact where the old one rounded twice;
+  `SCALE_PIPELINE_LATENCY` in `scripts/cycle_model.py` goes from 7 to 4; scale
+  storage narrows to one byte; and the scale packet carries eight scales per
+  beat instead of two. RTL, software model, testbench, and cycle model move in
+  one commit. Power says why it is worth doing: the clock tree and sequential
+  cells are five sixths of total power, and E4M3 removes flops as well as
+  multiplier area.
+
 
 ### Gotchas
 
