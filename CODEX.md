@@ -7,15 +7,38 @@ them before changing anything. There is deliberately no `CLAUDE.md`, and
 `AGENTS.md` only points here, so both agents work from one set of rules and one
 record of what happened.
 
-Keep this file under about 24 KB. Codex truncates project instructions at
-32 KiB by default, so older handoff entries move to
-[docs/handoff-log.md](docs/handoff-log.md). **The size budget outranks the
-eight-entry rule below.** Entries have grown long enough that eight of them put
-this file at 31 KB, a few hundred bytes from silent truncation; six bring it to
-27 KB. Rotate entries out until there is clear headroom, and if six still
-breaches 24 KB, the next thing to shorten is "Current state", whose M0 and M1
-bullets duplicate [docs/project-status.md](docs/project-status.md) and the ADRs.
-Nothing is lost by rotating: the archive keeps entries in full.
+## Size: the 24 KB budget was a mistake, do not re-impose it
+
+**This file has no 32 KiB limit, and nothing in it should ever be deleted or
+compressed to fit one.** The earlier rule said to keep it under about 24 KB
+because "Codex truncates project instructions at 32 KiB". That is a real Codex
+behaviour, but it applies to the **`AGENTS.md`** it auto-loads as project
+instructions, and `AGENTS.md` in this repository is **303 bytes**: a pointer to
+this file and nothing else. This file is not auto-loaded as project
+instructions; every agent reaches it through an ordinary file read, which
+returns the whole file. The budget was attributing `AGENTS.md`'s cap to the
+wrong file.
+
+The cost of that mistake was real: a 2026-10-01 session condensed the M0, M1,
+and prior-art bullets and rotated four handoff entries out to make room it did
+not need. All of it has been restored verbatim. This file is now about 37 KB
+and that is fine.
+
+**The rules that actually apply.**
+
+1. **Never delete or paraphrase state, rules, or measured numbers to save
+   bytes.** If this file feels long, that is not a reason to shorten it.
+2. **Keep `AGENTS.md` tiny.** It is the only file with a hard cap. If anything
+   ever needs to go into auto-loaded project instructions, it goes here instead
+   and `AGENTS.md` keeps pointing at it.
+3. **Rotation is for readability, not for size.** Move handoff entries older
+   than roughly the last eight to
+   [docs/handoff-log.md](docs/handoff-log.md), which is linked and complete, so
+   nothing is lost either way. Eight is a guide; keeping more is not a problem.
+4. **If this file ever does get too long to read comfortably**, split it by
+   topic into linked files under `docs/` and leave pointers here. Split, never
+   summarise, because a summary of a measured result is how a wrong number
+   becomes quotable.
 
 ## Session protocol
 
@@ -158,6 +181,13 @@ Updated 2026-10-01 by Codex.
   `./scripts/run_routed_sta.sh m2-signoff-fixed-io 6.0 40` and the
   `LIBRARY_LIMITS=1` variant. Takes about 3 h 39 min; re-launch with the exact
   command above, which uses `--overwrite`.
+- **The slew violations are never repaired, and that is a flow gap.** The only
+  `repair_design` pass is step 23, **before CTS**; hold repair at step 28 then
+  adds the delay cells, and `RUN_POST_GRT_DESIGN_REPAIR` and
+  `RUN_POST_GRT_RESIZER_TIMING` are both `False` by LibreLane default, so
+  nothing repairs their slew afterwards. The named fix is
+  `RUN_POST_GRT_DESIGN_REPAIR = True`. **Read the task board below before
+  touching slew**; it says what to change, what not to change, and why.
 - **Open decision for the owner, and M2 cannot be judged without it: "zero
   slew violations" against which limit?** Project constraints give 15,977 and
   989; library per-pin limits give 272 and 23. The two readings give opposite
@@ -187,35 +217,45 @@ Updated 2026-10-01 by Codex.
   with a quarter of the scale storage. E8M0 is 13.83x smaller but costs 2.34
   points of top-1, so it is rejected and the reopening condition is recorded.
   The RTL change lands with the M2 accumulator rework, as protocol version 7.
-- **M1's other five studies are closed and recorded**, in
-  [docs/results](docs/results/) and the ADRs; read those rather than re-deriving
-  them. In one line each: **preprocessing** (K centering, Hadamard rotation)
-  improves no capture on all four metrics, so neither is default;
-  **element-format selection** gains mean KL, TV, top-5, and Frobenius error but
-  loses 0.34 top-1 and regresses on the larger capture, so it is a
-  layer-selective P1 mode, not a global default; **accumulation order** keeps
-  sequential, since a balanced tree moves up to 29.4% of score bit patterns but
-  no top-k result and at most `1.53e-5` per score; the **exponent bound** safely
-  identifies 28.83% of scores and 8.66% of 4x4 BERT tiles at tau=4 but no
-  complete decoder tile, so it is not a general P0 feature; **decoder
-  validation** on two post-RoPE SmolLM2-135M heads at `D_HEAD=64` keeps searched
-  E4M3's aggregate advantage.
+- **M1 preprocessing is measured.** K channel-mean centering and normalized
+  Hadamard rotation have mixed capture-level effects. Neither improves KL, TV,
+  top-1, and top-5 together across all four captures, so neither becomes the
+  default. The 32-row record is machine-checked.
+- **M1 element-format selection is measured.** Reconstruction-selected FP4 or
+  INT4 blocks improve mean KL, TV, top-5, and Frobenius error, but lose 0.34
+  top-1 points and regress on the larger-model capture. The result supports a
+  layer-selective P1 mode, not a global default.
+- **M1 accumulation order is settled.** A balanced tree changes up to 29.4% of
+  score bit patterns but no top-k result and at most `1.53e-5` per score. M2
+  keeps sequential order to preserve the bit-exact contract.
+- **M1 exponent-bound opportunity is measured.** At a four-logit margin, a
+  conservative sign-and-exponent bound safely identifies 28.83% of scores and
+  8.66% of complete 4x4 BERT tiles on average, with no top-k change. It requires
+  a row maximum and does not identify a complete tile in either decoder head.
+- **M1 decoder validation is pinned.** Two post-RoPE SmolLM2-135M heads at
+  `D_HEAD=64` retain searched E4M3's aggregate advantage. Preprocessing and
+  adaptive FP4/INT4 remain layer-dependent. The exponent bound covers no whole
+  4x4 decoder tile at tau=4, so it is not a general P0 feature.
 - **M1 multiplier structure is settled.** [ADR 0009](docs/adr/0009-use-e2m1-shift-add-products.md)
-  selects an exact E2M1 shift/add product, active in `qkt_engine`, formally
-  equivalent to the integer product and 56.24% smaller in the standalone probe.
-  A same-flow complete-top comparison saves 3,313 cells but only 0.046% area, so
-  **the standalone projection is rejected** — the same probe-does-not-transfer
-  trap as ADR 0008's area claim. All precision suites retain identical scores
-  and cycles.
-- **M0 is complete.** LibreLane took the `D_HEAD=4` RTL to GDS with zero DRC,
-  LVS, and antenna violations, stopping correctly at the hold checker (setup
-  -2.03 ns, hold -0.06 ns slow, 20 ns). Its 18.6 mW power number is **not**
+  selects an exact E2M1 shift/add product. It is formally equivalent to the
+  current integer product and maps 56.24% smaller in the standalone probe. A
+  same-flow complete-top comparison saves 3,313 cells but only 0.046% area, so
+  the standalone area projection is rejected. The
+  archived ROM is smaller in isolation but emits FP32 and excludes reduction
+  cost. The selected expression is active in `qkt_engine`; all large and RTL
+  precision suites retain identical scores and cycles.
+- **M0 is complete.** The gate run finished after the handoff was written:
+  LibreLane took the `D_HEAD=4` configuration RTL to GDS with zero DRC, zero
+  LVS, and **zero antenna violations**, then stopped correctly at the hold
+  checker (setup -2.03 ns, hold -0.06 ns at the slow corner, 20 ns). Recorded
+  in `docs/results/physical-design.md`. Its 18.6 mW power number is **not**
   usable: no switching activity was annotated.
-- **The prior-art gate is satisfied.** All nine cited papers read in full;
-  three did not match their abstracts, and only three report synthesized
-  hardware, none in an open PDK. See `docs/related-work.md` for what this
-  project can and cannot claim. Per-block FP4/INT4 is **not** a novelty track:
-  MixFP4 publishes the mechanism, the scale-sign-bit encoding, and the area.
+- **The prior-art gate is satisfied.** All nine cited papers have been read in
+  full; three did not match their abstracts. Only three report synthesized
+  hardware, none in an open PDK. `docs/related-work.md` states plainly what this
+  project can and cannot claim, so results may now be positioned against it.
+  Per-block FP4/INT4 is **not** a novelty track: MixFP4 publishes the mechanism,
+  the scale-sign-bit encoding, and the tensor-core area.
 - **Annotated power is reproducible.** `make gate-power RUN=<librelane run>`
   simulates a routed netlist at gate level and reports per-corner power with
   activity annotated, refusing to print a number when nothing annotates.
@@ -273,6 +313,59 @@ Updated 2026-10-01 by Codex.
   measured, and regenerate the recorded cycle and precision rows in the same
   commit.
 
+
+### Task board, M2 slew and hold, updated 2026-10-01 by Claude (Opus 5)
+
+One list, newest understanding, so no agent has to reconstruct it from the
+handoff entries. Status words are literal: **done** means committed and
+verified, **in flight** means a process is running now, **next** means nobody
+has started it.
+
+| # | Task | Status |
+| --- | --- | --- |
+| 1 | Classify the 1,838 hold failures by path class | **done**, `4dcbf36`. All input-port, none register to register |
+| 2 | Find the input minimum delay that closes hold | **done**, `4dcbf36`. Closes at >= 4.898 ns; default set to 6.0 ns |
+| 3 | Build a fixed-netlist STA re-check harness | **done**, `4dcbf36`. `scripts/run_routed_sta.sh`, reproduces the recorded run exactly |
+| 4 | Separate real slew/cap violations from project margin | **done**, `5bc4db3`. 272 and 23 against library limits, not 15,977 and 989 |
+| 5 | Trace the real slew violations to their drivers | **done**, `a2108dc`. 81% driven by delay cells from hold repair |
+| 6 | Characterize the 6 antenna nets and 7 pins | **done**, `1048f2b`. Real met2/met3 side-area, 431 to 1275 against 400 |
+| 7 | Test the corrected constraint in a full run | **in flight**, `m2-signoff-fixed-io`, see the in-flight entry above |
+| 8 | Plumb and enable `RUN_POST_GRT_DESIGN_REPAIR` | **next**, blocked on task 7 finishing |
+| 9 | Decide the slew gate limit | **next**, owner's call, recorded in `docs/project-status.md` |
+| 10 | Decide whether E4M3 becomes the default | **next**, needs the routed E4M3 comparison, which the owner stopped |
+
+**Task 8, exactly what to change and why.** The flow has one slew and
+capacitance repair pass, step 23 `repairdesignpostgpl`, and it runs **before**
+CTS. Hold repair at step 28 then inserts the delay cells, and
+`RUN_POST_GRT_DESIGN_REPAIR` and `RUN_POST_GRT_RESIZER_TIMING` are both
+`False`, which are LibreLane 3.0.14's own defaults that this project never
+sets. So nothing repairs the slew of anything hold repair adds. Setting
+`RUN_POST_GRT_DESIGN_REPAIR = True` adds that pass after global route, with
+targets that already exist as `GRT_DESIGN_REPAIR_MAX_SLEW_PCT = 10` and
+`GRT_DESIGN_REPAIR_MAX_CAP_PCT = 10`. It needs plumbing:
+`scripts/librelane_config.py` exposes only the two `RESIZER_TIMING` flags, not
+the two `DESIGN_REPAIR` ones. The pass resizes and buffers, so it can perturb
+hold; re-check all nine corners with `scripts/run_routed_sta.sh` afterwards.
+It is **blocked on task 7** only because `scripts/` is mounted into the running
+container and must not be edited while a physical run is live.
+
+**Do not relax `MAX_TRANSITION_CONSTRAINT` from 0.75 ns to the library's
+1.5 ns.** It is the optimiser's target, not the pass/fail threshold. Relaxed,
+the tools stop repairing below 1.5 ns and the design settles just under the
+library limit, which is the worst place to sit: Sky130 Liberty is characterised
+to about 1.5 ns, so past it cell delays are **extrapolated** and those pins'
+timing is untrustworthy; slow edges raise short-circuit power, and this project
+publishes a 23.3 to 33.7 mW figure; and this flow runs **no signal-integrity
+analysis**, so slow edges carry crosstalk risk nothing here models. Keep the
+tight target and gate on the library limit. Full reasoning in
+[docs/results/physical-design.md](docs/results/physical-design.md).
+
+**Do not ban the delay cells** with `EXTRA_EXCLUDED_CELLS`, currently `None`.
+It looks like the direct fix because `clkdlybuf4s25_1` and `dlygate4sd3_1`
+drive 81% of the real violations, but delay cells are the area-efficient way to
+pad a hold path, so banning them makes hold repair use ordinary buffers and
+inflates area for the same delay. Their slew never being repaired is the
+problem, not their use.
 
 ### Gotchas
 
@@ -339,9 +432,10 @@ and get the project's first valid dynamic power number. See
 
 ## Handoff log
 
-Newest first. Keep the last six to eight entries here, whichever keeps this
-file under 24 KB, and move older ones to
-[docs/handoff-log.md](docs/handoff-log.md).
+Newest first. Keep roughly the last eight entries here and move older ones to
+[docs/handoff-log.md](docs/handoff-log.md). This is for readability only; see
+the size note at the top of this file before shortening anything to fit a
+byte budget, because there is no byte budget.
 
 ### 2026-10-01 — Claude (Opus 5) — hold diagnosed: an input-delay constraint
 
@@ -486,5 +580,119 @@ tree. The rerun annotates 284,357 pins and gives 23.3 to 33.7 mW, or 5.15 to
 **Next.** One-byte E4M3 scale storage and eight packed scale bytes per beat are
 implemented and passing in the isolated `codex/e4pack` worktree; integrate it
 after this physical-result commit.
+
+### 2026-10-01 — Codex — received E4M3 and signoff handoff
+
+**Started.** Confirmed clean synchronized `master` at `2b7fe73`, read Claude's
+E4M3 implementation and corrected integrated-area result, and claimed the
+in-flight `m2-signoff-hold` run. It is still active in detailed routing. The
+next code task after recording that result is one-byte E4M3 scale storage and
+eight scales per input beat, with protocol, model, tests, and measured records
+updated together.
+
+### 2026-10-01 — Claude (Opus 5) — E4M3 selectable end to end; area claim corrected
+
+**Done, in a one-hour window the owner set.** `SCALE_FORMAT` is plumbed through
+the top and engine, so E4M3 block scales are now selectable in the real design
+as protocol version 7, or 8 with K reuse.
+
+- Every integration suite passes with E4M3, each score **bit-exact** against a
+  single-rounding reference: the directed suites, T=512, `ENGINES=8`, and K
+  reuse. The testbench carries E4M3 codes on the wire and rounds once per block
+  rather than twice, matching the hardware.
+- Two new assertions check ADR 0008's exactness argument rather than asserting
+  it in prose: the six product bits the path discards are always zero, and the
+  conversion leaves enough headroom. They fail loudly if `ACC_W` grows past 17,
+  which P1's 43-bit FP8 accumulator would do.
+- Lint covers fourteen parameter sets, three E4M3. Default `SCALE_FORMAT=0` is
+  untouched: `make test`, 32 of 32 cycle configurations, and the T=512
+  precision run all reproduce exactly.
+
+**The finding that matters, and it is a correction.** Integrated, E4M3 gives
+**10.9% fewer cells but only 0.12% less area**, against the standalone probe's
+4.89x. ADR 0008, the precision record, and the results index now say so. The
+cause is the same one ADR 0009 recorded for the multiplier, and I should have
+expected it: the probe removes small combinational cells while mapped area here
+is dominated by flip-flops. **`sq` and `sk` are still 32 bits wide**, so the
+four-times scale-storage saving the ADR claims has not actually been taken yet.
+That is the next step and it is where the area is.
+
+**What survives unchanged:** better accuracy on every softmax metric across six
+pinned heads, exact scale application where FP32 rounds twice, and three fewer
+cycles per command.
+
+**In flight.** The `m2-signoff-hold` run from the previous session was still in
+place-and-route when this session ended; see the state above for how to check
+it. It was launched from the committed RTL before the `SCALE_FORMAT` plumbing,
+which does not change `SCALE_FORMAT=0` behavior, so its result is still valid
+for the default build.
+
+### 2026-10-01 — Claude (Opus 5) — E4M3 scale path landed, first unit check
+
+**Done, in a 30-minute window the owner set.**
+
+- `rtl/core/score_scaler.sv` gains `SCALE_FORMAT`. 0 is the default FP32 path
+  and is **bit-identical and cycle-identical** to the two-multiplier design:
+  eleven lint sets, `make test`, both T=512 protocols at 1,050,690 and
+  1,052,722 cycles, **32 of 32** recorded cycle configurations, and the T=512
+  precision run at `ENGINES` 1 and 8 all reproduce exactly. 1 is the ADR 0008
+  E4M3 path: one narrow significand multiply, 3 scale cycles rather than 6, and
+  exact because the product fits FP32's significand for `ACC_W <= 17`.
+  **Nothing selects it yet**, by design, so this commit cannot change a result.
+- `tb/unit/tb_score_scaler.cpp` and `make test-unit` are the first `tb/unit`
+  check. FP32 must reproduce two chained single-precision roundings and E4M3
+  must be exact; 4,000 random pairs each against a double-precision reference,
+  both 0 mismatches. It runs inside `make test`. The verification plan's "there
+  are no unit tests" gap is rewritten rather than deleted, because every other
+  arithmetic block is still covered only through the full top.
+
+**Why the unit check mattered.** The E4M3 path was verified last session in a
+scratchpad that did not survive, so the RTL would have entered the tree with no
+standing evidence. Landing the check first means the next agent can change it
+and know immediately whether it still holds.
+
+**Next, in order.** Finish the in-flight `m2-signoff-hold` run and record it.
+Then switch the default to `SCALE_FORMAT=1` as protocol version 7, which is the
+step that **does** change results: scores change because the path is exact where
+the old one rounded twice, `SCALE_PIPELINE_LATENCY` in
+`scripts/cycle_model.py` goes from 7 to 4, scale storage narrows to one byte,
+and the scale packet carries eight scales per beat instead of two. The RTL,
+model, testbench, and cycle model must move in one commit. Power says why it is
+worth doing: the clock tree and sequential cells are five sixths of total power,
+and E4M3 removes flops as well as multiplier area.
+
+### 2026-09-30 — Claude (Opus 5) — signoff reaches extraction; session end
+
+**Stopped** because the owner is handing over to Codex. The tree is clean and
+everything is pushed; `make test` passes. Nothing is half-finished in the
+repository.
+
+**Done.** The `m2-signoff-40ns` run was killed by the session ending, but it had
+already gone much further than the previous checkpoint, so its results are
+recorded rather than discarded: detailed routing **0 violations**, DRC checker
+passed, antennas 4 nets and 4 pins, longest net 1,795.89 um, RCX extraction
+complete with a 123 MB nominal SPEF, and nine-corner post-route STA.
+
+**The headline.** With timing repair enabled and extracted parasitics,
+**setup closes at every corner**, worst +9.8463 ns at 40 ns, which is a routed
+setup-limited minimum period of **30.15 ns**. **Hold fails at the slow corner at
+-1.6856 ns**, while typical and fast pass. The global-route checkpoint passed
+hold at +0.4007 ns with repair off, so enabling setup repair introduced these
+paths: an ordinary setup-versus-hold trade, fixable with larger hold margins,
+not a structural problem. Because the run stopped before Magic and KLayout DRC,
+LVS, and GDS, **the M2 gate is not met**.
+
+**Everything this session, in order.** Verified Codex's M1 and M2 handoff
+independently, 32 of 32 cycle configurations exact. Resumed the interrupted
+checkpoint and got the **first congestion-free route**, zero overflow on every
+metal layer. Completed the **full-text prior-art review** of all nine cited
+papers, of which three did not match their abstracts, which cost us the
+per-block FP4/INT4 novelty track. Found and recorded that **E4M3 scale
+application is exact**. Built the gate-level power path and produced the
+project's **first valid power number**, 18.6 to 26.8 mW and 4.12 to 5.93 nJ per
+score with 257,686 annotated pin activities. Rotated the handoff log.
+
+**Left ready but not integrated.** A verified E4M3 `score_scaler` drop-in exists
+outside `rtl/`; see the note above for where and what it changes.
 
 Older entries are in [docs/handoff-log.md](docs/handoff-log.md).

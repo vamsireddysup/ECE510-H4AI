@@ -1009,3 +1009,78 @@ antenna to be "resolved or explicitly accepted". Seven pins at up to 3.19 times
 a side-area ratio on a 1,800 um die is a defensible acceptance, but it should be
 decided after the corrected run, not before, because the nets involved may not
 survive a flow that inserts far fewer repair buffers.
+
+## Why the slew violations are never repaired, and the plan for them
+
+The mechanism is a gap in the flow, not a property of the design. The step list
+of `m2-signoff-hold` shows exactly one slew and capacitance repair pass:
+
+| Step | What it does |
+| --- | --- |
+| 23 `repairdesignpostgpl` | **The only `repair_design`**: slew, capacitance, fanout. Runs after global placement, **before CTS** |
+| 26 `cts` | Builds the clock tree |
+| 28 `resizertimingpostcts` | **Hold repair**, which inserted the 12,743 delay cells |
+| 30 to 35 | Global route, antenna repair, detailed route |
+
+Nothing after step 28 repairs slew. The two flags that would, both LibreLane
+3.0.14 defaults that this project never sets, are off:
+`RUN_POST_GRT_DESIGN_REPAIR = False` and
+`RUN_POST_GRT_RESIZER_TIMING = False`, against
+`RUN_POST_GPL_DESIGN_REPAIR = True`. So the 12,743 delay cells that hold repair
+inserts are **never slew-checked or repaired by any later pass**, and they go
+on to drive 81% of the violations that remain above the library limit. The flow
+repairs slew, then adds thousands of deliberately weak cells, then never looks
+again.
+
+### The plan, in order
+
+**1. Remove the cause.** The in-flight `m2-signoff-fixed-io` run, with the
+corrected 6.0 ns input minimum delay and hold margins back to 0.05, should
+insert far fewer than 12,743 hold buffers. Fewer inserted delay cells means a
+smaller population of never-repaired cells. This treats the cause and is why it
+comes first.
+
+**2. Close the flow gap: set `RUN_POST_GRT_DESIGN_REPAIR = True`.** This is the
+one change aimed at the mechanism itself. It adds a slew and capacitance repair
+pass after global route, which is after hold repair and with real routing
+estimates rather than the pre-CTS wire-load guesses step 23 used. Its targets
+already exist as `GRT_DESIGN_REPAIR_MAX_SLEW_PCT = 10` and
+`GRT_DESIGN_REPAIR_MAX_CAP_PCT = 10`. It needs plumbing:
+`scripts/librelane_config.py` currently exposes only the two `RESIZER_TIMING`
+flags, not the two `DESIGN_REPAIR` ones. The risk to watch is that this pass
+resizes and buffers, so it can perturb hold; re-check all nine corners after,
+which `scripts/run_routed_sta.sh` now makes cheap.
+
+**3. Keep `MAX_TRANSITION_CONSTRAINT` at 0.75 ns. Do not relax it to the
+library's 1.5 ns.** Relaxing it is the tempting shortcut and it is the wrong
+move. The constraint is the optimiser's *target*, not the pass/fail threshold.
+Relaxed to 1.5 ns, the tools stop repairing anything below 1.5 ns and the design
+settles just under the library limit, which is the worst place to sit:
+
+- Sky130 Liberty is characterised to about 1.5 ns, so beyond it cell delays are
+  **extrapolated** and the timing report for those pins is not trustworthy.
+  That makes a library-limit violation a correctness problem, not a margin one.
+- Slow edges raise short-circuit power, and this project publishes a 23.3 to
+  33.7 mW number, so it is a figure that actually moves.
+- This flow runs **no signal-integrity analysis**, so slow edges carry
+  crosstalk risk that nothing here models.
+
+A tight internal target with the library limit as the hard floor is the normal
+arrangement, and the project already has the tight target. Keep it.
+
+**4. Gate on the library limit and report both numbers.** The recommendation on
+the open gate question is that M2 passes on zero violations against library
+per-pin limits, with the 0.75 ns count reported alongside as quality margin
+that should trend toward zero without blocking the gate. The decision is the
+owner's; this is the reasoning behind the recommendation.
+
+**5. Only then, targeted upsizing** of whatever specific drivers remain above
+the library limit. Not first: it is manual work against a target that steps 1
+and 2 are about to move.
+
+**What not to do.** Do not ban the delay cells with `EXTRA_EXCLUDED_CELLS`,
+currently `None`. It looks like the direct fix, since `clkdlybuf4s25_1` and
+`dlygate4sd3_1` drive 81% of the real violations, but delay cells are the
+area-efficient way to pad a hold path; banning them makes hold repair fall back
+on ordinary buffers and inflates area for the same delay. The problem is that
+their slew is never repaired, not that they were used. Fix the gap in step 2.
