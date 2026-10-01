@@ -1,5 +1,19 @@
 # Latest verification
 
+## October 1 M2 hold-margin signoff
+
+LibreLane 3.0.14 completed all 80 stages for the 4x4 M2 top at 40 ns and
+produced final GDS and extracted SPEF. Setup closes with +9.4961 ns worst slack;
+Magic and KLayout DRC are zero and LVS passes. Closure still fails: worst hold
+is -1.8979 ns over 1,838 endpoints in slow corners, six antenna nets remain,
+and worst-corner slew/capacitance counts are 15,977/989. Register-to-register
+hold passes at +0.2684 ns, which narrows the next diagnosis.
+
+The SPEF-aware gate-power rerun annotates 284,357 pin activities and reports
+23.3 to 33.7 mW, or 5.15 to 7.46 nJ per score for the T=8, 354-cycle command at
+40 ns. This is measured post-route activity and parasitics at a non-closing
+operating point, not a signoff energy claim.
+
 ## September 29 M2 block-streaming accumulator
 
 The active engine now ping-pongs two single-block exact accumulators and streams

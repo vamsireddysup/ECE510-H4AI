@@ -26,7 +26,7 @@ fi
 final="$tool_root/build/librelane/$run_name/runs/pnr/final"
 netlist="$final/nl/qkt_chiplet_top.nl.v"
 [[ -f "$netlist" ]] || { printf 'No routed netlist: %s\n' "$netlist" >&2; exit 1; }
-spef="$(ls "$final"/spef/*nom*.spef 2>/dev/null | head -1 || true)"
+spef="$(find "$final/spef" -type f -name '*nom*.spef' -print -quit 2>/dev/null || true)"
 
 work="$tool_root/build/gate/$run_name"
 models="$pdk_root/sky130A/libs.ref/sky130_fd_sc_hd/verilog"

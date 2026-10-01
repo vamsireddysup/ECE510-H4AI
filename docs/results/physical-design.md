@@ -769,3 +769,41 @@ automatically and upgrade the power number from estimated to extracted wires.
 - [Architecture](../architecture.md)
 - [Performance results](performance.md)
 - [Results index](README.md)
+
+## M2 hold-margin signoff: full flow completes, closure still fails
+
+The `m2-signoff-hold` run at revision `2b7fe73` completed all 80 LibreLane
+3.0.14 stages in 3 h 39 min. It used a 40 ns clock, a 1,800 um square die,
+placement setup/hold margins of 0.1/0.3 ns, and global-route margins of
+0.05/0.3 ns. This is the first M2 run to produce final GDS, extracted SPEF,
+Magic and KLayout DRC, and LVS together.
+
+| Check | Result |
+| --- | ---: |
+| Worst setup slack, nine corners | +9.4961 ns |
+| Worst hold slack | **-1.8979 ns** |
+| Hold-violating endpoints | 1,838, all three slow-corner analyses |
+| Worst register-to-register hold slack | +0.2684 ns |
+| Detailed-route / Magic / KLayout DRC | 0 / 0 / 0 |
+| LVS | passed |
+| Antenna | 6 nets, 7 pins fail |
+| Worst-corner maximum slew / capacitance | 15,977 / 989 violations |
+| Die / standard-cell area | 3.24 / 1.00373 mm2 |
+
+The larger hold margins did not close hold: worst slack regressed from
+-1.6856 ns to -1.8979 ns. Register-to-register hold passes, so the remaining
+reported failures are outside that path class and need constraint/path analysis
+before another blind margin increase. Setup still closes comfortably. DRC and
+LVS are clean, but the antenna, slew, capacitance, and hold failures mean this
+is not signoff closure.
+
+The gate-level power path was corrected to find LibreLane's nested nominal SPEF,
+then rerun on this final netlist. A complete T=8 command annotates 284,357 pin
+activities. Total power is 23.3, 29.0, and 33.7 mW at the slow, typical, and fast
+corners. At 354 command cycles and 40 ns, that is **5.15 to 7.46 nJ per score**.
+This is extracted-parasitic, activity-annotated power, but it remains a
+non-closing 40 ns operating point and a short T=8 workload.
+
+The reviewed rows are in
+[`data/m2-signoff-hold.csv`](data/m2-signoff-hold.csv). Generated run logs and
+GDS remain under ignored `build/`.

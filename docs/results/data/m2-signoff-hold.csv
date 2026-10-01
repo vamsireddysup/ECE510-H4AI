@@ -1,0 +1,21 @@
+stage,metric,value,unit,status
+configuration,git_revision,2b7fe73,revision,measured; LibreLane 3.0.14; Sky130 8afc8346a57fe1ab7934ba5a6056ea8b43078e71
+configuration,clock_period,40,ns,measured constraint
+configuration,die_area,3.24,mm2,measured; 1800 um square
+configuration,standard_cell_area,1.00373,mm2,measured; excludes filler
+post-pnr-sta,setup_ws_worst,9.4961,ns,measured; extracted parasitics; 9 corners
+post-pnr-sta,hold_ws_worst,-1.8979,ns,measured; max_ss_100C_1v60
+post-pnr-sta,hold_violating_endpoints,1838,endpoints,measured; all in slow corners
+post-pnr-sta,hold_r2r_ws_worst,0.2684,ns,measured; register-to-register paths pass
+signoff,route_drc,0,violations,measured
+signoff,magic_drc,0,violations,measured
+signoff,klayout_drc,0,violations,measured
+signoff,lvs,passed,status,measured
+signoff,antenna_nets,6,nets,measured
+signoff,antenna_pins,7,pins,measured
+signoff,max_slew_worst,15977,violations,measured; max_ss_100C_1v60
+signoff,max_cap_worst,989,violations,measured; max_ss_100C_1v60
+power,ss_total,23.3,mW,measured; VCD annotated; nominal SPEF; 284357 pins
+power,tt_total,29.0,mW,measured; VCD annotated; nominal SPEF; 284357 pins
+power,ff_total,33.7,mW,measured; VCD annotated; nominal SPEF; 284357 pins
+power,energy_per_score_range,5.15-7.46,nJ,derived; T=8; 354 cycles; 40 ns

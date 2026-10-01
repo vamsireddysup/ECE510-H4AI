@@ -23,6 +23,7 @@ waveforms, and complete physical runs stay under ignored `build/`.
 | [Bs=16 default simulation](data/bs16-default-simulation.csv) | Current protocol cycles, traffic, utilization, and RTL precision |
 | [Physical constraint sweep](data/physical-constraint-sweep.csv) | Floorplan, timing, and signoff outcomes |
 | [M2 signoff at 40 ns](data/m2-signoff-40ns.csv) | Detailed routing, extraction, and nine-corner post-route timing |
+| [M2 hold-margin signoff](data/m2-signoff-hold.csv) | Final GDS, timing, DRC/LVS, antenna, and SPEF-aware power after the hold-margin rerun |
 | [M2 annotated power](data/m2-annotated-power.csv) | First VCD-annotated power and energy per score, three corners |
 | [M2 global route](data/m2-global-route.csv) | First congestion-free route of the block-streaming top, with per-corner timing |
 | [M0 gate metrics](data/m0-gate-librelane-metrics.csv) | LibreLane RTL-to-GDS signoff metrics for the `D_HEAD=4` toolchain gate |

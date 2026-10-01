@@ -59,7 +59,7 @@ then narrowing E4M3 scale storage.
 
 ## Current state
 
-Updated 2026-09-29 by Codex.
+Updated 2026-10-01 by Codex.
 
 - **Branch and commit.** `master`, pushed to
   `vamsireddysup/FP4-transformer-attention-accelerator`. CI and `make test`
@@ -77,18 +77,16 @@ Updated 2026-09-29 by Codex.
 - **Best timing evidence.** Mapped netlist, `DELAY 0` at an 8 ns target, no
   wires: 18.241 ns slow-corner and 8.998 ns typical-corner minimum period at
   `34d9df5`. This is not a routed or closing frequency.
-- **The congestion blocker is cleared.** The M2 block-streaming top completes
-  global routing with **zero overflow on every metal layer**, zero antenna, zero
-  slew, and zero capacitance violations, and hold passes at the slow corner at
-  **+0.4007 ns** against -1.2765 ns before. Recorded in
-  `docs/results/physical-design.md`. What remains is frequency: setup misses by
-  9.94 ns at 30 ns, so the slow-corner minimum period is 39.94 ns.
-- **The first valid power number exists.** 18.6 to 26.8 mW across three corners
-  and 4.12 to 5.93 nJ per score, from a gate-level VCD with 257,686 pin
-  activities annotated. The clock tree is 33% of total power and sequential
-  cells about half, so this design is dominated by state and clocking, not
-  arithmetic. Caveats: global-route netlist without SPEF, one T=8 command, and
-  40 ns rather than a closed period.
+- **Full M2 signoff now runs to completion but does not close.** At 40 ns,
+  nine-corner setup passes with +9.4961 ns worst slack, detailed-route, Magic,
+  and KLayout DRC are zero, and LVS passes. Hold fails at -1.8979 ns over 1,838
+  endpoints in slow corners; six antenna nets and substantial slew/capacitance
+  violations remain. Register-to-register hold passes at +0.2684 ns. See
+  `docs/results/physical-design.md`.
+- **Extracted-parasitic power is measured.** The final-netlist T=8 run annotates
+  284,357 pin activities and reports 23.3 to 33.7 mW, or 5.15 to 7.46 nJ per
+  score. It uses nominal SPEF and a 40 ns point that still fails hold, antenna,
+  slew, and capacitance checks; it is evidence, not a signoff energy claim.
 - **Toolchain.** LibreLane 3.0.14 is installed by
   `scripts/install_librelane.sh` (venv `~/.local/share/fp4-accel/librelane-venv`,
   ciel 2.6.1, Sky130 `8afc8346a57fe1ab7934ba5a6056ea8b43078e71` in `~/.ciel`,
@@ -265,6 +263,26 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-10-01 — Codex — full M2 signoff outcome and SPEF-aware power
+
+**Done.** Took ownership of Claude's `m2-signoff-hold` run and carried it through
+all 80 LibreLane stages. The run produces final GDS and SPEF; setup passes at
++9.4961 ns worst slack, all three DRC checks are zero, and LVS passes. It still
+does not close: hold is -1.8979 ns over 1,838 slow-corner endpoints, antenna is
+6 nets/7 pins, and worst-corner slew/capacitance counts are 15,977/989.
+Register-to-register hold passes at +0.2684 ns, so the next hold investigation
+must classify the remaining path type instead of only increasing repair margin.
+
+**Power correction.** `run_gate_power.sh` did not find LibreLane 3's nested
+`final/spef/nom/` path and silently ran without SPEF. The glob now searches the
+tree. The rerun annotates 284,357 pins and gives 23.3 to 33.7 mW, or 5.15 to
+7.46 nJ per score for the 354-cycle T=8 command at 40 ns. Results are in
+`docs/results/data/m2-signoff-hold.csv`; large run outputs remain ignored.
+
+**Next.** One-byte E4M3 scale storage and eight packed scale bytes per beat are
+implemented and passing in the isolated `codex/e4pack` worktree; integrate it
+after this physical-result commit.
 
 ### 2026-10-01 — Codex — received E4M3 and signoff handoff
 
