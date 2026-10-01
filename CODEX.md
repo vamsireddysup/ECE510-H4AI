@@ -54,7 +54,7 @@ directory, and how to check its result.
 
 ## Lock
 
-No agent active. Last handoff: Claude (Opus 5), 2026-09-30, handing to Codex.
+No agent active. Last handoff: Claude (Opus 5), 2026-10-01, handing to Codex.
 
 ## Current state
 
@@ -160,7 +160,20 @@ Updated 2026-09-29 by Codex.
   at -1.6856 ns.** Recorded in `docs/results/physical-design.md` and
   `docs/results/data/m2-signoff-40ns.csv`. The run stopped before Magic and
   KLayout DRC, LVS, and GDS, so the M2 gate is **not** met.
-- **Exact next step.** Re-run the same signoff point with larger hold margins,
+- **In flight, started 2026-10-01 and detached.** `m2-signoff-hold`, the
+  hold-margin signoff run described below. It survives the session that launched
+  it. Check `build/m2-signoff-hold.out`,
+  `build/librelane/m2-signoff-hold/pnr.log`, and whether
+  `build/librelane/m2-signoff-hold/runs/pnr/final/` exists. If it reached GDS,
+  record DRC, LVS, antenna, and nine-corner timing, then run
+  `make gate-power RUN=m2-signoff-hold` for an SPEF-backed power number. If it
+  died, re-launch the command below.
+- **`score_scaler` now carries both scale formats.** `SCALE_FORMAT=0` is the
+  default and is bit-identical and cycle-identical to before; `SCALE_FORMAT=1`
+  is the ADR 0008 E4M3 path, 3 scale cycles rather than 6 and exact. Nothing
+  selects it yet. `make test-unit` checks both against a double-precision
+  reference, 4,000 pairs each.
+- **Superseded next step, kept for context.** Re-run the same signoff point with larger hold margins,
   `PL_RESIZER_HOLD_SLACK_MARGIN=0.3 GRT_RESIZER_HOLD_SLACK_MARGIN=0.3
   PL_RESIZER_SETUP_SLACK_MARGIN=0.1 GRT_RESIZER_SETUP_SLACK_MARGIN=0.05
   SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-signoff-hold 40 full`,
@@ -240,6 +253,40 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-10-01 — Claude (Opus 5) — E4M3 scale path landed, first unit check
+
+**Done, in a 30-minute window the owner set.**
+
+- `rtl/core/score_scaler.sv` gains `SCALE_FORMAT`. 0 is the default FP32 path
+  and is **bit-identical and cycle-identical** to the two-multiplier design:
+  eleven lint sets, `make test`, both T=512 protocols at 1,050,690 and
+  1,052,722 cycles, **32 of 32** recorded cycle configurations, and the T=512
+  precision run at `ENGINES` 1 and 8 all reproduce exactly. 1 is the ADR 0008
+  E4M3 path: one narrow significand multiply, 3 scale cycles rather than 6, and
+  exact because the product fits FP32's significand for `ACC_W <= 17`.
+  **Nothing selects it yet**, by design, so this commit cannot change a result.
+- `tb/unit/tb_score_scaler.cpp` and `make test-unit` are the first `tb/unit`
+  check. FP32 must reproduce two chained single-precision roundings and E4M3
+  must be exact; 4,000 random pairs each against a double-precision reference,
+  both 0 mismatches. It runs inside `make test`. The verification plan's "there
+  are no unit tests" gap is rewritten rather than deleted, because every other
+  arithmetic block is still covered only through the full top.
+
+**Why the unit check mattered.** The E4M3 path was verified last session in a
+scratchpad that did not survive, so the RTL would have entered the tree with no
+standing evidence. Landing the check first means the next agent can change it
+and know immediately whether it still holds.
+
+**Next, in order.** Finish the in-flight `m2-signoff-hold` run and record it.
+Then switch the default to `SCALE_FORMAT=1` as protocol version 7, which is the
+step that **does** change results: scores change because the path is exact where
+the old one rounded twice, `SCALE_PIPELINE_LATENCY` in
+`scripts/cycle_model.py` goes from 7 to 4, scale storage narrows to one byte,
+and the scale packet carries eight scales per beat instead of two. The RTL,
+model, testbench, and cycle model must move in one commit. Power says why it is
+worth doing: the clock tree and sequential cells are five sixths of total power,
+and E4M3 removes flops as well as multiplier area.
 
 ### 2026-09-30 — Claude (Opus 5) — signoff reaches extraction; session end
 
@@ -413,12 +460,5 @@ unchanged. Wider arrays now expose the real per-block scaling cost: 8x8 L2 is
 suites pass. The updated cycle model exactly reproduces all 32 recorded
 configurations. Next map and route this structural checkpoint, then integrate
 the ADR 0008 E4M3 scaler.
-
-### 2026-09-29 — Codex — M2 block-streaming start
-
-**Started.** Confirmed clean synchronized `master` at `df6edb1`, read the shared
-handoff and active dataflow, and claimed the lock. The atomic task removes the
-tile-wide block accumulator read mux while preserving score bits, protocol, and
-recorded cycles unless a measured pipeline dependency requires a model update.
 
 Older entries are in [docs/handoff-log.md](docs/handoff-log.md).

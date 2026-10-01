@@ -6,6 +6,13 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-09-29 — Codex — M2 block-streaming start
+
+**Started.** Confirmed clean synchronized `master` at `df6edb1`, read the shared
+handoff and active dataflow, and claimed the lock. The atomic task removes the
+tile-wide block accumulator read mux while preserving score bits, protocol, and
+recorded cycles unless a measured pipeline dependency requires a model update.
+
 ### 2026-09-29 — Codex — integrated multiplier checkpoint
 
 **Done.** Fixed `run_synthesis.sh` path quoting and mapped the 4x4 complete top
