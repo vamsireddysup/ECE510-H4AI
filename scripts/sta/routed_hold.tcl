@@ -45,3 +45,13 @@ foreach path $hold_vios {
 }
 puts "hold_violations_from_input_port $from_input"
 puts "hold_violations_from_register $from_reg"
+
+# Slew and capacitance violator counts. Whether these are reported against the
+# project's design-wide constraints or against the library's own per-pin limits
+# depends on whether the caller exported MAX_TRANSITION_CONSTRAINT and
+# MAX_CAPACITANCE_CONSTRAINT, because the SDC applies each only when its
+# variable exists. The difference matters: a pin over the library limit is an
+# electrical problem, while a pin between the project limit and the library
+# limit is a margin choice.
+puts "=== check types"
+report_check_types -max_slew -max_cap -max_fanout -violators -digits 4

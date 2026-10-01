@@ -99,6 +99,17 @@ Updated 2026-10-01 by Codex.
   stop being the critical class. Setup is unchanged at every value. The
   LibreLane SDC default is now 6.0 ns; the OpenLane 1.1.1 SDC keeps 3.0 ns for
   reproducibility. This is why larger placement hold margins made hold worse.
+- **Most of the slew and capacitance violations are margin, not electrical.**
+  `MAX_TRANSITION_CONSTRAINT` is 0.75 ns against Sky130's 1.5 ns library limit,
+  and `MAX_CAPACITANCE_CONSTRAINT` is 0.2 pF, a LibreLane default the project
+  never set, against for example 0.353 pF on `buf_4`. Checked against the
+  library's per-pin limits instead, the worst corner has **272 slew and 23
+  capacitance** violations, not 15,977 and 989, and the typical and fast corners
+  are clean. The remaining electrical item is 272 pins, confined to slow
+  corners: 33 on repair-inserted `ANTENNA_*` diodes, 12 on fanout buffers, and
+  the **clock input port itself** at 2.033 ns, because the SDC falls back to an
+  `inv_2` for the clock input when `SYNTH_CLK_DRIVING_CELL` is unset. Keep the
+  tighter project limit as a deliberate margin, but report against both.
 - **Fixed-netlist STA re-check exists.** `./scripts/run_routed_sta.sh RUN
   MIN_DELAY [PERIOD]` re-runs setup and hold on an already routed netlist with
   extracted parasitics under a chosen input minimum delay, over three Liberty
@@ -327,6 +338,16 @@ reproduces `m2-signoff-hold` exactly, all nine worst hold and setup slacks,
 hold TNS, and the 269/553/1,016 endpoint counts. That is what licenses using it
 as evidence; without the agreement it would be a second opinion, not a check.
 
+**Also done, second finding.** Extended the harness to count slew and
+capacitance violators and to check against the library's per-pin limits instead
+of the project's design-wide ones. It reproduces all eighteen recorded counts
+under the project limits first. Against library limits the worst corner has
+**272 slew and 23 capacitance** violations rather than 15,977 and 989, and the
+typical and fast corners are clean, so 98.3% and 97.7% of the headline counts
+are margin against a constraint the project chose. Two independent counting
+methods agree on 272. The limit stays; what changes is that the open gate item
+is 272 pins and tractable. Rows in `docs/results/data/m2-slew-cap-limits.csv`.
+
 **Verified.** `make test` and `make check-docs` pass. The netlist is untouched,
 so the recorded DRC, LVS, and power numbers still stand.
 
@@ -336,11 +357,13 @@ so the recorded DRC, LVS, and power numbers still stand.
    command as `m2-signoff-hold` but the hold margins can drop back toward 0.05:
    0.3 was compensating for a constraint, and the global-route checkpoint
    already passed hold at +0.4007 ns with repair off.
-2. **Slew and capacitance**, now the largest open gate item at 15,977 and 989
-   violations. These are real: `MAX_TRANSITION_CONSTRAINT` is 0.75 ns, and the
-   worst path shows a 2.03 ns slew on the `clk` input pin itself and 0.6 ns
-   inside the clock tree. Start at the clock input drive and tree buffering, not
-   at the data logic.
+2. **Slew and capacitance**, now scoped to 272 and 23 pins rather than 15,977
+   and 989, because the headline counts were against project constraints
+   tighter than the library's. Start at the clock input drive: the SDC assumes
+   an `inv_2` drives the clock root, giving the `clk` port a 2.033 ns slew, and
+   a stronger `SYNTH_CLK_DRIVING_CELL` should cut both that and the clock
+   insertion delay behind the hold failures. Measure it in a full run, since it
+   moves the clock tree. Then the 33 repair-inserted `ANTENNA_*` diode pins.
 3. **Antenna**, 6 nets and 7 pins, the smallest item.
 
 Nothing is in flight. No long run was launched, deliberately: the owner stopped

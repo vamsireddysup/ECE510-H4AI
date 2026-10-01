@@ -880,3 +880,50 @@ repair, given a constraint it can satisfy, do not spend area or disturb setup.
 
 The reviewed rows are in
 [`data/m2-hold-input-delay.csv`](data/m2-hold-input-delay.csv).
+
+## Most of the slew and capacitance violations are margin, not electrical
+
+The 15,977 slew and 989 capacitance violations are reported against
+design-wide constraints that are substantially tighter than the library's own
+per-pin limits. `MAX_TRANSITION_CONSTRAINT` is 0.75 ns against a Sky130
+`default_max_transition` of 1.5 ns, and `MAX_CAPACITANCE_CONSTRAINT` is 0.2 pF,
+a LibreLane default this project never set, against for example 0.353 pF on
+`sky130_fd_sc_hd__buf_4`. The project SDC applies each limit only when its
+variable is exported, so omitting both leaves the library's per-pin limits and
+separates a margin choice from an electrical problem.
+
+Measured on the frozen `m2-signoff-hold` netlist with the same harness, which
+first reproduces all eighteen recorded counts exactly under the project limits:
+
+| Limits | Worst corner slew | Worst corner cap | Typical corner | Fast corner |
+| --- | ---: | ---: | ---: | ---: |
+| Project, 0.75 ns / 0.2 pF | 15,977 | 989 | 1,396 / 976 | 220 / 985 |
+| Library per-pin | 272 | 23 | 0 / 0 | 0 / 0 |
+
+**98.3% of the slew violations and 97.7% of the capacitance violations are
+margin against the project's own tighter constraint.** Against library limits
+the typical and fast corners are completely clean, and only the slow corners
+fail at all. The two counting methods agree: independently filtering the signoff
+report for pins above 1.5 ns gives the same 272, 144, and 62 at the three slow
+corners.
+
+This does not mean the project should drop a limit it chose deliberately; half
+the library transition limit is a reasonable margin, and reporting against both
+is the honest form. What it changes is the size and shape of the remaining gate
+item. The electrical problem is 272 pins, not 15,977, and it is confined to the
+slow corners.
+
+Among those 272, the largest identifiable group is 33 pins on `ANTENNA_*` diode
+cells inserted by repair, followed by 12 on fanout buffers. The worst two pins
+are a single net pair at 2.489 ns, and the **clock input port itself is third and
+fourth**: `clk` at 2.033 ns and `clkbuf_0_clk/A` at 2.102 ns. That is the same
+class of problem as the input delay above. The SDC falls back to
+`SYNTH_DRIVING_CELL`, an `inv_2`, for the clock input when
+`SYNTH_CLK_DRIVING_CELL` is unset, so a minimum-strength inverter is assumed to
+drive the 0.282 pF clock-tree root. A real clock pad drives far harder. Testing
+a stronger clock driving cell is the first thing to try, and because it also
+feeds the clock insertion delay that caused the hold failures, it should be
+measured in a full run rather than asserted here.
+
+The reviewed rows are in
+[`data/m2-slew-cap-limits.csv`](data/m2-slew-cap-limits.csv).
