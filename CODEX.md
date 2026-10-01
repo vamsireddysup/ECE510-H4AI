@@ -286,6 +286,14 @@ Check `synth.log`, then `pnr.log`; record the final metrics and rerun
 `make gate-power RUN=m2-e4m3-signoff-40ns` if final SPEF is produced. Default
 selection waits for timing, area, and signoff evidence from this run.
 
+**30-minute checkpoint.** Synthesis completed in 2 min 29 s. Global route is
+complete with zero overflow on every layer, 19.95% aggregate routing use,
+4,070,461 um wirelength, 104,575 standard cells, and 723,982 um2 standard-cell
+area after CTS hold repair. The flow is in antenna repair: the initial check
+found 467 violating nets and 661 pins, then inserted 813 jumpers for 547 nets.
+These are intermediate measured values; wait for detailed route and final
+signoff before comparing against FP32.
+
 ### 2026-10-01 — Codex — packed E4M3 storage and stream
 
 **Done.** Narrowed `sq` and `sk` to eight bits when `SCALE_FORMAT=1`, packed
