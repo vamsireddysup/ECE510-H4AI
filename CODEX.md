@@ -9,7 +9,13 @@ record of what happened.
 
 Keep this file under about 24 KB. Codex truncates project instructions at
 32 KiB by default, so older handoff entries move to
-[docs/handoff-log.md](docs/handoff-log.md).
+[docs/handoff-log.md](docs/handoff-log.md). **The size budget outranks the
+eight-entry rule below.** Entries have grown long enough that eight of them put
+this file at 31 KB, a few hundred bytes from silent truncation; six bring it to
+27 KB. Rotate entries out until there is clear headroom, and if six still
+breaches 24 KB, the next thing to shorten is "Current state", whose M0 and M1
+bullets duplicate [docs/project-status.md](docs/project-status.md) and the ADRs.
+Nothing is lost by rotating: the archive keeps entries in full.
 
 ## Session protocol
 
@@ -54,7 +60,7 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: none. Last owner: Codex, 2026-10-01.
+Active agent: none. Last owner: Claude (Opus 5), 2026-10-01.
 
 ## Current state
 
@@ -77,12 +83,29 @@ Updated 2026-10-01 by Codex.
 - **Best timing evidence.** Mapped netlist, `DELAY 0` at an 8 ns target, no
   wires: 18.241 ns slow-corner and 8.998 ns typical-corner minimum period at
   `34d9df5`. This is not a routed or closing frequency.
-- **Full M2 signoff now runs to completion but does not close.** At 40 ns,
+- **Full M2 signoff now runs to completion. Hold is diagnosed and fixed in
+  constraint; antenna, slew, and capacitance remain open.** At 40 ns,
   nine-corner setup passes with +9.4961 ns worst slack, detailed-route, Magic,
-  and KLayout DRC are zero, and LVS passes. Hold fails at -1.8979 ns over 1,838
-  endpoints in slow corners; six antenna nets and substantial slew/capacitance
-  violations remain. Register-to-register hold passes at +0.2684 ns. See
+  and KLayout DRC are zero, and LVS passes. Six antenna nets, seven antenna
+  pins, 15,977 slew, and 989 capacitance violations remain. See
   `docs/results/physical-design.md`.
+- **The 1,838 hold failures were an under-specified input delay, not a design
+  defect.** All of them start at an input port; none is register to register.
+  The SDC gave inputs a 3.0 ns minimum delay against a clock tree with 4.90 to
+  5.98 ns of slow-corner insertion delay, so a host clocked from the same pin
+  was told it need not hold data as long as the design actually requires. Hold
+  closes at every one of the nine corners at and above 4.898 ns, and at 6.0 ns
+  the worst hold slack equals the register-to-register figure, so input paths
+  stop being the critical class. Setup is unchanged at every value. The
+  LibreLane SDC default is now 6.0 ns; the OpenLane 1.1.1 SDC keeps 3.0 ns for
+  reproducibility. This is why larger placement hold margins made hold worse.
+- **Fixed-netlist STA re-check exists.** `./scripts/run_routed_sta.sh RUN
+  MIN_DELAY [PERIOD]` re-runs setup and hold on an already routed netlist with
+  extracted parasitics under a chosen input minimum delay, over three Liberty
+  corners crossed with three SPEF corners. It reproduces `m2-signoff-hold`
+  exactly at 3.0 ns, which is what makes it usable as evidence, and it turns a
+  constraint question from a 3 h 39 min run into minutes. It also classifies
+  each violating path as input-port or register sourced.
 - **Extracted-parasitic power is measured.** The final-netlist T=8 run annotates
   284,357 pin activities and reports 23.3 to 33.7 mW, or 5.15 to 7.46 nJ per
   score. It uses nominal SPEF and a 40 ns point that still fails hold, antenna,
@@ -261,8 +284,69 @@ and get the project's first valid dynamic power number. See
 
 ## Handoff log
 
-Newest first. Keep the last eight entries here and move older ones to
+Newest first. Keep the last six to eight entries here, whichever keeps this
+file under 24 KB, and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-10-01 — Claude (Opus 5) — hold diagnosed: an input-delay constraint
+
+**Done.** Classified the 1,838 hold failures the previous session left open
+rather than raising margins again, as that handoff asked. **Every violating
+path starts at an input port and none is register to register**, concentrated on
+`s_tdata` (813), `wdata` (91), `s_tvalid` (34), and `awaddr` (33). The SDC
+constrained data inputs to a 3.0 ns minimum delay referenced to the clock
+source while the capture edge arrives through 4.90 to 5.98 ns of propagated
+clock-tree insertion delay at the slow corner. The worst path arrives at
+4.187 ns against a 6.085 ns requirement. The interface model was wrong, not the
+logic, which is why larger placement hold margins moved worst slack from
+-1.6856 to -1.8979 ns.
+
+**Measured, on the frozen `m2-signoff-hold` netlist.** Hold slack tracks the
+minimum input delay one for one, so it closes at all nine corners at and above
+4.898 ns: -1.8979 ns and 1,838 endpoints at 3.0 ns, +0.1021 ns and zero at
+5.0 ns, +0.2684 ns and zero at 6.0 ns. At 6.0 ns the worst hold slack equals
+the register-to-register figure at every corner, so input paths are no longer
+the critical hold class and more buys nothing. **Worst setup slack is
++9.4961 ns at every value**, as the maximum input delay is a separate
+constraint. Rows in `docs/results/data/m2-hold-input-delay.csv`.
+
+**Changed.** `config/librelane/qkt_chiplet_top/constraints.sdc` defaults the
+input minimum delay to 6.0 ns, with the reasoning at the constraint, an
+`IO_MIN_DELAY_CONSTRAINT` override for the STA harness, and a guard that
+refuses a minimum above the 8.0 ns maximum rather than signing off against
+contradictory constraints. The OpenLane 1.1.1 SDC is untouched at 3.0 ns so
+recorded results stay reproducible. `IO_MIN_DELAY_CONSTRAINT` is deliberately
+not a LibreLane config key, since LibreLane rejects variables it does not know;
+the flow uses the default and only the STA harness overrides it.
+
+**Added.** `scripts/run_routed_sta.sh` and `scripts/sta/routed_hold.tcl`
+re-check setup and hold on an existing routed netlist with extracted
+parasitics, over three Liberty corners crossed with three SPEF corners, and
+classify every violating path as input-port or register sourced. At 3.0 ns it
+reproduces `m2-signoff-hold` exactly, all nine worst hold and setup slacks,
+hold TNS, and the 269/553/1,016 endpoint counts. That is what licenses using it
+as evidence; without the agreement it would be a second opinion, not a check.
+
+**Verified.** `make test` and `make check-docs` pass. The netlist is untouched,
+so the recorded DRC, LVS, and power numbers still stand.
+
+**Next, in order.**
+1. **A full run at the new default**, to confirm placement and route hold repair
+   given a satisfiable constraint spend no area and leave setup alone. Same
+   command as `m2-signoff-hold` but the hold margins can drop back toward 0.05:
+   0.3 was compensating for a constraint, and the global-route checkpoint
+   already passed hold at +0.4007 ns with repair off.
+2. **Slew and capacitance**, now the largest open gate item at 15,977 and 989
+   violations. These are real: `MAX_TRANSITION_CONSTRAINT` is 0.75 ns, and the
+   worst path shows a 2.03 ns slew on the `clk` input pin itself and 0.6 ns
+   inside the clock tree. Start at the clock input drive and tree buffering, not
+   at the data logic.
+3. **Antenna**, 6 nets and 7 pins, the smallest item.
+
+Nothing is in flight. No long run was launched, deliberately: the owner stopped
+the `m2-e4m3-signoff-40ns` route last session and relaunching a multi-hour run
+is their call, not mine. That run still has no final state, SPEF, GDS, or
+signoff metrics; resume instructions are in the entry below.
 
 ### 2026-10-01 — Codex — physical flow accepts scale format
 
@@ -381,181 +465,5 @@ place-and-route when this session ended; see the state above for how to check
 it. It was launched from the committed RTL before the `SCALE_FORMAT` plumbing,
 which does not change `SCALE_FORMAT=0` behavior, so its result is still valid
 for the default build.
-
-### 2026-10-01 — Claude (Opus 5) — E4M3 scale path landed, first unit check
-
-**Done, in a 30-minute window the owner set.**
-
-- `rtl/core/score_scaler.sv` gains `SCALE_FORMAT`. 0 is the default FP32 path
-  and is **bit-identical and cycle-identical** to the two-multiplier design:
-  eleven lint sets, `make test`, both T=512 protocols at 1,050,690 and
-  1,052,722 cycles, **32 of 32** recorded cycle configurations, and the T=512
-  precision run at `ENGINES` 1 and 8 all reproduce exactly. 1 is the ADR 0008
-  E4M3 path: one narrow significand multiply, 3 scale cycles rather than 6, and
-  exact because the product fits FP32's significand for `ACC_W <= 17`.
-  **Nothing selects it yet**, by design, so this commit cannot change a result.
-- `tb/unit/tb_score_scaler.cpp` and `make test-unit` are the first `tb/unit`
-  check. FP32 must reproduce two chained single-precision roundings and E4M3
-  must be exact; 4,000 random pairs each against a double-precision reference,
-  both 0 mismatches. It runs inside `make test`. The verification plan's "there
-  are no unit tests" gap is rewritten rather than deleted, because every other
-  arithmetic block is still covered only through the full top.
-
-**Why the unit check mattered.** The E4M3 path was verified last session in a
-scratchpad that did not survive, so the RTL would have entered the tree with no
-standing evidence. Landing the check first means the next agent can change it
-and know immediately whether it still holds.
-
-**Next, in order.** Finish the in-flight `m2-signoff-hold` run and record it.
-Then switch the default to `SCALE_FORMAT=1` as protocol version 7, which is the
-step that **does** change results: scores change because the path is exact where
-the old one rounded twice, `SCALE_PIPELINE_LATENCY` in
-`scripts/cycle_model.py` goes from 7 to 4, scale storage narrows to one byte,
-and the scale packet carries eight scales per beat instead of two. The RTL,
-model, testbench, and cycle model must move in one commit. Power says why it is
-worth doing: the clock tree and sequential cells are five sixths of total power,
-and E4M3 removes flops as well as multiplier area.
-
-### 2026-09-30 — Claude (Opus 5) — signoff reaches extraction; session end
-
-**Stopped** because the owner is handing over to Codex. The tree is clean and
-everything is pushed; `make test` passes. Nothing is half-finished in the
-repository.
-
-**Done.** The `m2-signoff-40ns` run was killed by the session ending, but it had
-already gone much further than the previous checkpoint, so its results are
-recorded rather than discarded: detailed routing **0 violations**, DRC checker
-passed, antennas 4 nets and 4 pins, longest net 1,795.89 um, RCX extraction
-complete with a 123 MB nominal SPEF, and nine-corner post-route STA.
-
-**The headline.** With timing repair enabled and extracted parasitics,
-**setup closes at every corner**, worst +9.8463 ns at 40 ns, which is a routed
-setup-limited minimum period of **30.15 ns**. **Hold fails at the slow corner at
--1.6856 ns**, while typical and fast pass. The global-route checkpoint passed
-hold at +0.4007 ns with repair off, so enabling setup repair introduced these
-paths: an ordinary setup-versus-hold trade, fixable with larger hold margins,
-not a structural problem. Because the run stopped before Magic and KLayout DRC,
-LVS, and GDS, **the M2 gate is not met**.
-
-**Everything this session, in order.** Verified Codex's M1 and M2 handoff
-independently, 32 of 32 cycle configurations exact. Resumed the interrupted
-checkpoint and got the **first congestion-free route**, zero overflow on every
-metal layer. Completed the **full-text prior-art review** of all nine cited
-papers, of which three did not match their abstracts, which cost us the
-per-block FP4/INT4 novelty track. Found and recorded that **E4M3 scale
-application is exact**. Built the gate-level power path and produced the
-project's **first valid power number**, 18.6 to 26.8 mW and 4.12 to 5.93 nJ per
-score with 257,686 annotated pin activities. Rotated the handoff log.
-
-**Left ready but not integrated.** A verified E4M3 `score_scaler` drop-in exists
-outside `rtl/`; see the note above for where and what it changes.
-
-### 2026-09-29 — Claude (Opus 5) — first valid power number
-
-**Done.** Built the missing half of M2's deliverable:
-`scripts/gen_gate_stimulus.py`, `tb/gate/tb_gate_power.v`, and
-`scripts/sta/annotated_power.tcl`. A gate-level Icarus run of the routed
-netlist passes (128 input and 32 output beats) and dumps a 72 MB VCD; OpenSTA
-annotates **257,686 pin activities** and reports 18.6 to 26.8 mW across the
-three corners, 4.12 to 5.93 nJ per score for the 354-cycle T=8 command.
-Recorded in `docs/results/physical-design.md` and
-`docs/results/data/m2-annotated-power.csv`.
-
-**The trap, worth knowing.** OpenSTA separates VCD hierarchy with **`/`**, not
-`.`. With `tb_gate_power.dut` it printed "Annotated 0 pin activities" and then
-reported a perfectly plausible 21.2 mW that was pure default-toggle guesswork.
-`tb_gate_power/dut` annotates 257,686. `annotated_power.tcl` now exits non-zero
-when nothing annotates, so that failure cannot be published again.
-
-**What the number says.** The clock tree is a third of total power at every
-corner and sequential cells about half, so state and clocking dominate, not
-arithmetic. That points at the E4M3 scaler, which removes flops as well as
-multiplier area, and at replication, which amortizes one clock tree.
-
-**Limits.** Global-route netlist **without SPEF**, one T=8 command rather than
-T=512, and 40 ns rather than a timing-closed period.
-
-### 2026-09-29 — Claude (Opus 5) — prior-art gate satisfied; E4M3 exactness
-
-**Done.** Finished the full-text review of all nine cited papers, extracting
-each with `pdftotext` locally because the fetcher cannot decompress arXiv PDFs.
-Three of nine did not match their abstracts, and two of those corrections
-narrowed the project's claims. `docs/related-work.md` now records the
-corrections, what the project can claim, and what it must not.
-
-**Found while planning the E4M3 RTL, and worth more than the review.** E4M3
-block scales **apply exactly**. A Bs=16 accumulator is 13 bits, so at most 12
-significant bits; two E4M3 significands add 4 bits each; 20 bits fits FP32's
-24. Measured: 0 of 60,000 random triples need rounding with E4M3 against 59,990
-with FP32, which the current design rounds twice. The bound is `ACC_W <= 17`,
-met at every supported block size and **not** met by P1's 43-bit FP8
-accumulator. This is a third independent argument for ADR 0008, it removes
-rounding logic from the scaler, and it makes the software reference a plain
-double product rounded once. Recorded in ADR 0008 and the precision record.
-
-**Consequence for the RTL.** E4M3 changes score bits, because the new path is
-exact where the old rounded twice. The protocol version 7 bump is therefore a
-numerical bump too, and the model and testbench must adopt the exact reference
-together with the RTL.
-
-**In flight.** A full signoff run, `m2-signoff-40ns` at 40 ns with timing repair
-enabled and setup and hold margins set. Check
-`build/librelane/m2-signoff-40ns/pnr.log` and `runs/pnr/final/metrics.json`.
-
-### 2026-09-29 — Claude (Opus 5) — the block-streaming top routes, zero congestion
-
-**Done.** Resumed the interrupted checkpoint;
-`SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-block-stream-grt-30ns 30 global-route`
-completed at `8ffc662`. **Zero routing overflow on li1 and met1 through met5**,
-27.82% total routing utilization, 118,109 instances, 879,704 um², estimated wire
-3,427,020 um, 0 antenna violations with 635 diodes, 0 slew, 0 capacitance, and
-hold **+0.4007 ns** at the slow corner. Recorded in
-`docs/results/physical-design.md` and `docs/results/data/m2-global-route.csv`.
-
-**Why it matters.** Congestion, caused by the accumulator banks, blocked every
-floorplan in P0.7b; `acc_bank` nets were nearly all of the overflow. Streaming
-one block at a time removes that array and the 32-to-1 scaler read mux, and the
-route is now clean with room to spare. Hold passing and slew and capacitance
-being clean also remove the three reasons the old dynamic-power report was
-rejected.
-
-**Still open.** Setup misses by 9.94 ns at 30 ns, so the slow-corner minimum
-period is 39.94 ns; fast-corner hold is -0.0351 ns. This checkpoint ran with
-timing repair **off** and stops after antenna repair, so it is not signoff: no
-detailed routing, extraction, DRC, LVS, or power.
-
-**Next.** The ADR 0008 E4M3 scaler, which also shortens the path that now sets
-setup timing.
-
-### 2026-09-29 — Claude (Opus 5) — verified the Codex handoff; corrected prior art
-
-**Verified Codex's work independently**, per the cross-agent rule. `make test`
-passes and `scripts/check_cycle_model.py` re-simulates **32 of 32** recorded
-configurations exactly on the block-streaming RTL at `bb85cde`. The M1 and M2
-claims in this file hold.
-
-**Done.** Full-text review of the two nearest papers, extracted locally with
-`pdftotext` because the fetcher could not decompress them. It corrected three
-things the abstract-level page had wrong, all recorded in
-`docs/related-work.md`:
-
-- Shift-Accumulate Attention's product is **exact** with respect to its
-  quantized operands, not approximate. It changes the key format to signed
-  power-of-two to get shifts, costing +0.15 perplexity against INT8, and has
-  **no ASIC**: CUDA kernels plus a cost model for a hypothetical `DS4A`
-  instruction. Our E2M1 shift-add needs no format change and is measured in
-  Sky130, which is the real distinction.
-- It **does** report attention-distribution KL and top-8 overlap, so
-  softmax-metric evaluation is not a differentiator for us.
-- MixFP4 covers **activations**, reports **3.1% tensor-core area and 1.5%
-  power**, selects FP4-or-INT4 by a crest factor with a 2.224 threshold, and
-  encodes the flag in the **sign bit of the E4M3 block scale**. Novelty track 2
-  is therefore largely published, which agrees with the M1 measurement that
-  adaptive selection loses top-1 and regresses on the larger capture.
-
-**Verified.** `make test` passes; 39 documentation files check.
-
-**In flight.** The resumed `m2-block-stream-grt-30ns` global-route run; see
-the entry below for how to check it.
 
 Older entries are in [docs/handoff-log.md](docs/handoff-log.md).

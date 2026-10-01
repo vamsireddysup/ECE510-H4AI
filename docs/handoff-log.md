@@ -6,6 +6,182 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-10-01 — Claude (Opus 5) — E4M3 scale path landed, first unit check
+
+**Done, in a 30-minute window the owner set.**
+
+- `rtl/core/score_scaler.sv` gains `SCALE_FORMAT`. 0 is the default FP32 path
+  and is **bit-identical and cycle-identical** to the two-multiplier design:
+  eleven lint sets, `make test`, both T=512 protocols at 1,050,690 and
+  1,052,722 cycles, **32 of 32** recorded cycle configurations, and the T=512
+  precision run at `ENGINES` 1 and 8 all reproduce exactly. 1 is the ADR 0008
+  E4M3 path: one narrow significand multiply, 3 scale cycles rather than 6, and
+  exact because the product fits FP32's significand for `ACC_W <= 17`.
+  **Nothing selects it yet**, by design, so this commit cannot change a result.
+- `tb/unit/tb_score_scaler.cpp` and `make test-unit` are the first `tb/unit`
+  check. FP32 must reproduce two chained single-precision roundings and E4M3
+  must be exact; 4,000 random pairs each against a double-precision reference,
+  both 0 mismatches. It runs inside `make test`. The verification plan's "there
+  are no unit tests" gap is rewritten rather than deleted, because every other
+  arithmetic block is still covered only through the full top.
+
+**Why the unit check mattered.** The E4M3 path was verified last session in a
+scratchpad that did not survive, so the RTL would have entered the tree with no
+standing evidence. Landing the check first means the next agent can change it
+and know immediately whether it still holds.
+
+**Next, in order.** Finish the in-flight `m2-signoff-hold` run and record it.
+Then switch the default to `SCALE_FORMAT=1` as protocol version 7, which is the
+step that **does** change results: scores change because the path is exact where
+the old one rounded twice, `SCALE_PIPELINE_LATENCY` in
+`scripts/cycle_model.py` goes from 7 to 4, scale storage narrows to one byte,
+and the scale packet carries eight scales per beat instead of two. The RTL,
+model, testbench, and cycle model must move in one commit. Power says why it is
+worth doing: the clock tree and sequential cells are five sixths of total power,
+and E4M3 removes flops as well as multiplier area.
+
+### 2026-09-30 — Claude (Opus 5) — signoff reaches extraction; session end
+
+**Stopped** because the owner is handing over to Codex. The tree is clean and
+everything is pushed; `make test` passes. Nothing is half-finished in the
+repository.
+
+**Done.** The `m2-signoff-40ns` run was killed by the session ending, but it had
+already gone much further than the previous checkpoint, so its results are
+recorded rather than discarded: detailed routing **0 violations**, DRC checker
+passed, antennas 4 nets and 4 pins, longest net 1,795.89 um, RCX extraction
+complete with a 123 MB nominal SPEF, and nine-corner post-route STA.
+
+**The headline.** With timing repair enabled and extracted parasitics,
+**setup closes at every corner**, worst +9.8463 ns at 40 ns, which is a routed
+setup-limited minimum period of **30.15 ns**. **Hold fails at the slow corner at
+-1.6856 ns**, while typical and fast pass. The global-route checkpoint passed
+hold at +0.4007 ns with repair off, so enabling setup repair introduced these
+paths: an ordinary setup-versus-hold trade, fixable with larger hold margins,
+not a structural problem. Because the run stopped before Magic and KLayout DRC,
+LVS, and GDS, **the M2 gate is not met**.
+
+**Everything this session, in order.** Verified Codex's M1 and M2 handoff
+independently, 32 of 32 cycle configurations exact. Resumed the interrupted
+checkpoint and got the **first congestion-free route**, zero overflow on every
+metal layer. Completed the **full-text prior-art review** of all nine cited
+papers, of which three did not match their abstracts, which cost us the
+per-block FP4/INT4 novelty track. Found and recorded that **E4M3 scale
+application is exact**. Built the gate-level power path and produced the
+project's **first valid power number**, 18.6 to 26.8 mW and 4.12 to 5.93 nJ per
+score with 257,686 annotated pin activities. Rotated the handoff log.
+
+**Left ready but not integrated.** A verified E4M3 `score_scaler` drop-in exists
+outside `rtl/`; see the note above for where and what it changes.
+
+### 2026-09-29 — Claude (Opus 5) — first valid power number
+
+**Done.** Built the missing half of M2's deliverable:
+`scripts/gen_gate_stimulus.py`, `tb/gate/tb_gate_power.v`, and
+`scripts/sta/annotated_power.tcl`. A gate-level Icarus run of the routed
+netlist passes (128 input and 32 output beats) and dumps a 72 MB VCD; OpenSTA
+annotates **257,686 pin activities** and reports 18.6 to 26.8 mW across the
+three corners, 4.12 to 5.93 nJ per score for the 354-cycle T=8 command.
+Recorded in `docs/results/physical-design.md` and
+`docs/results/data/m2-annotated-power.csv`.
+
+**The trap, worth knowing.** OpenSTA separates VCD hierarchy with **`/`**, not
+`.`. With `tb_gate_power.dut` it printed "Annotated 0 pin activities" and then
+reported a perfectly plausible 21.2 mW that was pure default-toggle guesswork.
+`tb_gate_power/dut` annotates 257,686. `annotated_power.tcl` now exits non-zero
+when nothing annotates, so that failure cannot be published again.
+
+**What the number says.** The clock tree is a third of total power at every
+corner and sequential cells about half, so state and clocking dominate, not
+arithmetic. That points at the E4M3 scaler, which removes flops as well as
+multiplier area, and at replication, which amortizes one clock tree.
+
+**Limits.** Global-route netlist **without SPEF**, one T=8 command rather than
+T=512, and 40 ns rather than a timing-closed period.
+
+### 2026-09-29 — Claude (Opus 5) — prior-art gate satisfied; E4M3 exactness
+
+**Done.** Finished the full-text review of all nine cited papers, extracting
+each with `pdftotext` locally because the fetcher cannot decompress arXiv PDFs.
+Three of nine did not match their abstracts, and two of those corrections
+narrowed the project's claims. `docs/related-work.md` now records the
+corrections, what the project can claim, and what it must not.
+
+**Found while planning the E4M3 RTL, and worth more than the review.** E4M3
+block scales **apply exactly**. A Bs=16 accumulator is 13 bits, so at most 12
+significant bits; two E4M3 significands add 4 bits each; 20 bits fits FP32's
+24. Measured: 0 of 60,000 random triples need rounding with E4M3 against 59,990
+with FP32, which the current design rounds twice. The bound is `ACC_W <= 17`,
+met at every supported block size and **not** met by P1's 43-bit FP8
+accumulator. This is a third independent argument for ADR 0008, it removes
+rounding logic from the scaler, and it makes the software reference a plain
+double product rounded once. Recorded in ADR 0008 and the precision record.
+
+**Consequence for the RTL.** E4M3 changes score bits, because the new path is
+exact where the old rounded twice. The protocol version 7 bump is therefore a
+numerical bump too, and the model and testbench must adopt the exact reference
+together with the RTL.
+
+**In flight.** A full signoff run, `m2-signoff-40ns` at 40 ns with timing repair
+enabled and setup and hold margins set. Check
+`build/librelane/m2-signoff-40ns/pnr.log` and `runs/pnr/final/metrics.json`.
+
+### 2026-09-29 — Claude (Opus 5) — the block-streaming top routes, zero congestion
+
+**Done.** Resumed the interrupted checkpoint;
+`SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-block-stream-grt-30ns 30 global-route`
+completed at `8ffc662`. **Zero routing overflow on li1 and met1 through met5**,
+27.82% total routing utilization, 118,109 instances, 879,704 um², estimated wire
+3,427,020 um, 0 antenna violations with 635 diodes, 0 slew, 0 capacitance, and
+hold **+0.4007 ns** at the slow corner. Recorded in
+`docs/results/physical-design.md` and `docs/results/data/m2-global-route.csv`.
+
+**Why it matters.** Congestion, caused by the accumulator banks, blocked every
+floorplan in P0.7b; `acc_bank` nets were nearly all of the overflow. Streaming
+one block at a time removes that array and the 32-to-1 scaler read mux, and the
+route is now clean with room to spare. Hold passing and slew and capacitance
+being clean also remove the three reasons the old dynamic-power report was
+rejected.
+
+**Still open.** Setup misses by 9.94 ns at 30 ns, so the slow-corner minimum
+period is 39.94 ns; fast-corner hold is -0.0351 ns. This checkpoint ran with
+timing repair **off** and stops after antenna repair, so it is not signoff: no
+detailed routing, extraction, DRC, LVS, or power.
+
+**Next.** The ADR 0008 E4M3 scaler, which also shortens the path that now sets
+setup timing.
+
+### 2026-09-29 — Claude (Opus 5) — verified the Codex handoff; corrected prior art
+
+**Verified Codex's work independently**, per the cross-agent rule. `make test`
+passes and `scripts/check_cycle_model.py` re-simulates **32 of 32** recorded
+configurations exactly on the block-streaming RTL at `bb85cde`. The M1 and M2
+claims in this file hold.
+
+**Done.** Full-text review of the two nearest papers, extracted locally with
+`pdftotext` because the fetcher could not decompress them. It corrected three
+things the abstract-level page had wrong, all recorded in
+`docs/related-work.md`:
+
+- Shift-Accumulate Attention's product is **exact** with respect to its
+  quantized operands, not approximate. It changes the key format to signed
+  power-of-two to get shifts, costing +0.15 perplexity against INT8, and has
+  **no ASIC**: CUDA kernels plus a cost model for a hypothetical `DS4A`
+  instruction. Our E2M1 shift-add needs no format change and is measured in
+  Sky130, which is the real distinction.
+- It **does** report attention-distribution KL and top-8 overlap, so
+  softmax-metric evaluation is not a differentiator for us.
+- MixFP4 covers **activations**, reports **3.1% tensor-core area and 1.5%
+  power**, selects FP4-or-INT4 by a crest factor with a 2.224 threshold, and
+  encodes the flag in the **sign bit of the E4M3 block scale**. Novelty track 2
+  is therefore largely published, which agrees with the M1 measurement that
+  adaptive selection loses top-1 and regresses on the larger capture.
+
+**Verified.** `make test` passes; 39 documentation files check.
+
+**In flight.** The resumed `m2-block-stream-grt-30ns` global-route run; see
+the entry below for how to check it.
+
 ### 2026-09-29 — Codex — M2 physical checkpoint stopped for handoff
 
 **Stopped cleanly at the owner's five-minute boundary.** Same-flow wire-free

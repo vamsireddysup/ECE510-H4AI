@@ -8,12 +8,38 @@ create_clock [get_ports $clock_port] -name $clock_port -period $::env(CLOCK_PERI
 set clocks [get_clocks $clock_port]
 
 # A host that consumes IO_DELAY_CONSTRAINT percent of the cycle sets the
-# maximum input and output delays. The minimum input delay is a fixed 3 ns of
-# host clock-to-output and interconnect: scaling it with the period creates
-# artificial hold failures when the constraint is relaxed. LibreLane only
-# exports declared variables here, so the fixed value is written literally.
+# maximum input and output delays. The minimum input delay is a fixed number of
+# ns of host clock-to-output and interconnect, not a fraction of the period:
+# scaling it with the period creates artificial hold failures when the
+# constraint is relaxed.
+#
+# The minimum input delay must cover this design's own clock insertion delay.
+# The hold check at an input port compares data arriving input_min_delay after
+# the clock-source edge against a capture edge that reaches the flop after the
+# propagated clock tree, so a tree with N ns of insertion delay requires the
+# host to hold input data for about N ns past the edge at the pin. At the former
+# 3.0 ns, against a measured 4.9 to 6.0 ns of slow-corner insertion delay, every
+# one of the 1,838 hold failures in `m2-signoff-hold` was an input-port path and
+# none was register to register, so 3.0 ns was an under-specified interface, not
+# a design defect.
+#
+# 6.0 ns is where the design's own register-to-register hold limit takes over as
+# the worst hold path at all nine corners, so a larger value buys nothing, and it
+# stays below io_max_delay (8.0 ns at the 40 ns point) so the min and max input
+# budgets remain self-consistent. Overriding it is for the fixed-netlist STA
+# re-check in `scripts/run_routed_sta.sh`; the physical flow uses the default.
+# The OpenLane 1.1.1 SDC keeps 3.0 ns so recorded results stay reproducible.
 set io_max_delay [expr {$::env(CLOCK_PERIOD) * $::env(IO_DELAY_CONSTRAINT) / 100.0}]
-set input_min_delay 3.0
+if {[info exists ::env(IO_MIN_DELAY_CONSTRAINT)]} {
+    set input_min_delay $::env(IO_MIN_DELAY_CONSTRAINT)
+} else {
+    set input_min_delay 6.0
+}
+if {$input_min_delay > $io_max_delay} {
+    # A minimum input delay above the maximum is not a timing model; stop rather
+    # than sign off against contradictory constraints.
+    error "IO minimum input delay $input_min_delay ns exceeds maximum $io_max_delay ns"
+}
 set output_min_delay 0.0
 
 set_max_fanout $::env(MAX_FANOUT_CONSTRAINT) [current_design]

@@ -807,3 +807,76 @@ non-closing 40 ns operating point and a short T=8 workload.
 The reviewed rows are in
 [`data/m2-signoff-hold.csv`](data/m2-signoff-hold.csv). Generated run logs and
 GDS remain under ignored `build/`.
+
+## The hold failures are an input-delay constraint, not a design defect
+
+The `m2-signoff-hold` run left 1,838 hold-violating endpoints with a worst slack
+of -1.8979 ns while register-to-register hold passed at +0.2684 ns. That
+combination said the failures lay outside the path class placement repair owns,
+so the next step was path analysis rather than another margin increase. It is
+now classified.
+
+`scripts/run_routed_sta.sh` re-checks an existing routed netlist against a
+chosen constraint. The netlist, placement, clock tree, and extracted parasitics
+are frozen, so any slack difference comes from the constraints alone, and the
+check takes minutes instead of the 3 h 39 min a full run needs. Run against
+`m2-signoff-hold` at its own 3.0 ns input minimum delay it reproduces the
+recorded result exactly at all nine corners: the same worst hold slack, worst
+setup slack, hold TNS, and endpoint counts of 269, 553, and 1,016 in the three
+slow-corner analyses. That agreement is what makes the harness usable as
+evidence.
+
+**Every violating path starts at an input port.** Across the three failing
+corners, all 1,838 violating endpoints are input-port-to-register and none is
+register-to-register:
+
+| Startpoint | Violating endpoints |
+| --- | ---: |
+| `s_tdata` | 813 |
+| `wdata` | 91 |
+| `s_tvalid` | 34 |
+| `awaddr` | 33 |
+| `s_tlast` | 15 |
+| Other control inputs | 14 |
+
+The cause is visible in the worst path. The SDC gave data inputs a 3.0 ns
+minimum delay referenced to the clock source, but the capture edge reaches the
+sampling flop through a propagated clock tree with 4.90 to 5.98 ns of insertion
+delay at the slow corner. Data arrives at 4.187 ns against a required time of
+6.085 ns, which is clock insertion plus 0.25 ns uncertainty less the library
+hold time. A host clocked from the same pin must therefore hold input data
+roughly one insertion delay past the edge, and 3.0 ns asserted that it need not.
+The constraint was under-specified; the logic was never the problem, which is
+why larger placement hold margins made it worse rather than better.
+
+Minimum input delay adds directly to data arrival, so hold slack tracks it one
+for one. Measured on the frozen netlist:
+
+| Input minimum delay | Worst hold slack | Violating endpoints | Worst setup slack |
+| ---: | ---: | ---: | ---: |
+| 3.0 ns | -1.8979 ns | 1,838 | +9.4961 ns |
+| 5.0 ns | +0.1021 ns | 0 | +9.4961 ns |
+| 6.0 ns | +0.2684 ns | 0 | +9.4961 ns |
+
+Hold closes at every one of the nine corners at and above 4.898 ns. At 6.0 ns
+the worst hold slack equals the register-to-register figure at all nine corners,
+meaning input paths are no longer the critical hold class and a larger value
+buys nothing. Setup is untouched at every value, as it must be: the maximum
+input delay is a separate constraint.
+
+The LibreLane SDC default is therefore 6.0 ns, with the reasoning recorded at
+the constraint and a guard that refuses a minimum above the 8.0 ns maximum. The
+OpenLane 1.1.1 SDC keeps 3.0 ns so recorded results stay reproducible.
+
+**What this does and does not close.** It resolves hold, the largest remaining
+M2 gate item, and it does so by correcting the interface model rather than by
+changing the design: the netlist is bit-identical to the one already recorded
+with its DRC, LVS, and power numbers. It also adds an interface requirement the
+project must now state, that a host hold input data 6.0 ns past the clock edge
+at 40 ns. It does nothing for the 6 antenna nets, 7 antenna pins, 15,977 slew,
+and 989 capacitance violations, which remain the M2 gate's open items. A full
+run at the new default is still owed, to confirm that placement and route hold
+repair, given a constraint it can satisfy, do not spend area or disturb setup.
+
+The reviewed rows are in
+[`data/m2-hold-input-delay.csv`](data/m2-hold-input-delay.csv).
