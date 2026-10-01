@@ -6,6 +6,23 @@ first and keep the format described in the session protocol there.
 
 ## Archived entries
 
+### 2026-09-29 — Codex — M2 physical checkpoint stopped for handoff
+
+**Stopped cleanly at the owner's five-minute boundary.** Same-flow wire-free
+synthesis maps `bb85cde` to 53,137 cells and 257,922.37 um2: 29,251 fewer cells
+than pre-M2, with area 0.15% higher because the FP32 adder remains. A LibreLane
+3.0.14 run completed synthesis, global placement, repair, and detailed
+placement, then was interrupted during CTS. Pre-CTS minimum period is 45.41 ns;
+there is no routing or signoff result yet.
+
+**Resume.** Evidence is in ignored
+`build/librelane/m2-block-stream-grt-30ns/`. Re-run
+`SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-block-stream-grt-30ns 30 global-route`
+for a clean completed checkpoint. The values already obtained are committed in
+`docs/results/data/m2-block-stream-checkpoint.csv`. All RTL verification was
+completed and pushed in `bb85cde`; only documentation from this physical
+checkpoint is in the handoff commit.
+
 ### 2026-09-29 — Codex — M2 block streaming implemented
 
 **Done.** Replaced two tile-by-block accumulator banks with two single-block

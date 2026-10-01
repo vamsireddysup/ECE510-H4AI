@@ -54,7 +54,8 @@ directory, and how to check its result.
 
 ## Lock
 
-No agent active. Last handoff: Claude (Opus 5), 2026-10-01, handing to Codex.
+Active agent: Codex, 2026-10-01. Owning the in-flight hold-margin signoff run,
+then narrowing E4M3 scale storage.
 
 ## Current state
 
@@ -264,6 +265,15 @@ and get the project's first valid dynamic power number. See
 
 Newest first. Keep the last eight entries here and move older ones to
 [docs/handoff-log.md](docs/handoff-log.md).
+
+### 2026-10-01 — Codex — received E4M3 and signoff handoff
+
+**Started.** Confirmed clean synchronized `master` at `2b7fe73`, read Claude's
+E4M3 implementation and corrected integrated-area result, and claimed the
+in-flight `m2-signoff-hold` run. It is still active in detailed routing. The
+next code task after recording that result is one-byte E4M3 scale storage and
+eight scales per input beat, with protocol, model, tests, and measured records
+updated together.
 
 ### 2026-10-01 — Claude (Opus 5) — E4M3 selectable end to end; area claim corrected
 
@@ -477,22 +487,5 @@ things the abstract-level page had wrong, all recorded in
 
 **In flight.** The resumed `m2-block-stream-grt-30ns` global-route run; see
 the entry below for how to check it.
-
-### 2026-09-29 — Codex — M2 physical checkpoint stopped for handoff
-
-**Stopped cleanly at the owner's five-minute boundary.** Same-flow wire-free
-synthesis maps `bb85cde` to 53,137 cells and 257,922.37 um2: 29,251 fewer cells
-than pre-M2, with area 0.15% higher because the FP32 adder remains. A LibreLane
-3.0.14 run completed synthesis, global placement, repair, and detailed
-placement, then was interrupted during CTS. Pre-CTS minimum period is 45.41 ns;
-there is no routing or signoff result yet.
-
-**Resume.** Evidence is in ignored
-`build/librelane/m2-block-stream-grt-30ns/`. Re-run
-`SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-block-stream-grt-30ns 30 global-route`
-for a clean completed checkpoint. The values already obtained are committed in
-`docs/results/data/m2-block-stream-checkpoint.csv`. All RTL verification was
-completed and pushed in `bb85cde`; only documentation from this physical
-checkpoint is in the handoff commit.
 
 Older entries are in [docs/handoff-log.md](docs/handoff-log.md).
