@@ -22,7 +22,11 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-uv venv --allow-existing --python 3.12 "$venv"
+# --managed-python pins a uv-managed interpreter. A venv built against the
+# system python breaks silently when the distribution upgrades it: the
+# interpreter symlink dangles and every run fails with "No such file or
+# directory". Re-running this script repairs that.
+uv venv --allow-existing --managed-python --python 3.12 "$venv"
 uv pip install --python "$venv/bin/python" \
     "librelane==$LIBRELANE_VERSION" "ciel==$CIEL_VERSION"
 

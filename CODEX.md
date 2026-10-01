@@ -150,7 +150,7 @@ Updated 2026-09-29 by Codex.
   at -1.6856 ns.** Recorded in `docs/results/physical-design.md` and
   `docs/results/data/m2-signoff-40ns.csv`. The run stopped before Magic and
   KLayout DRC, LVS, and GDS, so the M2 gate is **not** met.
-- **In flight, started 2026-10-01 and detached.** `m2-signoff-hold`, the
+- **In flight, relaunched 2026-10-01 after a toolchain repair.** `m2-signoff-hold`, the
   hold-margin signoff run described below. It survives the session that launched
   it. Check `build/m2-signoff-hold.out`,
   `build/librelane/m2-signoff-hold/pnr.log`, and whether
@@ -186,6 +186,13 @@ Updated 2026-09-29 by Codex.
 
 
 ### Gotchas
+
+- **The LibreLane venv breaks when the system python upgrades.** This machine
+  moved from python3.12 to 3.14, which left the venv's interpreter symlink
+  dangling, and every run failed with "No such file or directory" even though
+  `ls` showed the file. `scripts/install_librelane.sh` now builds the venv
+  against a uv-managed interpreter and repairs it when re-run; run it first if
+  any LibreLane command fails that way.
 
 - OpenLane's Yosys 0.38 rejects `automatic` variables inside procedural blocks,
   though Verilator accepts them. Use module-level signals.
