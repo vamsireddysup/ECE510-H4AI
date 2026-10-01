@@ -119,6 +119,16 @@ Updated 2026-10-01 by Codex.
   the design**, inserted to repair the 1,838 hold violations that the input
   delay fabricated. One wrong constraint explains the hold result, a tenth of
   the cell count, and most of the slew failures.
+- **The 6 antenna nets and 7 pins are real but small.** Not a reporting
+  artifact: the checker's `Required ratio: 0.00` lines mean the LEF defines no
+  such rule, the defined gate-area rules pass wide (0.12 of 3.00 on `mcon`), and
+  the 7 explicit `(VIOLATED)` markers are all **metal side-area ratio** against
+  a defined 400 limit, 431.23 to 1274.70, on met2 and met3. Repair already cut
+  this from 467 nets with 813 jumpers. **Four of the six nets are
+  repair-inserted buffers**, the same pattern as the slew violations. The M2
+  gate allows antenna to be "resolved or explicitly accepted"; 7 pins at up to
+  3.19x is defensible, but decide after the corrected run, since those nets may
+  not survive a flow that inserts far fewer buffers.
 - **A stronger clock driving cell is not the answer.** Checked on the frozen
   netlist before spending a run: `SYNTH_CLK_DRIVING_CELL=clkbuf_16/X` removes
   exactly the two clock-input pins and nothing else, 272 to 270. Keep it for

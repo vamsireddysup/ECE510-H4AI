@@ -975,3 +975,37 @@ nothing else, 272 slew violations to 270. It is worth keeping for the insertion
 delay it may save when CTS is free to rebuild the tree, but it is a small effect
 and it is confounded with the constraint change, so it is deliberately left out
 of the next run.
+
+## The antenna violations are real, small, and mostly on repair buffers
+
+The remaining 6 net and 7 pin antenna violations are genuine, not a reporting
+artifact. The checker's full layer breakdown is easy to misread: most
+`Required ratio` lines print `0.00`, which means the Sky130 LEF defines no such
+rule for that layer rather than a zero threshold, and the gate-area rules that
+are defined pass with wide margin, for example 0.12 against 3.00 on `mcon` and
+0.09 against 6.00 on `via`. The actual failures carry an explicit `(VIOLATED)`
+marker, and there are exactly 7 of them, all on the **metal side-area ratio**
+against a defined limit of 400:
+
+| Net | Pin | Layer | Ratio / limit |
+| --- | --- | --- | ---: |
+| `net2394` | `_053199_/A1` | met3 | 1274.70 / 400 |
+| `_014200_` | `_053028_/B2` | met3 | 698.68 / 400 |
+| `net2250` | `_052390_/A1` | met3 | 670.64 / 400 |
+| `_014074_` | `_054053_/A2` | met3 | 469.58 / 400 |
+| `_014074_` | `_054209_/A1` | met3 | 469.58 / 400 |
+| `net5298` | `wire5302/A` | met2 | 433.73 / 400 |
+| `net2197` | `_055886_/A1` | met2 | 431.23 / 400 |
+
+They are between 1.08 and 3.19 times the limit, on long met2 and met3 runs, and
+detailed-route antenna repair already brought the count down from 467 nets and
+661 pins by inserting 813 jumpers. Four of the six nets are `netNNNN` or
+`wireNNNN` names, which is to say they belong to **repair-inserted buffers**,
+including `wire5302` on a `buf_4`. That is the same pattern as the slew
+violations: what remains after repair is mostly sitting on what repair added.
+
+This is the smallest of the three open gate items and the M2 gate allows
+antenna to be "resolved or explicitly accepted". Seven pins at up to 3.19 times
+a side-area ratio on a 1,800 um die is a defensible acceptance, but it should be
+decided after the corrected run, not before, because the nets involved may not
+survive a flow that inserts far fewer repair buffers.
