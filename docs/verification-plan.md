@@ -11,6 +11,7 @@ pre-commit set: `check-docs`, `lint`, `test-model`, `test-integration`.
 | Check | Command | Proves | Does not prove |
 | --- | --- | --- | --- |
 | Documentation structure | `make check-docs` | One H1 per active document, every relative link resolves, every document has a `## Related` block and is reachable from `README.md` | That the prose is accurate |
+| Unit arithmetic | `make test-unit` | `score_scaler`'s FP32 path reproduces two chained single-precision roundings, and its E4M3 path is exact, each over 4,000 random accumulator and scale pairs against an independent double-precision reference | Anything above one score lane, or the rest of the datapath |
 | RTL lint | `make lint` | Eleven parameter sets elaborate clean under `-Wall`, including both protocols, Bs=16, widened 8x8/16x16 scalers, and `ENGINES=2/4/8` | Functional correctness |
 | Reference model | `make test-model` | The Python FP4 decode, encode, and `QK^T` model agrees with the 256-entry RTL product ROM on all 256 input pairs, and rejects malformed shapes | That the RTL matches the model; the integration test does that |
 | Cycle model | `python3 scripts/cycle_model.py` | The closed-form model reproduces all 32 measured configurations exactly, single-engine and replicated, and every input-beat count | Anything about a configuration not in its table |
@@ -58,8 +59,9 @@ strobes; and stable read data held under backpressure.
 
 ## Gaps, stated plainly
 
-There are no unit tests. `tb/unit/` does not exist, so arithmetic blocks are only
-covered through the full top.
+Unit coverage is thin. `tb/unit/` now holds one check, for `score_scaler`'s two
+scale formats; every other arithmetic block is still covered only through the
+full top.
 
 Simulation assertions cover stalled-output stability, ping-pong bank ownership,
 output-bank ordering, legal output indices, and frontend transitions. They are

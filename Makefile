@@ -11,6 +11,7 @@ help:
 	  '  make lint            Lint the active RTL source tree' \
 	  '  make baseline        Reproduce the historical M4 numeric result' \
 	  '  make baseline-strict Require numeric and completion-status checks' \
+	  '  make test-unit       Unit-check the scaler arithmetic blocks' \
 	  '  make test-model      Test the FP4 and QK^T reference model' \
 	  '  make test-integration Run the active 4x4 end-to-end test' \
 	  '  make test-integration-large Run T=64/128/512, D_HEAD=64' \
@@ -40,6 +41,9 @@ baseline:
 
 baseline-strict:
 	@./scripts/run_m4_baseline.sh --strict
+
+test-unit:
+	@./scripts/run_unit.sh
 
 test-model:
 	@python3 -m pytest model/tests
@@ -80,7 +84,7 @@ report-sim:
 	@python3 scripts/summarize_sim.py > build/integration/summary.csv
 	@printf 'Simulation summary: build/integration/summary.csv\n'
 
-test: check-docs lint test-model test-integration
+test: check-docs lint test-unit test-model test-integration
 
 clean:
 	@./scripts/clean.sh

@@ -12,6 +12,7 @@ All of them run from the repository root.
 | `check_markdown.py` | `make check-docs` | Python 3.10+ | stdout only |
 | `lint.sh` | `make lint` | Verilator | stdout only; lints eleven parameter sets |
 | `read_filelist.sh` | sourced by `lint.sh` and `run_integration.sh` | nothing | nothing; exports `RTL_SOURCES` from [`rtl/filelist.f`](../rtl/filelist.f) |
+| `run_unit.sh` | `make test-unit` or `./scripts/run_unit.sh` | Verilator, g++ | both `score_scaler` scale formats against a double-precision reference, as `build/unit/score-scaler-*/run.log` |
 | `run_integration.sh` | the `test-integration*`, `test-array8*`, and `test-array16*` targets | Verilator, g++ | `build/integration/b<tile>-t<tmax>-d<depth>-reuse<reuse>-sb<block>-sl<lanes>/{build,run}.log` |
 | `generate_precision_capture.py` | `make test-precision-rtl` | pinned NumPy | `build/precision-rtl/t512-bs16.bin` |
 | `run_precision_rtl.sh` | `make test-precision-rtl` | Verilator, g++, pinned NumPy | `build/precision-rtl/{build,run}.log` |
