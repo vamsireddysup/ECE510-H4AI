@@ -54,8 +54,7 @@ directory, and how to check its result.
 
 ## Lock
 
-Active agent: Codex, 2026-10-01. Owning the in-flight hold-margin signoff run,
-then narrowing E4M3 scale storage.
+Active agent: none. Last owner: Codex, 2026-10-01.
 
 ## Current state
 
@@ -272,7 +271,7 @@ run manifest. A generated configuration with `SCALE_FORMAT=1` contains the
 expected parameter, so the routed E4M3 comparison can no longer silently build
 the FP32 default.
 
-**In flight.** The full routed comparison is running as
+**Stopped at owner request.** The full routed comparison was run as
 `build/librelane/m2-e4m3-signoff-40ns` from revision `86a94ab`:
 
 ```text
@@ -282,11 +281,15 @@ GRT_RESIZER_SETUP_SLACK_MARGIN=0.05 SYNTH_CLOCK_PERIOD=8 \
 ./scripts/run_librelane.sh m2-e4m3-signoff-40ns 40 full
 ```
 
-Check `synth.log`, then `pnr.log`; record the final metrics and rerun
-`make gate-power RUN=m2-e4m3-signoff-40ns` if final SPEF is produced. Default
-selection waits for timing, area, and signoff evidence from this run.
+The process was terminated cleanly when the owner requested a stop. It reached
+detailed-routing optimization in step 35 and therefore produced no final state,
+SPEF, GDS, or signoff metrics. `pnr.log` ends with `Aborted!`. Resume by rerunning
+the exact command above; the script uses `--overwrite`, so it restarts the named
+run. After completion, record final metrics and run
+`make gate-power RUN=m2-e4m3-signoff-40ns`. Default selection still waits for
+timing, area, and signoff evidence.
 
-**30-minute checkpoint.** Synthesis completed in 2 min 29 s. Global route is
+**Last completed checkpoint.** Synthesis completed in 2 min 29 s. Global route is
 complete with zero overflow on every layer, 19.95% aggregate routing use,
 4,070,461 um wirelength, 104,575 standard cells, and 723,982 um2 standard-cell
 area after CTS hold repair. The flow is in antenna repair: the initial check
