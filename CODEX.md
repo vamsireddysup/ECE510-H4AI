@@ -167,6 +167,22 @@ Updated 2026-10-01 by Codex.
   SYNTH_CLOCK_PERIOD=8 ./scripts/run_librelane.sh m2-signoff-fixed-io 40 full
   ```
 
+  **Interim checkpoint, measured, step 28 of 80 against the same step of
+  `m2-signoff-hold`.** The prediction holds at this stage. These are
+  **intermediate values, not signoff numbers**; do not quote them as final or
+  compare them against another run's final metrics.
+
+  | Metric, step 28 | `m2-signoff-hold` | `m2-signoff-fixed-io` | Change |
+  | --- | ---: | ---: | ---: |
+  | Hold buffers | 12,743 | **3,303** | -74.1% |
+  | Timing-repair buffers | 19,237 | 10,164 | -47.2% |
+  | Standard cells | 128,911 | 120,556 | -6.5% |
+  | Standard-cell area, um2 | 1,000,760 | 919,119 | **-8.2%** |
+
+  So correcting one constraint removed 9,440 hold buffers and 8.2% of
+  standard-cell area. Pre-PnR hold also starts positive at **+0.4007 ns**. The
+  run was at step 35, detailed routing, when this was written.
+
   **Predicted:** far fewer than 12,743 hold buffers, less than 1.00373 mm2 of
   standard-cell area, fewer than 15,977 slew violations, hold non-negative at
   all nine corners, and setup unchanged near +9.4961 ns. Record the outcome
